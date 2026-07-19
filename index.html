@@ -591,50 +591,6 @@
   .empty-state-icon { font-size: 2.5rem; margin-bottom: 0.75rem; opacity: 0.4; }
   .empty-state-text { font-size: 0.88rem; }
 
-  /* ── Admin Screen ── */
-  #admin-screen {
-    min-height: 100vh;
-    display: flex; align-items: center; justify-content: center;
-    background: var(--navy);
-  }
-  .admin-panel {
-    background: var(--navy-mid);
-    border: 1px solid rgba(31,184,195,0.18);
-    border-radius: var(--radius-lg);
-    padding: 2rem;
-    width: 100%;
-    max-width: 640px;
-    box-shadow: 0 24px 64px rgba(0,0,0,0.5);
-  }
-  .admin-panel h2 { color: white; font-size: 1.2rem; margin-bottom: 0.25rem; }
-  .admin-panel p  { color: #5A7A92; font-size: 0.82rem; margin-bottom: 1.5rem; }
-  .admin-field { margin-bottom: 1rem; }
-  .admin-field label { color: #5A7A92; }
-  .admin-field input, .admin-field textarea, .admin-field select {
-    background: rgba(255,255,255,0.05);
-    border-color: rgba(255,255,255,0.1);
-    color: white;
-  }
-  .admin-field input::placeholder,
-  .admin-field textarea::placeholder { color: #4A6072; }
-  .admin-field input:focus,
-  .admin-field textarea:focus { border-color: var(--teal); }
-  .admin-back { color: #5A7A92; font-size: 0.82rem; cursor: pointer; }
-  .admin-back:hover { color: var(--teal); }
-  .admin-update-list { margin-top: 1.5rem; }
-  .admin-update-item {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: var(--radius-sm);
-    padding: 0.75rem 1rem;
-    margin-bottom: 0.5rem;
-    display: flex; gap: 0.75rem; align-items: flex-start;
-  }
-  .admin-update-item-text { flex: 1; color: #B8CFDF; font-size: 0.82rem; }
-  .admin-update-item-date { color: #4A6072; font-size: 0.72rem; }
-  .btn-del { background: none; border: none; color: #E74C3C; cursor: pointer; opacity: 0.6; }
-  .btn-del:hover { opacity: 1; }
-
   /* Profile tab */
   .profile-avatar-lg {
     width: 72px; height: 72px;
@@ -674,7 +630,6 @@
       </div>
       <button class="btn-auth" onclick="doLogin()">Sign In</button>
       <div class="auth-toggle">No account yet? <a href="#" onclick="switchToRegister(event)">Create one here</a></div>
-      <div class="auth-toggle" style="margin-top:0.5rem"><a href="#" onclick="showAdmin(event)" style="color:#2A4A62;font-size:0.75rem">Admin Panel</a></div>
     </div>
 
     <!-- Register Form -->
@@ -701,40 +656,6 @@
       <button class="btn-auth" onclick="doRegister()">Create Account</button>
       <div class="auth-toggle">Already registered? <a href="#" onclick="switchToLogin(event)">Sign in</a></div>
     </div>
-  </div>
-</div>
-
-<!-- ─── Admin Screen ─── -->
-<div id="admin-screen" class="hidden">
-  <div class="admin-panel">
-    <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1.5rem">
-      <div class="auth-logo-mark" style="width:32px;height:32px;font-size:0.85rem">AW</div>
-      <span style="color:#5A7A92;font-size:0.82rem">Admin Panel</span>
-      <span class="ml-auto admin-back" onclick="backFromAdmin()">← Back to Login</span>
-    </div>
-    <h2>Post an Update</h2>
-    <p>Updates will appear at the top of your assistant's dashboard.</p>
-    <div id="admin-error" class="auth-error hidden"></div>
-    <div class="admin-field">
-      <label style="color:#5A7A92">Admin Password</label>
-      <input type="password" id="admin-pass" placeholder="Enter admin password">
-    </div>
-    <div class="admin-field">
-      <label style="color:#5A7A92">Update Type</label>
-      <select id="admin-update-type" style="background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.1);color:white">
-        <option value="General">General</option>
-        <option value="Priority">Priority</option>
-        <option value="Reminder">Reminder</option>
-        <option value="Task">Task</option>
-      </select>
-    </div>
-    <div class="admin-field">
-      <label style="color:#5A7A92">Message</label>
-      <textarea id="admin-update-msg" rows="3" placeholder="Write your update here..." style="background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.1);color:white;resize:vertical"></textarea>
-    </div>
-    <button class="btn-auth" onclick="postUpdate()">Post Update</button>
-
-    <div class="admin-update-list" id="admin-update-list"></div>
   </div>
 </div>
 
@@ -1159,7 +1080,6 @@
 // ──────────────────────────────────────────────
 // STATE
 // ──────────────────────────────────────────────
-const ADMIN_PASSWORD = 'AthanAdmin2024!';
 
 function getUsers()   { try { return JSON.parse(localStorage.getItem('aw_users') || '{}'); } catch { return {}; } }
 function setUsers(u)  { localStorage.setItem('aw_users', JSON.stringify(u)); }
@@ -1754,58 +1674,6 @@ function changePassword() {
   toast('✓ Password changed successfully.');
 }
 
-// ──────────────────────────────────────────────
-// ADMIN PANEL
-// ──────────────────────────────────────────────
-function showAdmin(e) {
-  e && e.preventDefault();
-  document.getElementById('auth-screen').classList.add('hidden');
-  document.getElementById('admin-screen').classList.remove('hidden');
-  renderAdminUpdates();
-}
-
-function backFromAdmin() {
-  document.getElementById('admin-screen').classList.add('hidden');
-  document.getElementById('auth-screen').classList.remove('hidden');
-}
-
-function postUpdate() {
-  const pass = document.getElementById('admin-pass').value;
-  const msg  = document.getElementById('admin-update-msg').value.trim();
-  const type = document.getElementById('admin-update-type').value;
-  const err  = document.getElementById('admin-error');
-  err.classList.add('hidden');
-  if (pass !== ADMIN_PASSWORD) { showErr(err, 'Incorrect admin password.'); return; }
-  if (!msg) { showErr(err, 'Please write a message.'); return; }
-  const updates = getUpdates();
-  updates.unshift({ id: Date.now(), msg, type, date: new Date().toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'}), time: new Date().toLocaleTimeString() });
-  setUpdates(updates);
-  document.getElementById('admin-update-msg').value = '';
-  toast('✓ Update posted!');
-  renderAdminUpdates();
-}
-
-function deleteUpdate(id) {
-  const updates = getUpdates().filter(u => u.id !== id);
-  setUpdates(updates);
-  renderAdminUpdates();
-}
-
-function renderAdminUpdates() {
-  const updates = getUpdates();
-  const el = document.getElementById('admin-update-list');
-  if (updates.length === 0) { el.innerHTML = '<div style="color:#4A6072;font-size:0.82rem;margin-top:1rem">No updates posted yet.</div>'; return; }
-  el.innerHTML = `<div style="color:#5A7A92;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:0.75rem">Posted Updates</div>` +
-    updates.map(u => `
-      <div class="admin-update-item">
-        <div class="admin-update-item-text">
-          <span style="color:var(--teal);font-size:0.7rem;font-weight:700;text-transform:uppercase">${esc(u.type)}</span>
-          <div>${esc(u.msg)}</div>
-          <div class="admin-update-item-date">${u.date}</div>
-        </div>
-        <button class="btn-del" onclick="deleteUpdate(${u.id})">✕</button>
-      </div>`).join('');
-}
 
 // ──────────────────────────────────────────────
 // THEME
