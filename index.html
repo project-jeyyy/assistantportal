@@ -1,0 +1,1840 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Athan Workflow — Assistant Portal</title>
+<style>
+  /* ── Tokens ── */
+  :root {
+    --navy:       #0B1929;
+    --navy-mid:   #132337;
+    --navy-card:  #1A2E45;
+    --teal:       #1FB8C3;
+    --teal-dim:   #17949D;
+    --teal-glow:  rgba(31,184,195,0.15);
+    --gold:       #F5A623;
+    --white:      #FFFFFF;
+    --off-white:  #F4F7FA;
+    --text-primary:   #1A2E45;
+    --text-secondary: #4A6072;
+    --text-muted:     #8FA3B3;
+    --border:         #DCE6ED;
+    --card-bg:        #FFFFFF;
+    --page-bg:        #F0F4F8;
+    --sidebar-bg:     #0B1929;
+    --sidebar-text:   #8FAABF;
+    --sidebar-active: #FFFFFF;
+    --input-bg:       #FFFFFF;
+    --input-border:   #C8D8E4;
+    --success:    #27AE60;
+    --warning:    #F5A623;
+    --danger:     #E74C3C;
+    --info:       #1FB8C3;
+    --shadow-sm:  0 1px 3px rgba(11,25,41,0.08);
+    --shadow-md:  0 4px 16px rgba(11,25,41,0.12);
+    --shadow-lg:  0 8px 32px rgba(11,25,41,0.16);
+    --radius-sm:  6px;
+    --radius-md:  10px;
+    --radius-lg:  16px;
+    --font:       -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+    --font-mono:  'SF Mono', 'Fira Code', monospace;
+    --transition: 0.2s ease;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --text-primary:   #E8F0F7;
+      --text-secondary: #8FAABF;
+      --text-muted:     #4A6072;
+      --border:         #1E3248;
+      --card-bg:        #132337;
+      --page-bg:        #0B1929;
+      --input-bg:       #0F2035;
+      --input-border:   #1E3248;
+      --shadow-sm:  0 1px 3px rgba(0,0,0,0.3);
+      --shadow-md:  0 4px 16px rgba(0,0,0,0.4);
+      --shadow-lg:  0 8px 32px rgba(0,0,0,0.5);
+    }
+  }
+  :root[data-theme="dark"] {
+    --text-primary:   #E8F0F7;
+    --text-secondary: #8FAABF;
+    --text-muted:     #4A6072;
+    --border:         #1E3248;
+    --card-bg:        #132337;
+    --page-bg:        #0B1929;
+    --input-bg:       #0F2035;
+    --input-border:   #1E3248;
+    --shadow-sm:  0 1px 3px rgba(0,0,0,0.3);
+    --shadow-md:  0 4px 16px rgba(0,0,0,0.4);
+    --shadow-lg:  0 8px 32px rgba(0,0,0,0.5);
+  }
+  :root[data-theme="light"] {
+    --text-primary:   #1A2E45;
+    --text-secondary: #4A6072;
+    --text-muted:     #8FA3B3;
+    --border:         #DCE6ED;
+    --card-bg:        #FFFFFF;
+    --page-bg:        #F0F4F8;
+    --input-bg:       #FFFFFF;
+    --input-border:   #C8D8E4;
+    --shadow-sm:  0 1px 3px rgba(11,25,41,0.08);
+    --shadow-md:  0 4px 16px rgba(11,25,41,0.12);
+    --shadow-lg:  0 8px 32px rgba(11,25,41,0.16);
+  }
+
+  /* ── Reset ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 15px; }
+  body {
+    font-family: var(--font);
+    background: var(--page-bg);
+    color: var(--text-primary);
+    line-height: 1.6;
+    min-height: 100vh;
+    transition: background var(--transition), color var(--transition);
+  }
+  a { color: var(--teal); text-decoration: none; }
+  button { cursor: pointer; font-family: var(--font); }
+  input, textarea, select {
+    font-family: var(--font);
+    font-size: 0.9rem;
+    background: var(--input-bg);
+    color: var(--text-primary);
+    border: 1.5px solid var(--input-border);
+    border-radius: var(--radius-sm);
+    padding: 0.6rem 0.85rem;
+    width: 100%;
+    outline: none;
+    transition: border-color var(--transition), box-shadow var(--transition);
+  }
+  input:focus, textarea:focus, select:focus {
+    border-color: var(--teal);
+    box-shadow: 0 0 0 3px var(--teal-glow);
+  }
+  label { font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.06em; display: block; margin-bottom: 0.35rem; }
+  h1,h2,h3,h4 { text-wrap: balance; color: var(--text-primary); line-height: 1.25; }
+
+  /* ── Utility ── */
+  .hidden { display: none !important; }
+  .flex { display: flex; }
+  .items-center { align-items: center; }
+  .gap-2 { gap: 0.5rem; }
+  .gap-3 { gap: 0.75rem; }
+  .ml-auto { margin-left: auto; }
+  .text-muted { color: var(--text-muted); font-size: 0.82rem; }
+  .text-teal { color: var(--teal); }
+  .badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 0.18rem 0.6rem; border-radius: 99px;
+    font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+  }
+  .badge-success { background: rgba(39,174,96,0.12); color: var(--success); }
+  .badge-warning { background: rgba(245,166,35,0.12); color: var(--warning); }
+  .badge-danger  { background: rgba(231,76,60,0.12);  color: var(--danger);  }
+  .badge-info    { background: rgba(31,184,195,0.12); color: var(--teal);    }
+  .badge-muted   { background: var(--border); color: var(--text-muted); }
+
+  /* ── Auth Screen ── */
+  #auth-screen {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--navy);
+    position: relative;
+    overflow: hidden;
+  }
+  #auth-screen::before {
+    content: '';
+    position: absolute;
+    width: 600px; height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(31,184,195,0.08) 0%, transparent 70%);
+    top: -100px; right: -100px;
+    pointer-events: none;
+  }
+  #auth-screen::after {
+    content: '';
+    position: absolute;
+    width: 400px; height: 400px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(31,184,195,0.05) 0%, transparent 70%);
+    bottom: -80px; left: -80px;
+    pointer-events: none;
+  }
+  .auth-box {
+    background: var(--navy-mid);
+    border: 1px solid rgba(31,184,195,0.18);
+    border-radius: var(--radius-lg);
+    padding: 2.5rem;
+    width: 100%;
+    max-width: 420px;
+    position: relative;
+    z-index: 1;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+  }
+  .auth-logo {
+    display: flex; align-items: center; gap: 0.75rem;
+    margin-bottom: 2rem;
+  }
+  .auth-logo-mark {
+    width: 40px; height: 40px;
+    background: linear-gradient(135deg, var(--teal), var(--teal-dim));
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; font-weight: 800; color: white;
+  }
+  .auth-logo-text { color: white; font-weight: 700; font-size: 1rem; line-height: 1.2; }
+  .auth-logo-sub  { color: var(--teal); font-size: 0.72rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; }
+  .auth-title { color: white; font-size: 1.4rem; font-weight: 700; margin-bottom: 0.4rem; }
+  .auth-sub   { color: #5A7A92; font-size: 0.85rem; margin-bottom: 1.75rem; }
+  .auth-field { margin-bottom: 1.1rem; }
+  .auth-field input {
+    background: rgba(255,255,255,0.05);
+    border-color: rgba(255,255,255,0.1);
+    color: white;
+  }
+  .auth-field input::placeholder { color: #4A6072; }
+  .auth-field input:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(31,184,195,0.15); }
+  .auth-field label { color: #5A7A92; }
+  .btn-auth {
+    width: 100%; padding: 0.75rem;
+    background: linear-gradient(135deg, var(--teal), var(--teal-dim));
+    color: white; border: none;
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem; font-weight: 700;
+    letter-spacing: 0.03em;
+    margin-top: 0.5rem;
+    transition: opacity var(--transition), transform var(--transition);
+  }
+  .btn-auth:hover { opacity: 0.9; transform: translateY(-1px); }
+  .auth-toggle { text-align: center; margin-top: 1.25rem; color: #5A7A92; font-size: 0.82rem; }
+  .auth-toggle a { color: var(--teal); font-weight: 600; }
+  .auth-error {
+    background: rgba(231,76,60,0.15); border: 1px solid rgba(231,76,60,0.3);
+    color: #E74C3C; border-radius: var(--radius-sm);
+    padding: 0.6rem 0.85rem; font-size: 0.82rem; margin-bottom: 1rem;
+  }
+
+  /* ── App Shell ── */
+  #app-shell {
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: 230px;
+    flex-shrink: 0;
+    background: var(--navy);
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    z-index: 100;
+    transition: transform var(--transition);
+  }
+  .sidebar-header {
+    padding: 1.5rem 1.25rem 1rem;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+  }
+  .sidebar-brand {
+    display: flex; align-items: center; gap: 0.65rem;
+  }
+  .sidebar-mark {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, var(--teal), var(--teal-dim));
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.85rem; font-weight: 800; color: white; flex-shrink: 0;
+  }
+  .sidebar-brand-name { color: white; font-size: 0.9rem; font-weight: 700; line-height: 1.1; }
+  .sidebar-brand-role { color: var(--teal); font-size: 0.65rem; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; }
+
+  .sidebar-user {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+  }
+  .sidebar-avatar {
+    width: 38px; height: 38px;
+    background: linear-gradient(135deg, #1FB8C3, #0F7A82);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.9rem; font-weight: 800; color: white; flex-shrink: 0;
+  }
+  .sidebar-username { color: white; font-size: 0.85rem; font-weight: 600; }
+  .sidebar-usertag  { color: #4A6072; font-size: 0.72rem; }
+
+  .sidebar-nav {
+    flex: 1;
+    padding: 0.75rem 0;
+    overflow-y: auto;
+  }
+  .nav-section-label {
+    padding: 0.9rem 1.25rem 0.35rem;
+    font-size: 0.65rem; font-weight: 700;
+    color: #2A4A62; letter-spacing: 0.1em; text-transform: uppercase;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 0.65rem;
+    padding: 0.6rem 1.25rem;
+    color: #5A7A92;
+    font-size: 0.85rem; font-weight: 500;
+    cursor: pointer;
+    border-radius: 0;
+    transition: color var(--transition), background var(--transition);
+    position: relative;
+    user-select: none;
+  }
+  .nav-item:hover { color: white; background: rgba(255,255,255,0.04); }
+  .nav-item.active {
+    color: white;
+    background: rgba(31,184,195,0.12);
+  }
+  .nav-item.active::before {
+    content: '';
+    position: absolute; left: 0; top: 20%; bottom: 20%;
+    width: 3px;
+    background: var(--teal);
+    border-radius: 0 2px 2px 0;
+  }
+  .nav-icon { font-size: 1rem; width: 18px; text-align: center; flex-shrink: 0; }
+  .nav-badge {
+    margin-left: auto;
+    background: var(--teal);
+    color: white;
+    font-size: 0.65rem; font-weight: 700;
+    min-width: 18px; height: 18px;
+    border-radius: 99px;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0 4px;
+  }
+
+  .sidebar-footer {
+    padding: 1rem 1.25rem;
+    border-top: 1px solid rgba(255,255,255,0.07);
+  }
+  .clock-in-status {
+    background: rgba(31,184,195,0.08);
+    border: 1px solid rgba(31,184,195,0.2);
+    border-radius: var(--radius-sm);
+    padding: 0.65rem 0.85rem;
+    margin-bottom: 0.75rem;
+  }
+  .clock-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #4A6072; flex-shrink: 0;
+    transition: background var(--transition);
+  }
+  .clock-dot.active { background: var(--success); box-shadow: 0 0 6px rgba(39,174,96,0.5); }
+  .clock-label { color: #5A7A92; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; }
+  .clock-time  { color: white; font-size: 0.82rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .btn-clock {
+    width: 100%; padding: 0.6rem;
+    border: 1.5px solid rgba(31,184,195,0.4);
+    background: transparent; color: var(--teal);
+    border-radius: var(--radius-sm);
+    font-size: 0.82rem; font-weight: 700;
+    letter-spacing: 0.04em;
+    transition: all var(--transition);
+  }
+  .btn-clock:hover { background: var(--teal); color: white; border-color: var(--teal); }
+  .btn-clock.clocked-in { background: rgba(39,174,96,0.1); border-color: rgba(39,174,96,0.4); color: var(--success); }
+  .btn-clock.clocked-in:hover { background: var(--success); color: white; border-color: var(--success); }
+
+  /* ── Main Content ── */
+  .main {
+    margin-left: 230px;
+    flex: 1;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Top Bar ── */
+  .topbar {
+    background: var(--card-bg);
+    border-bottom: 1px solid var(--border);
+    padding: 0 1.75rem;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    position: sticky; top: 0; z-index: 50;
+    box-shadow: var(--shadow-sm);
+  }
+  .topbar-title { font-size: 1rem; font-weight: 700; }
+  .topbar-sub { color: var(--text-muted); font-size: 0.78rem; }
+  .btn-icon {
+    width: 34px; height: 34px;
+    border: 1.5px solid var(--border);
+    background: transparent;
+    color: var(--text-secondary);
+    border-radius: var(--radius-sm);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.9rem;
+    transition: all var(--transition);
+  }
+  .btn-icon:hover { border-color: var(--teal); color: var(--teal); }
+
+  /* ── Page Content ── */
+  .page-content {
+    flex: 1;
+    padding: 1.75rem;
+    max-width: 1200px;
+    width: 100%;
+  }
+
+  /* ── Page Sections (tabs) ── */
+  .page-section { display: none; }
+  .page-section.active { display: block; }
+
+  /* ── Section Header ── */
+  .section-header { margin-bottom: 1.5rem; }
+  .section-title { font-size: 1.3rem; font-weight: 800; margin-bottom: 0.2rem; }
+  .section-desc  { color: var(--text-secondary); font-size: 0.85rem; }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+  }
+  .card-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 0.75rem;
+  }
+  .card-title { font-size: 0.9rem; font-weight: 700; }
+  .card-body  { padding: 1.25rem; }
+
+  /* ── Grid ── */
+  .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+  @media (max-width: 900px) {
+    .grid-4 { grid-template-columns: repeat(2, 1fr); }
+    .grid-3 { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 600px) {
+    .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; }
+    .sidebar { transform: translateX(-100%); }
+    .main { margin-left: 0; }
+  }
+
+  /* ── Stat Tiles ── */
+  .stat-tile {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 1.1rem 1.25rem;
+    box-shadow: var(--shadow-sm);
+  }
+  .stat-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); margin-bottom: 0.5rem; }
+  .stat-value { font-size: 1.75rem; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; color: var(--text-primary); }
+  .stat-sub   { font-size: 0.78rem; color: var(--text-muted); margin-top: 0.35rem; }
+  .stat-accent { border-top: 3px solid var(--teal); }
+  .stat-success { border-top: 3px solid var(--success); }
+  .stat-warning { border-top: 3px solid var(--warning); }
+  .stat-teal-value { color: var(--teal); }
+  .stat-success-value { color: var(--success); }
+
+  /* ── Updates ── */
+  .update-pin {
+    display: flex;
+    gap: 0.85rem;
+    padding: 0.9rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .update-pin:last-child { border-bottom: none; }
+  .update-dot-col { padding-top: 0.3rem; }
+  .update-dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--teal); flex-shrink: 0;
+    box-shadow: 0 0 6px rgba(31,184,195,0.4);
+  }
+  .update-meta { font-size: 0.72rem; color: var(--text-muted); margin-bottom: 0.2rem; font-variant-numeric: tabular-nums; }
+  .update-body { font-size: 0.88rem; color: var(--text-primary); line-height: 1.5; }
+  .update-tag  { font-size: 0.7rem; font-weight: 700; color: var(--teal); text-transform: uppercase; letter-spacing: 0.06em; }
+
+  .updates-banner {
+    background: linear-gradient(135deg, var(--teal-glow), transparent);
+    border: 1px solid rgba(31,184,195,0.25);
+    border-radius: var(--radius-md);
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.25rem;
+    display: flex; align-items: center; gap: 0.75rem;
+  }
+  .updates-banner-icon { font-size: 1.25rem; flex-shrink: 0; }
+  .updates-banner-text { font-size: 0.85rem; color: var(--text-secondary); }
+  .updates-banner-text strong { color: var(--text-primary); }
+
+  /* ── Account Table ── */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  thead th {
+    padding: 0.65rem 1rem;
+    text-align: left;
+    font-size: 0.72rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.07em;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  tbody td {
+    padding: 0.8rem 1rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-primary);
+    vertical-align: middle;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: var(--page-bg); }
+  .account-name { font-weight: 600; }
+  .account-detail { font-size: 0.78rem; color: var(--text-muted); }
+
+  /* ── Issues ── */
+  .issue-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 1rem 1.25rem;
+    margin-bottom: 0.75rem;
+    background: var(--card-bg);
+    box-shadow: var(--shadow-sm);
+  }
+  .issue-type-bar {
+    width: 4px; border-radius: 2px; flex-shrink: 0;
+    align-self: stretch;
+  }
+  .issue-type-feedback { background: var(--teal); }
+  .issue-type-issue    { background: var(--danger); }
+  .issue-type-question { background: var(--warning); }
+
+  /* ── Form ── */
+  .form-field { margin-bottom: 1rem; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
+  .btn {
+    display: inline-flex; align-items: center; gap: 0.45rem;
+    padding: 0.6rem 1.25rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem; font-weight: 700;
+    border: none;
+    transition: all var(--transition);
+    cursor: pointer;
+  }
+  .btn-primary { background: var(--teal); color: white; }
+  .btn-primary:hover { background: var(--teal-dim); transform: translateY(-1px); }
+  .btn-outline {
+    background: transparent;
+    border: 1.5px solid var(--border);
+    color: var(--text-secondary);
+  }
+  .btn-outline:hover { border-color: var(--teal); color: var(--teal); }
+  .btn-danger { background: var(--danger); color: white; }
+  .btn-sm { padding: 0.4rem 0.85rem; font-size: 0.78rem; }
+  select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238FA3B3' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.85rem center;
+    padding-right: 2rem;
+    appearance: none;
+  }
+
+  /* ── Earnings ── */
+  .shift-row {
+    display: flex; align-items: center; gap: 1rem;
+    padding: 0.8rem 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.85rem;
+  }
+  .shift-row:last-child { border-bottom: none; }
+  .shift-date { width: 90px; color: var(--text-secondary); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+  .shift-time { flex: 1; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+  .shift-hours { width: 60px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text-primary); }
+  .shift-earn  { width: 80px; font-weight: 800; color: var(--success); font-variant-numeric: tabular-nums; text-align: right; }
+
+  /* ── Toast ── */
+  #toast {
+    position: fixed; bottom: 1.5rem; right: 1.5rem;
+    background: var(--navy);
+    color: white;
+    padding: 0.7rem 1.1rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.82rem; font-weight: 600;
+    box-shadow: var(--shadow-lg);
+    z-index: 9999;
+    display: flex; align-items: center; gap: 0.5rem;
+    opacity: 0; transform: translateY(8px);
+    transition: all 0.25s ease;
+    pointer-events: none;
+  }
+  #toast.show { opacity: 1; transform: translateY(0); }
+
+  /* ── Live clock ── */
+  #live-clock {
+    font-size: 0.78rem; font-weight: 600;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── Divider ── */
+  .divider { height: 1px; background: var(--border); margin: 1.25rem 0; }
+
+  /* ── Empty state ── */
+  .empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--text-muted);
+  }
+  .empty-state-icon { font-size: 2.5rem; margin-bottom: 0.75rem; opacity: 0.4; }
+  .empty-state-text { font-size: 0.88rem; }
+
+  /* ── Admin Screen ── */
+  #admin-screen {
+    min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--navy);
+  }
+  .admin-panel {
+    background: var(--navy-mid);
+    border: 1px solid rgba(31,184,195,0.18);
+    border-radius: var(--radius-lg);
+    padding: 2rem;
+    width: 100%;
+    max-width: 640px;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+  }
+  .admin-panel h2 { color: white; font-size: 1.2rem; margin-bottom: 0.25rem; }
+  .admin-panel p  { color: #5A7A92; font-size: 0.82rem; margin-bottom: 1.5rem; }
+  .admin-field { margin-bottom: 1rem; }
+  .admin-field label { color: #5A7A92; }
+  .admin-field input, .admin-field textarea, .admin-field select {
+    background: rgba(255,255,255,0.05);
+    border-color: rgba(255,255,255,0.1);
+    color: white;
+  }
+  .admin-field input::placeholder,
+  .admin-field textarea::placeholder { color: #4A6072; }
+  .admin-field input:focus,
+  .admin-field textarea:focus { border-color: var(--teal); }
+  .admin-back { color: #5A7A92; font-size: 0.82rem; cursor: pointer; }
+  .admin-back:hover { color: var(--teal); }
+  .admin-update-list { margin-top: 1.5rem; }
+  .admin-update-item {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: var(--radius-sm);
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.5rem;
+    display: flex; gap: 0.75rem; align-items: flex-start;
+  }
+  .admin-update-item-text { flex: 1; color: #B8CFDF; font-size: 0.82rem; }
+  .admin-update-item-date { color: #4A6072; font-size: 0.72rem; }
+  .btn-del { background: none; border: none; color: #E74C3C; cursor: pointer; opacity: 0.6; }
+  .btn-del:hover { opacity: 1; }
+
+  /* Profile tab */
+  .profile-avatar-lg {
+    width: 72px; height: 72px;
+    background: linear-gradient(135deg, #1FB8C3, #0F7A82);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2rem; font-weight: 800; color: white;
+    flex-shrink: 0;
+  }
+</style>
+</head>
+<body>
+
+<!-- ─── Auth Screen ─── -->
+<div id="auth-screen">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <div class="auth-logo-mark">AW</div>
+      <div>
+        <div class="auth-logo-text">Athan Workflow</div>
+        <div class="auth-logo-sub">Assistant Portal</div>
+      </div>
+    </div>
+
+    <!-- Login Form -->
+    <div id="login-form">
+      <div class="auth-title">Welcome back</div>
+      <div class="auth-sub">Sign in to your workspace</div>
+      <div id="login-error" class="auth-error hidden"></div>
+      <div class="auth-field">
+        <label>Username</label>
+        <input type="text" id="login-username" placeholder="Enter your username" autocomplete="username">
+      </div>
+      <div class="auth-field">
+        <label>Password</label>
+        <input type="password" id="login-password" placeholder="Enter your password" autocomplete="current-password">
+      </div>
+      <button class="btn-auth" onclick="doLogin()">Sign In</button>
+      <div class="auth-toggle">No account yet? <a href="#" onclick="switchToRegister(event)">Create one here</a></div>
+      <div class="auth-toggle" style="margin-top:0.5rem"><a href="#" onclick="showAdmin(event)" style="color:#2A4A62;font-size:0.75rem">Admin Panel</a></div>
+    </div>
+
+    <!-- Register Form -->
+    <div id="register-form" class="hidden">
+      <div class="auth-title">Create your account</div>
+      <div class="auth-sub">Set up your assistant workspace</div>
+      <div id="register-error" class="auth-error hidden"></div>
+      <div class="auth-field">
+        <label>Full Name</label>
+        <input type="text" id="reg-name" placeholder="Cyrel Athan Viloria" value="Cyrel Athan Viloria">
+      </div>
+      <div class="auth-field">
+        <label>Username</label>
+        <input type="text" id="reg-username" placeholder="Choose a username">
+      </div>
+      <div class="auth-field">
+        <label>Password</label>
+        <input type="password" id="reg-password" placeholder="Create a password">
+      </div>
+      <div class="auth-field">
+        <label>Confirm Password</label>
+        <input type="password" id="reg-confirm" placeholder="Repeat password">
+      </div>
+      <button class="btn-auth" onclick="doRegister()">Create Account</button>
+      <div class="auth-toggle">Already registered? <a href="#" onclick="switchToLogin(event)">Sign in</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Admin Screen ─── -->
+<div id="admin-screen" class="hidden">
+  <div class="admin-panel">
+    <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1.5rem">
+      <div class="auth-logo-mark" style="width:32px;height:32px;font-size:0.85rem">AW</div>
+      <span style="color:#5A7A92;font-size:0.82rem">Admin Panel</span>
+      <span class="ml-auto admin-back" onclick="backFromAdmin()">← Back to Login</span>
+    </div>
+    <h2>Post an Update</h2>
+    <p>Updates will appear at the top of your assistant's dashboard.</p>
+    <div id="admin-error" class="auth-error hidden"></div>
+    <div class="admin-field">
+      <label style="color:#5A7A92">Admin Password</label>
+      <input type="password" id="admin-pass" placeholder="Enter admin password">
+    </div>
+    <div class="admin-field">
+      <label style="color:#5A7A92">Update Type</label>
+      <select id="admin-update-type" style="background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.1);color:white">
+        <option value="General">General</option>
+        <option value="Priority">Priority</option>
+        <option value="Reminder">Reminder</option>
+        <option value="Task">Task</option>
+      </select>
+    </div>
+    <div class="admin-field">
+      <label style="color:#5A7A92">Message</label>
+      <textarea id="admin-update-msg" rows="3" placeholder="Write your update here..." style="background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.1);color:white;resize:vertical"></textarea>
+    </div>
+    <button class="btn-auth" onclick="postUpdate()">Post Update</button>
+
+    <div class="admin-update-list" id="admin-update-list"></div>
+  </div>
+</div>
+
+<!-- ─── App Shell ─── -->
+<div id="app-shell" class="hidden">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-brand">
+        <div class="sidebar-mark">AW</div>
+        <div>
+          <div class="sidebar-brand-name">Athan Workflow</div>
+          <div class="sidebar-brand-role">Assistant Portal</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-user">
+      <div class="flex items-center gap-2">
+        <div class="sidebar-avatar" id="sidebar-avatar-text">CA</div>
+        <div>
+          <div class="sidebar-username" id="sidebar-username">Loading...</div>
+          <div class="sidebar-usertag">Personal Assistant</div>
+        </div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Workspace</div>
+      <div class="nav-item active" data-page="overview" onclick="navigate('overview')">
+        <span class="nav-icon">⊞</span> Overview
+      </div>
+      <div class="nav-item" data-page="updates" onclick="navigate('updates')">
+        <span class="nav-icon">📌</span> Updates
+        <span class="nav-badge hidden" id="updates-badge">0</span>
+      </div>
+      <div class="nav-item" data-page="accounts" onclick="navigate('accounts')">
+        <span class="nav-icon">📁</span> Accounts
+      </div>
+      <div class="nav-item" data-page="issues" onclick="navigate('issues')">
+        <span class="nav-icon">💬</span> Issues & Questions
+        <span class="nav-badge hidden" id="issues-badge">0</span>
+      </div>
+
+      <div class="nav-section-label">My Records</div>
+      <div class="nav-item" data-page="earnings" onclick="navigate('earnings')">
+        <span class="nav-icon">₱</span> Earnings
+      </div>
+      <div class="nav-item" data-page="shifts" onclick="navigate('shifts')">
+        <span class="nav-icon">🕐</span> Shift Log
+      </div>
+      <div class="nav-item" data-page="profile" onclick="navigate('profile')">
+        <span class="nav-icon">👤</span> Profile
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="clock-in-status">
+        <div class="flex items-center gap-2" style="margin-bottom:0.35rem">
+          <div class="clock-dot" id="clock-dot"></div>
+          <span class="clock-label" id="clock-status-label">Off Shift</span>
+          <span class="ml-auto text-muted" id="live-clock"></span>
+        </div>
+        <div class="clock-time" id="clock-elapsed">—</div>
+      </div>
+      <button class="btn-clock" id="btn-clock" onclick="toggleClock()">Login</button>
+      <div style="margin-top:0.75rem">
+        <button class="btn-outline" style="width:100%;font-size:0.78rem;padding:0.5rem;color:#5A7A92;border-color:rgba(255,255,255,0.08)" onclick="doLogout()">Sign Out</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Area -->
+  <div class="main">
+    <header class="topbar">
+      <div>
+        <div class="topbar-title" id="topbar-title">Overview</div>
+        <div class="topbar-sub" id="topbar-sub">Saturday, Jul 19, 2026</div>
+      </div>
+      <div class="ml-auto flex items-center gap-2">
+        <span id="live-clock-top" style="font-size:0.82rem;color:var(--text-muted);font-variant-numeric:tabular-nums"></span>
+        <button class="btn-icon" onclick="toggleTheme()" title="Toggle theme">◑</button>
+      </div>
+    </header>
+
+    <div class="page-content">
+
+      <!-- ── Overview ── -->
+      <section id="page-overview" class="page-section active">
+        <div class="section-header">
+          <div class="section-title" id="greet-name">Good morning, Cyrel</div>
+          <div class="section-desc">Here's your workspace at a glance.</div>
+        </div>
+
+        <!-- Updates banner (preview) -->
+        <div id="overview-updates-banner" class="updates-banner hidden" onclick="navigate('updates')" style="cursor:pointer">
+          <div class="updates-banner-icon">📌</div>
+          <div class="updates-banner-text">
+            <strong id="overview-update-preview">You have new updates</strong> —
+            <span style="color:var(--teal)">View all updates →</span>
+          </div>
+        </div>
+
+        <div class="grid-4" style="margin-bottom:1.25rem">
+          <div class="stat-tile stat-accent">
+            <div class="stat-label">Total Accounts</div>
+            <div class="stat-value" id="stat-accounts">0</div>
+            <div class="stat-sub">Managed</div>
+          </div>
+          <div class="stat-tile stat-success">
+            <div class="stat-label">Active</div>
+            <div class="stat-value stat-success-value" id="stat-active">0</div>
+            <div class="stat-sub">Accounts</div>
+          </div>
+          <div class="stat-tile stat-warning">
+            <div class="stat-label">Hours Today</div>
+            <div class="stat-value" id="stat-hours-today">0.0</div>
+            <div class="stat-sub">Logged</div>
+          </div>
+          <div class="stat-tile" style="border-top:3px solid var(--gold)">
+            <div class="stat-label">This Month</div>
+            <div class="stat-value stat-teal-value" id="stat-month-earn">₱0</div>
+            <div class="stat-sub">Earnings</div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Recent Activity</span>
+            </div>
+            <div class="card-body" id="recent-activity">
+              <div class="empty-state">
+                <div class="empty-state-icon">📋</div>
+                <div class="empty-state-text">No recent activity yet.</div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Latest Updates</span>
+            </div>
+            <div class="card-body" id="overview-updates-list">
+              <div class="empty-state">
+                <div class="empty-state-icon">📌</div>
+                <div class="empty-state-text">No updates yet.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Updates ── -->
+      <section id="page-updates" class="page-section">
+        <div class="section-header">
+          <div class="section-title">Updates</div>
+          <div class="section-desc">Messages and announcements from the admin.</div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">📌 All Updates</span>
+          </div>
+          <div class="card-body" id="updates-list">
+            <div class="empty-state">
+              <div class="empty-state-icon">📭</div>
+              <div class="empty-state-text">No updates posted yet. Check back soon.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Accounts ── -->
+      <section id="page-accounts" class="page-section">
+        <div class="section-header flex items-center" style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <div class="section-title">Accounts</div>
+            <div class="section-desc">All client accounts and their current status.</div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="openAddAccount()">+ Add Account</button>
+        </div>
+
+        <!-- Add Account Form -->
+        <div id="add-account-form" class="card hidden" style="margin-bottom:1.25rem">
+          <div class="card-header">
+            <span class="card-title">Add New Account</span>
+            <button class="btn btn-outline btn-sm ml-auto" onclick="closeAddAccount()">Cancel</button>
+          </div>
+          <div class="card-body">
+            <div class="form-row">
+              <div class="form-field">
+                <label>Client / Account Name</label>
+                <input type="text" id="acc-name" placeholder="e.g. Smith Enterprises">
+              </div>
+              <div class="form-field">
+                <label>Type / Category</label>
+                <input type="text" id="acc-type" placeholder="e.g. Bookkeeping">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-field">
+                <label>Status</label>
+                <select id="acc-status">
+                  <option value="Active">Active</option>
+                  <option value="Pending">Pending</option>
+                  <option value="On Hold">On Hold</option>
+                  <option value="Closed">Closed</option>
+                </select>
+              </div>
+              <div class="form-field">
+                <label>Notes</label>
+                <input type="text" id="acc-notes" placeholder="Optional notes">
+              </div>
+            </div>
+            <button class="btn btn-primary" onclick="addAccount()">Save Account</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Account / Client</th>
+                  <th>Type</th>
+                  <th>Status</th>
+                  <th>Added</th>
+                  <th>Notes</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="accounts-table-body">
+                <tr><td colspan="7"><div class="empty-state"><div class="empty-state-icon">📁</div><div class="empty-state-text">No accounts yet. Add your first one above.</div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Issues & Questions ── -->
+      <section id="page-issues" class="page-section">
+        <div class="section-header">
+          <div class="section-title">Issues & Questions</div>
+          <div class="section-desc">Submit feedback, report issues, or ask questions.</div>
+        </div>
+
+        <div class="grid-2" style="align-items:start">
+          <div>
+            <div class="card" style="margin-bottom:1.25rem">
+              <div class="card-header"><span class="card-title">Submit New</span></div>
+              <div class="card-body">
+                <div class="form-field">
+                  <label>Type</label>
+                  <select id="issue-type">
+                    <option value="question">❓ Question</option>
+                    <option value="issue">🚨 Issue / Problem</option>
+                    <option value="feedback">💡 Feedback</option>
+                  </select>
+                </div>
+                <div class="form-field">
+                  <label>Subject</label>
+                  <input type="text" id="issue-subject" placeholder="Brief subject line">
+                </div>
+                <div class="form-field">
+                  <label>Details</label>
+                  <textarea id="issue-body" rows="4" placeholder="Describe in detail..." style="resize:vertical"></textarea>
+                </div>
+                <div class="form-field">
+                  <label>Priority</label>
+                  <select id="issue-priority">
+                    <option value="Normal">Normal</option>
+                    <option value="High">High</option>
+                    <option value="Urgent">Urgent</option>
+                  </select>
+                </div>
+                <button class="btn btn-primary" onclick="submitIssue()">Submit</button>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="card">
+              <div class="card-header"><span class="card-title">Submitted</span></div>
+              <div class="card-body" id="issues-list" style="padding:0.75rem">
+                <div class="empty-state">
+                  <div class="empty-state-icon">💬</div>
+                  <div class="empty-state-text">Nothing submitted yet.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Earnings ── -->
+      <section id="page-earnings" class="page-section">
+        <div class="section-header">
+          <div class="section-title">Earnings</div>
+          <div class="section-desc">Your tracked hours and total compensation.</div>
+        </div>
+
+        <div class="grid-4" style="margin-bottom:1.25rem">
+          <div class="stat-tile stat-success">
+            <div class="stat-label">This Month</div>
+            <div class="stat-value stat-success-value" id="earn-month">₱0.00</div>
+            <div class="stat-sub" id="earn-month-hours">0.00 hrs</div>
+          </div>
+          <div class="stat-tile stat-accent">
+            <div class="stat-label">This Week</div>
+            <div class="stat-value stat-teal-value" id="earn-week">₱0.00</div>
+            <div class="stat-sub" id="earn-week-hours">0.00 hrs</div>
+          </div>
+          <div class="stat-tile">
+            <div class="stat-label">Today</div>
+            <div class="stat-value" id="earn-today">₱0.00</div>
+            <div class="stat-sub" id="earn-today-hours">0.00 hrs</div>
+          </div>
+          <div class="stat-tile" style="border-top:3px solid var(--gold)">
+            <div class="stat-label">All Time</div>
+            <div class="stat-value" id="earn-total">₱0.00</div>
+            <div class="stat-sub" id="earn-total-hours">0.00 hrs</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Hourly Rate</span>
+          </div>
+          <div class="card-body">
+            <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
+              <div style="flex:1;min-width:200px">
+                <label>Rate (₱ per hour)</label>
+                <input type="number" id="hourly-rate" placeholder="0.00" min="0" step="0.01"
+                       oninput="saveRate()" style="max-width:180px">
+              </div>
+              <div class="text-muted" style="font-size:0.82rem">
+                Rate is saved automatically and applied to all shifts.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Shift Log ── -->
+      <section id="page-shifts" class="page-section">
+        <div class="section-header">
+          <div class="section-title">Shift Log</div>
+          <div class="section-desc">Full record of all clock-in and clock-out sessions.</div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">All Shifts</span>
+          </div>
+          <div class="card-body" id="shift-log-body">
+            <div class="empty-state">
+              <div class="empty-state-icon">🕐</div>
+              <div class="empty-state-text">No shifts logged yet. Use Login button to start tracking.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Profile ── -->
+      <section id="page-profile" class="page-section">
+        <div class="section-header">
+          <div class="section-title">Profile</div>
+          <div class="section-desc">Your account information and settings.</div>
+        </div>
+
+        <div class="grid-2" style="align-items:start">
+          <div class="card">
+            <div class="card-header"><span class="card-title">Personal Info</span></div>
+            <div class="card-body">
+              <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem">
+                <div class="profile-avatar-lg" id="profile-avatar-text">CA</div>
+                <div>
+                  <div style="font-size:1.1rem;font-weight:800" id="profile-full-name">Cyrel Athan Viloria</div>
+                  <div style="color:var(--teal);font-size:0.78rem;font-weight:600">Personal Assistant</div>
+                  <div style="color:var(--text-muted);font-size:0.75rem;margin-top:0.15rem">Bookkeeper · Data Specialist</div>
+                </div>
+              </div>
+              <div class="form-field">
+                <label>Full Name</label>
+                <input type="text" id="profile-name-input" placeholder="Your full name">
+              </div>
+              <div class="form-field">
+                <label>Username</label>
+                <input type="text" id="profile-username-input" placeholder="Username" readonly style="background:var(--page-bg);color:var(--text-muted)">
+              </div>
+              <button class="btn btn-primary" onclick="saveProfile()">Save Changes</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">Change Password</span></div>
+            <div class="card-body">
+              <div class="form-field">
+                <label>Current Password</label>
+                <input type="password" id="pass-current" placeholder="Current password">
+              </div>
+              <div class="form-field">
+                <label>New Password</label>
+                <input type="password" id="pass-new" placeholder="New password">
+              </div>
+              <div class="form-field">
+                <label>Confirm New Password</label>
+                <input type="password" id="pass-confirm" placeholder="Repeat new password">
+              </div>
+              <button class="btn btn-primary" onclick="changePassword()">Update Password</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div><!-- /page-content -->
+  </div><!-- /main -->
+</div><!-- /app-shell -->
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+// ──────────────────────────────────────────────
+// STATE
+// ──────────────────────────────────────────────
+const ADMIN_PASSWORD = 'AthanAdmin2024!';
+
+function getUsers()   { try { return JSON.parse(localStorage.getItem('aw_users') || '{}'); } catch { return {}; } }
+function setUsers(u)  { localStorage.setItem('aw_users', JSON.stringify(u)); }
+function getSession() { try { return JSON.parse(localStorage.getItem('aw_session') || 'null'); } catch { return null; } }
+function setSession(s){ localStorage.setItem('aw_session', JSON.stringify(s)); }
+function clearSession(){ localStorage.removeItem('aw_session'); }
+
+function getUserData(username) {
+  const all = localStorage.getItem('aw_data_' + username);
+  const defaults = { accounts: [], issues: [], shifts: [], hourlyRate: 0, fullName: '', seenUpdates: 0 };
+  try { return Object.assign({}, defaults, JSON.parse(all || '{}')); } catch { return defaults; }
+}
+function setUserData(username, data) { localStorage.setItem('aw_data_' + username, JSON.stringify(data)); }
+
+function getUpdates() { try { return JSON.parse(localStorage.getItem('aw_updates') || '[]'); } catch { return []; } }
+function setUpdates(u){ localStorage.setItem('aw_updates', JSON.stringify(u)); }
+
+let currentUser = null;
+let userData    = null;
+let clockInterval = null;
+let clockStart    = null;
+let liveClockInt  = null;
+
+// ──────────────────────────────────────────────
+// INIT
+// ──────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  const s = getSession();
+  if (s && s.username) {
+    currentUser = s.username;
+    userData = getUserData(currentUser);
+    if (userData.clockedIn && userData.clockIn) {
+      clockStart = new Date(userData.clockIn);
+    }
+    enterApp();
+  }
+  startLiveClock();
+  updateDateHeader();
+});
+
+function updateDateHeader() {
+  const now = new Date();
+  const opts = { weekday:'long', year:'numeric', month:'short', day:'numeric' };
+  const el = document.getElementById('topbar-sub');
+  if (el) el.textContent = now.toLocaleDateString('en-US', opts);
+}
+
+// ──────────────────────────────────────────────
+// LIVE CLOCK
+// ──────────────────────────────────────────────
+function startLiveClock() {
+  function tick() {
+    const t = new Date().toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+    const el1 = document.getElementById('live-clock');
+    const el2 = document.getElementById('live-clock-top');
+    if (el1) el1.textContent = t;
+    if (el2) el2.textContent = t;
+    if (clockStart) updateElapsed();
+  }
+  tick();
+  liveClockInt = setInterval(tick, 1000);
+}
+
+function updateElapsed() {
+  if (!clockStart) return;
+  const diff = Math.floor((Date.now() - clockStart.getTime()) / 1000);
+  const h = Math.floor(diff / 3600);
+  const m = Math.floor((diff % 3600) / 60);
+  const s = diff % 60;
+  const el = document.getElementById('clock-elapsed');
+  if (el) el.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+// ──────────────────────────────────────────────
+// AUTH
+// ──────────────────────────────────────────────
+function switchToRegister(e) { e && e.preventDefault(); document.getElementById('login-form').classList.add('hidden'); document.getElementById('register-form').classList.remove('hidden'); }
+function switchToLogin(e)    { e && e.preventDefault(); document.getElementById('register-form').classList.add('hidden'); document.getElementById('login-form').classList.remove('hidden'); }
+
+function doRegister() {
+  const name = document.getElementById('reg-name').value.trim();
+  const uname = document.getElementById('reg-username').value.trim().toLowerCase();
+  const pass  = document.getElementById('reg-password').value;
+  const conf  = document.getElementById('reg-confirm').value;
+  const err   = document.getElementById('register-error');
+  err.classList.add('hidden');
+  if (!name || !uname || !pass) { showErr(err, 'Please fill in all fields.'); return; }
+  if (pass !== conf) { showErr(err, 'Passwords do not match.'); return; }
+  if (pass.length < 6) { showErr(err, 'Password must be at least 6 characters.'); return; }
+  const users = getUsers();
+  if (users[uname]) { showErr(err, 'Username already taken. Try another.'); return; }
+  users[uname] = { passwordHash: btoa(pass) };
+  setUsers(users);
+  const data = getUserData(uname);
+  data.fullName = name;
+  setUserData(uname, data);
+  toast('✓ Account created! You can now sign in.');
+  switchToLogin();
+}
+
+function doLogin() {
+  const uname = document.getElementById('login-username').value.trim().toLowerCase();
+  const pass  = document.getElementById('login-password').value;
+  const err   = document.getElementById('login-error');
+  err.classList.add('hidden');
+  if (!uname || !pass) { showErr(err, 'Enter your username and password.'); return; }
+  const users = getUsers();
+  if (!users[uname] || users[uname].passwordHash !== btoa(pass)) {
+    showErr(err, 'Incorrect username or password.'); return;
+  }
+  currentUser = uname;
+  setSession({ username: uname });
+  userData = getUserData(uname);
+  if (userData.clockedIn && userData.clockIn) clockStart = new Date(userData.clockIn);
+  enterApp();
+}
+
+function doLogout() {
+  clearSession();
+  currentUser = null;
+  userData = null;
+  clockStart = null;
+  document.getElementById('app-shell').classList.add('hidden');
+  document.getElementById('auth-screen').classList.remove('hidden');
+  document.getElementById('login-username').value = '';
+  document.getElementById('login-password').value = '';
+}
+
+function showErr(el, msg) { el.textContent = msg; el.classList.remove('hidden'); }
+
+// ──────────────────────────────────────────────
+// ENTER APP
+// ──────────────────────────────────────────────
+function enterApp() {
+  document.getElementById('auth-screen').classList.add('hidden');
+  document.getElementById('admin-screen').classList.add('hidden');
+  document.getElementById('app-shell').classList.remove('hidden');
+  populateSidebar();
+  refreshClockUI();
+  refreshAll();
+  greetUser();
+}
+
+function populateSidebar() {
+  const name = userData.fullName || currentUser;
+  const initials = name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  document.getElementById('sidebar-username').textContent = name;
+  document.getElementById('sidebar-avatar-text').textContent = initials;
+  document.getElementById('profile-avatar-text').textContent = initials;
+  document.getElementById('profile-full-name').textContent = name;
+  document.getElementById('profile-name-input').value = name;
+  document.getElementById('profile-username-input').value = currentUser;
+}
+
+function greetUser() {
+  const h = new Date().getHours();
+  const g = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+  const name = (userData.fullName || currentUser).split(' ')[0];
+  document.getElementById('greet-name').textContent = `${g}, ${name} 👋`;
+}
+
+// ──────────────────────────────────────────────
+// NAVIGATION
+// ──────────────────────────────────────────────
+const pageTitles = {
+  overview: 'Overview',
+  updates:  'Updates',
+  accounts: 'Accounts',
+  issues:   'Issues & Questions',
+  earnings: 'Earnings',
+  shifts:   'Shift Log',
+  profile:  'Profile',
+};
+
+function navigate(page) {
+  document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const sec = document.getElementById('page-' + page);
+  if (sec) sec.classList.add('active');
+  document.querySelectorAll(`.nav-item[data-page="${page}"]`).forEach(n => n.classList.add('active'));
+  document.getElementById('topbar-title').textContent = pageTitles[page] || page;
+  if (page === 'overview') { refreshOverview(); }
+  if (page === 'updates')  { renderUpdates(); markUpdatesSeen(); }
+  if (page === 'accounts') { renderAccounts(); }
+  if (page === 'issues')   { renderIssues(); }
+  if (page === 'earnings') { renderEarnings(); }
+  if (page === 'shifts')   { renderShifts(); }
+  if (page === 'profile')  { populateSidebar(); }
+}
+
+function refreshAll() {
+  refreshOverview();
+  renderUpdates();
+  renderAccounts();
+  renderIssues();
+  renderEarnings();
+  renderShifts();
+  refreshUpdatesBadge();
+  refreshIssuesBadge();
+}
+
+// ──────────────────────────────────────────────
+// CLOCK IN / OUT
+// ──────────────────────────────────────────────
+function toggleClock() {
+  userData = getUserData(currentUser);
+  if (!userData.clockedIn) {
+    // Clock in
+    const now = new Date();
+    userData.clockedIn = true;
+    userData.clockIn   = now.toISOString();
+    clockStart = now;
+    setUserData(currentUser, userData);
+    addActivity(`Clocked in at ${now.toLocaleTimeString()}`);
+    toast('✓ Clocked in! Have a great shift.');
+  } else {
+    // Clock out
+    const now  = new Date();
+    const inT  = new Date(userData.clockIn);
+    const hrs  = (now - inT) / 3600000;
+    const rate = userData.hourlyRate || 0;
+    const earn = hrs * rate;
+    if (!userData.shifts) userData.shifts = [];
+    userData.shifts.unshift({
+      date:   inT.toLocaleDateString('en-US'),
+      inTime: inT.toLocaleTimeString(),
+      outTime:now.toLocaleTimeString(),
+      hours:  hrs,
+      earned: earn,
+      inISO:  inT.toISOString(),
+      outISO: now.toISOString(),
+    });
+    userData.clockedIn = false;
+    userData.clockIn   = null;
+    clockStart = null;
+    setUserData(currentUser, userData);
+    addActivity(`Clocked out at ${now.toLocaleTimeString()} — ${hrs.toFixed(2)} hrs`);
+    toast(`✓ Clocked out. ${hrs.toFixed(2)} hrs logged.`);
+  }
+  refreshClockUI();
+  refreshAll();
+}
+
+function refreshClockUI() {
+  userData = getUserData(currentUser);
+  const on = userData.clockedIn;
+  const dot = document.getElementById('clock-dot');
+  const lbl = document.getElementById('clock-status-label');
+  const btn = document.getElementById('btn-clock');
+  const elapsed = document.getElementById('clock-elapsed');
+  if (dot) { dot.classList.toggle('active', on); }
+  if (lbl) lbl.textContent = on ? 'On Shift' : 'Off Shift';
+  if (btn) { btn.textContent = on ? 'Logout' : 'Login'; btn.className = 'btn-clock' + (on ? ' clocked-in' : ''); }
+  if (!on && elapsed) elapsed.textContent = '—';
+  if (on && userData.clockIn) clockStart = new Date(userData.clockIn);
+}
+
+// ──────────────────────────────────────────────
+// ACTIVITY LOG
+// ──────────────────────────────────────────────
+function addActivity(msg) {
+  if (!userData.activity) userData.activity = [];
+  userData.activity.unshift({ msg, time: new Date().toISOString() });
+  if (userData.activity.length > 20) userData.activity.length = 20;
+  setUserData(currentUser, userData);
+}
+
+// ──────────────────────────────────────────────
+// OVERVIEW
+// ──────────────────────────────────────────────
+function refreshOverview() {
+  userData = getUserData(currentUser);
+  const accounts = userData.accounts || [];
+  const shifts   = userData.shifts   || [];
+  const updates  = getUpdates();
+
+  document.getElementById('stat-accounts').textContent = accounts.length;
+  document.getElementById('stat-active').textContent   = accounts.filter(a=>a.status==='Active').length;
+
+  // Hours today
+  const today = new Date().toLocaleDateString('en-US');
+  const todayShifts = shifts.filter(s => s.date === today);
+  const todayHrs = todayShifts.reduce((a,s) => a + (s.hours||0), 0);
+  document.getElementById('stat-hours-today').textContent = todayHrs.toFixed(1);
+
+  // Month earn
+  const rate = userData.hourlyRate || 0;
+  const now  = new Date();
+  const monthKey = `${now.getMonth()}-${now.getFullYear()}`;
+  const monthHrs = shifts.filter(s => {
+    const d = new Date(s.inISO||s.date);
+    return `${d.getMonth()}-${d.getFullYear()}` === monthKey;
+  }).reduce((a,s) => a + (s.hours||0), 0);
+  document.getElementById('stat-month-earn').textContent = '₱' + (monthHrs * rate).toLocaleString('en-PH', {minimumFractionDigits:2,maximumFractionDigits:2});
+
+  // Updates banner
+  const banner = document.getElementById('overview-updates-banner');
+  if (updates.length > 0) {
+    banner.classList.remove('hidden');
+    document.getElementById('overview-update-preview').textContent = updates[0].msg.length > 60 ? updates[0].msg.slice(0,60)+'…' : updates[0].msg;
+  } else {
+    banner.classList.add('hidden');
+  }
+
+  // Recent activity
+  const actEl = document.getElementById('recent-activity');
+  const acts = userData.activity || [];
+  if (acts.length === 0) {
+    actEl.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-text">No recent activity yet.</div></div>`;
+  } else {
+    actEl.innerHTML = acts.slice(0,6).map(a => `
+      <div class="update-pin">
+        <div class="update-dot-col"><div class="update-dot" style="background:var(--text-muted);box-shadow:none"></div></div>
+        <div>
+          <div class="update-meta">${new Date(a.time).toLocaleString()}</div>
+          <div class="update-body">${esc(a.msg)}</div>
+        </div>
+      </div>`).join('');
+  }
+
+  // Latest updates (top 3)
+  const updEl = document.getElementById('overview-updates-list');
+  if (updates.length === 0) {
+    updEl.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📌</div><div class="empty-state-text">No updates yet.</div></div>`;
+  } else {
+    updEl.innerHTML = updates.slice(0,3).map(u => `
+      <div class="update-pin">
+        <div class="update-dot-col"><div class="update-dot"></div></div>
+        <div>
+          <div class="update-meta">${u.date} &nbsp;·&nbsp; <span class="update-tag">${esc(u.type)}</span></div>
+          <div class="update-body">${esc(u.msg)}</div>
+        </div>
+      </div>`).join('');
+  }
+}
+
+// ──────────────────────────────────────────────
+// UPDATES
+// ──────────────────────────────────────────────
+function renderUpdates() {
+  const updates = getUpdates();
+  const el = document.getElementById('updates-list');
+  if (updates.length === 0) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📭</div><div class="empty-state-text">No updates posted yet. Check back soon.</div></div>`;
+    return;
+  }
+  el.innerHTML = updates.map((u,i) => `
+    <div class="update-pin">
+      <div class="update-dot-col"><div class="update-dot"></div></div>
+      <div style="flex:1">
+        <div class="update-meta">${u.date} &nbsp;·&nbsp; <span class="update-tag">${esc(u.type)}</span></div>
+        <div class="update-body">${esc(u.msg)}</div>
+      </div>
+    </div>`).join('');
+}
+
+function markUpdatesSeen() {
+  userData = getUserData(currentUser);
+  const updates = getUpdates();
+  userData.seenUpdates = updates.length;
+  setUserData(currentUser, userData);
+  refreshUpdatesBadge();
+}
+
+function refreshUpdatesBadge() {
+  userData = getUserData(currentUser);
+  const total = getUpdates().length;
+  const seen  = userData.seenUpdates || 0;
+  const unseen = Math.max(0, total - seen);
+  const badge = document.getElementById('updates-badge');
+  if (unseen > 0) { badge.textContent = unseen; badge.classList.remove('hidden'); }
+  else { badge.classList.add('hidden'); }
+}
+
+// ──────────────────────────────────────────────
+// ACCOUNTS
+// ──────────────────────────────────────────────
+function openAddAccount()  { document.getElementById('add-account-form').classList.remove('hidden'); }
+function closeAddAccount() { document.getElementById('add-account-form').classList.add('hidden'); }
+
+function addAccount() {
+  const name   = document.getElementById('acc-name').value.trim();
+  const type   = document.getElementById('acc-type').value.trim();
+  const status = document.getElementById('acc-status').value;
+  const notes  = document.getElementById('acc-notes').value.trim();
+  if (!name) { toast('⚠ Account name is required.'); return; }
+  userData = getUserData(currentUser);
+  if (!userData.accounts) userData.accounts = [];
+  userData.accounts.push({ id: Date.now(), name, type, status, notes, added: new Date().toLocaleDateString('en-US') });
+  setUserData(currentUser, userData);
+  addActivity(`Added account: ${name}`);
+  document.getElementById('acc-name').value = '';
+  document.getElementById('acc-type').value = '';
+  document.getElementById('acc-notes').value = '';
+  closeAddAccount();
+  renderAccounts();
+  refreshOverview();
+  toast('✓ Account added.');
+}
+
+function deleteAccount(id) {
+  userData = getUserData(currentUser);
+  userData.accounts = (userData.accounts||[]).filter(a => a.id !== id);
+  setUserData(currentUser, userData);
+  renderAccounts(); refreshOverview();
+  toast('Account removed.');
+}
+
+function changeAccountStatus(id, status) {
+  userData = getUserData(currentUser);
+  const acc = (userData.accounts||[]).find(a => a.id === id);
+  if (acc) { acc.status = status; setUserData(currentUser, userData); renderAccounts(); refreshOverview(); }
+}
+
+function renderAccounts() {
+  userData = getUserData(currentUser);
+  const accounts = userData.accounts || [];
+  const tbody = document.getElementById('accounts-table-body');
+  if (accounts.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-state-icon">📁</div><div class="empty-state-text">No accounts yet.</div></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = accounts.map((a,i) => `
+    <tr>
+      <td class="text-muted">${i+1}</td>
+      <td><div class="account-name">${esc(a.name)}</div></td>
+      <td><span class="text-muted">${esc(a.type||'—')}</span></td>
+      <td>
+        <select onchange="changeAccountStatus(${a.id}, this.value)" style="width:auto;padding:0.3rem 1.5rem 0.3rem 0.5rem;font-size:0.78rem">
+          ${['Active','Pending','On Hold','Closed'].map(s=>`<option${s===a.status?' selected':''}>${s}</option>`).join('')}
+        </select>
+      </td>
+      <td class="text-muted">${esc(a.added||'—')}</td>
+      <td class="text-muted">${esc(a.notes||'—')}</td>
+      <td><button class="btn btn-outline btn-sm" style="color:var(--danger);border-color:var(--danger);opacity:0.7" onclick="deleteAccount(${a.id})">✕</button></td>
+    </tr>`).join('');
+}
+
+// ──────────────────────────────────────────────
+// ISSUES
+// ──────────────────────────────────────────────
+function submitIssue() {
+  const type     = document.getElementById('issue-type').value;
+  const subject  = document.getElementById('issue-subject').value.trim();
+  const body     = document.getElementById('issue-body').value.trim();
+  const priority = document.getElementById('issue-priority').value;
+  if (!subject || !body) { toast('⚠ Subject and details are required.'); return; }
+  userData = getUserData(currentUser);
+  if (!userData.issues) userData.issues = [];
+  userData.issues.unshift({ id: Date.now(), type, subject, body, priority, date: new Date().toLocaleDateString('en-US'), time: new Date().toLocaleTimeString(), status: 'Open' });
+  setUserData(currentUser, userData);
+  document.getElementById('issue-subject').value = '';
+  document.getElementById('issue-body').value = '';
+  addActivity(`Submitted ${type}: ${subject}`);
+  renderIssues();
+  refreshIssuesBadge();
+  toast('✓ Submitted successfully.');
+}
+
+function refreshIssuesBadge() {
+  userData = getUserData(currentUser);
+  const open = (userData.issues||[]).filter(i=>i.status==='Open').length;
+  const badge = document.getElementById('issues-badge');
+  if (open > 0) { badge.textContent = open; badge.classList.remove('hidden'); }
+  else { badge.classList.add('hidden'); }
+}
+
+const issueTypeLabel = { question:'❓ Question', issue:'🚨 Issue', feedback:'💡 Feedback' };
+const priorityBadge  = { Normal:'badge-muted', High:'badge-warning', Urgent:'badge-danger' };
+
+function renderIssues() {
+  userData = getUserData(currentUser);
+  const issues = userData.issues || [];
+  const el = document.getElementById('issues-list');
+  if (issues.length === 0) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">💬</div><div class="empty-state-text">Nothing submitted yet.</div></div>`;
+    return;
+  }
+  el.innerHTML = issues.map(i => `
+    <div class="issue-card">
+      <div class="flex" style="gap:0.75rem">
+        <div class="issue-type-bar issue-type-${i.type}"></div>
+        <div style="flex:1">
+          <div class="flex items-center gap-2" style="flex-wrap:wrap;margin-bottom:0.3rem">
+            <span style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted)">${issueTypeLabel[i.type]||i.type}</span>
+            <span class="badge ${priorityBadge[i.priority]||'badge-muted'}">${i.priority}</span>
+            <span class="badge ${i.status==='Open'?'badge-warning':'badge-success'}">${i.status}</span>
+          </div>
+          <div style="font-weight:700;font-size:0.88rem;margin-bottom:0.2rem">${esc(i.subject)}</div>
+          <div style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:0.5rem">${esc(i.body)}</div>
+          <div class="text-muted">${i.date} at ${i.time}</div>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+// ──────────────────────────────────────────────
+// EARNINGS
+// ──────────────────────────────────────────────
+function saveRate() {
+  const r = parseFloat(document.getElementById('hourly-rate').value) || 0;
+  userData = getUserData(currentUser);
+  userData.hourlyRate = r;
+  setUserData(currentUser, userData);
+  renderEarnings();
+  refreshOverview();
+}
+
+function renderEarnings() {
+  userData = getUserData(currentUser);
+  const rate   = userData.hourlyRate || 0;
+  document.getElementById('hourly-rate').value = rate || '';
+  const shifts = userData.shifts || [];
+  const now    = new Date();
+  const todayKey = now.toLocaleDateString('en-US');
+  const weekStart = new Date(now); weekStart.setDate(now.getDate() - now.getDay()); weekStart.setHours(0,0,0,0);
+  const monthKey  = `${now.getMonth()}-${now.getFullYear()}`;
+
+  const todayShifts = shifts.filter(s => s.date === todayKey);
+  const weekShifts  = shifts.filter(s => new Date(s.inISO||s.date) >= weekStart);
+  const monthShifts = shifts.filter(s => { const d = new Date(s.inISO||s.date); return `${d.getMonth()}-${d.getFullYear()}` === monthKey; });
+
+  const sum = arr => arr.reduce((a,s) => a + (s.hours||0), 0);
+  const fmt = (h,r) => '₱' + (h*r).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const fmtH = h => h.toFixed(2) + ' hrs';
+
+  const todayH = sum(todayShifts), weekH = sum(weekShifts), monthH = sum(monthShifts), totalH = sum(shifts);
+  document.getElementById('earn-today').textContent       = fmt(todayH, rate);
+  document.getElementById('earn-today-hours').textContent = fmtH(todayH);
+  document.getElementById('earn-week').textContent        = fmt(weekH, rate);
+  document.getElementById('earn-week-hours').textContent  = fmtH(weekH);
+  document.getElementById('earn-month').textContent       = fmt(monthH, rate);
+  document.getElementById('earn-month-hours').textContent = fmtH(monthH);
+  document.getElementById('earn-total').textContent       = fmt(totalH, rate);
+  document.getElementById('earn-total-hours').textContent = fmtH(totalH);
+}
+
+// ──────────────────────────────────────────────
+// SHIFT LOG
+// ──────────────────────────────────────────────
+function renderShifts() {
+  userData = getUserData(currentUser);
+  const shifts = userData.shifts || [];
+  const rate   = userData.hourlyRate || 0;
+  const el = document.getElementById('shift-log-body');
+  if (shifts.length === 0) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🕐</div><div class="empty-state-text">No shifts logged yet.</div></div>`;
+    return;
+  }
+  const header = `<div class="shift-row" style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-muted)">
+    <span class="shift-date">Date</span>
+    <span class="shift-time">Clock In → Out</span>
+    <span class="shift-hours">Hours</span>
+    <span class="shift-earn">Earned</span>
+  </div>`;
+  el.innerHTML = header + shifts.map(s => `
+    <div class="shift-row">
+      <span class="shift-date">${esc(s.date)}</span>
+      <span class="shift-time">${esc(s.inTime)} → ${esc(s.outTime)}</span>
+      <span class="shift-hours">${(s.hours||0).toFixed(2)}</span>
+      <span class="shift-earn">₱${((s.hours||0)*rate).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2})}</span>
+    </div>`).join('');
+}
+
+// ──────────────────────────────────────────────
+// PROFILE
+// ──────────────────────────────────────────────
+function saveProfile() {
+  const name = document.getElementById('profile-name-input').value.trim();
+  if (!name) { toast('⚠ Name cannot be empty.'); return; }
+  userData = getUserData(currentUser);
+  userData.fullName = name;
+  setUserData(currentUser, userData);
+  populateSidebar();
+  greetUser();
+  toast('✓ Profile updated.');
+}
+
+function changePassword() {
+  const cur  = document.getElementById('pass-current').value;
+  const nw   = document.getElementById('pass-new').value;
+  const conf = document.getElementById('pass-confirm').value;
+  const users = getUsers();
+  if (users[currentUser].passwordHash !== btoa(cur)) { toast('⚠ Current password is incorrect.'); return; }
+  if (nw.length < 6) { toast('⚠ New password must be 6+ characters.'); return; }
+  if (nw !== conf)   { toast('⚠ Passwords do not match.'); return; }
+  users[currentUser].passwordHash = btoa(nw);
+  setUsers(users);
+  document.getElementById('pass-current').value = '';
+  document.getElementById('pass-new').value = '';
+  document.getElementById('pass-confirm').value = '';
+  toast('✓ Password changed successfully.');
+}
+
+// ──────────────────────────────────────────────
+// ADMIN PANEL
+// ──────────────────────────────────────────────
+function showAdmin(e) {
+  e && e.preventDefault();
+  document.getElementById('auth-screen').classList.add('hidden');
+  document.getElementById('admin-screen').classList.remove('hidden');
+  renderAdminUpdates();
+}
+
+function backFromAdmin() {
+  document.getElementById('admin-screen').classList.add('hidden');
+  document.getElementById('auth-screen').classList.remove('hidden');
+}
+
+function postUpdate() {
+  const pass = document.getElementById('admin-pass').value;
+  const msg  = document.getElementById('admin-update-msg').value.trim();
+  const type = document.getElementById('admin-update-type').value;
+  const err  = document.getElementById('admin-error');
+  err.classList.add('hidden');
+  if (pass !== ADMIN_PASSWORD) { showErr(err, 'Incorrect admin password.'); return; }
+  if (!msg) { showErr(err, 'Please write a message.'); return; }
+  const updates = getUpdates();
+  updates.unshift({ id: Date.now(), msg, type, date: new Date().toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'}), time: new Date().toLocaleTimeString() });
+  setUpdates(updates);
+  document.getElementById('admin-update-msg').value = '';
+  toast('✓ Update posted!');
+  renderAdminUpdates();
+}
+
+function deleteUpdate(id) {
+  const updates = getUpdates().filter(u => u.id !== id);
+  setUpdates(updates);
+  renderAdminUpdates();
+}
+
+function renderAdminUpdates() {
+  const updates = getUpdates();
+  const el = document.getElementById('admin-update-list');
+  if (updates.length === 0) { el.innerHTML = '<div style="color:#4A6072;font-size:0.82rem;margin-top:1rem">No updates posted yet.</div>'; return; }
+  el.innerHTML = `<div style="color:#5A7A92;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:0.75rem">Posted Updates</div>` +
+    updates.map(u => `
+      <div class="admin-update-item">
+        <div class="admin-update-item-text">
+          <span style="color:var(--teal);font-size:0.7rem;font-weight:700;text-transform:uppercase">${esc(u.type)}</span>
+          <div>${esc(u.msg)}</div>
+          <div class="admin-update-item-date">${u.date}</div>
+        </div>
+        <button class="btn-del" onclick="deleteUpdate(${u.id})">✕</button>
+      </div>`).join('');
+}
+
+// ──────────────────────────────────────────────
+// THEME
+// ──────────────────────────────────────────────
+function toggleTheme() {
+  const html = document.documentElement;
+  const cur  = html.getAttribute('data-theme');
+  html.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
+}
+
+// ──────────────────────────────────────────────
+// TOAST
+// ──────────────────────────────────────────────
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+// ──────────────────────────────────────────────
+// UTILS
+// ──────────────────────────────────────────────
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
