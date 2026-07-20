@@ -886,8 +886,8 @@ const MASTER_CLIENTS = [
   { name:'New Client', owned:false },
 ];
 
+const OVERALL_STATUS_OPTS = ['Not Yet Started','In Process','Completed'];
 const TASK_TYPES = [
-  'Overall Client Status',
   'Bookkeeping - Regular Transactions Categorization',
   'Bookkeeping - Check Categorization',
   'Bank Statement to CSV Conversion',
@@ -897,7 +897,6 @@ const TASK_TYPES = [
   'Other',
 ];
 const PROGRESS_OPTS = ['Not Yet Started','In Process','Completed'];
-const REVIEW_OPTS   = ['No','Pending Review','Done'];
 
 function progressPct(p) {
   if (p === 'Completed') return 100;
@@ -928,7 +927,7 @@ function getClientData(username, clientName) {
   const ud = getUserData(username);
   if (!ud.accounts) ud.accounts = {};
   if (!ud.accounts[clientName]) {
-    ud.accounts[clientName] = { month:'July', tasks:[], issues:'', comments:'', flagged:false };
+    ud.accounts[clientName] = { month:'July', tasks:[], issues:'', comments:'', flagged:false, overallStatus:'' };
   }
   return ud.accounts[clientName];
 }
@@ -1226,12 +1225,8 @@ function switchAccountTab(tab) {
   renderAccounts();
 }
 
-function calcOverall(tasks) {
-  const sum = TASK_TYPES.reduce((a, type) => {
-    const task = (tasks||[]).find(t => t.type === type);
-    return a + progressPct(task ? task.progress : 'Not Yet Started');
-  }, 0);
-  return Math.round(sum / TASK_TYPES.length);
+function calcOverall(cd) {
+  return progressPct(cd.overallStatus || 'Not Yet Started');
 }
 
 function renderAccounts() {
@@ -1246,11 +1241,8 @@ function renderAccounts() {
   if (filterProg) {
     clients=clients.filter(c=>{
       const cd=getClientData(currentUser,c.name);
-      const tasks=cd.tasks||[];
-      if (filterProg==='Not Yet Started') return tasks.length===0||tasks.every(t=>!t.progress||t.progress==='Not Yet Started');
-      if (filterProg==='In Process') return tasks.some(t=>t.progress==='In Process');
-      if (filterProg==='Completed') return calcOverall(tasks)===100;
-      return true;
+      const s=cd.overallStatus||'Not Yet Started';
+      return s===filterProg;
     });
   }
 
@@ -1261,7 +1253,7 @@ function renderAccounts() {
 
   list.innerHTML=clients.map((c,i)=>{
     const cd=getClientData(currentUser,c.name);
-    const overall=calcOverall(cd.tasks||[]);
+    const overall=calcOverall(cd);
     const flagged=(cd.issues&&cd.issues.trim())||cd.flagged;
     let pctClass='cp-0', pctLabel=`${overall}%`;
     if (overall===100) pctClass='cp-100';
@@ -1277,6 +1269,7 @@ function renderAccounts() {
         <div class="client-overall">
           <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:3px">
             <span style="font-size:0.72rem;font-weight:700;${pctClass==='cp-100'?'color:var(--success)':pctClass==='cp-50'?'color:var(--warning)':'color:var(--text-muted)'}">${pctLabel}</span>
+            ${overall===100?`<span style="font-size:0.62rem;font-weight:700;color:var(--success);background:rgba(39,174,96,0.1);border:1px solid rgba(39,174,96,0.25);padding:0.05rem 0.4rem;border-radius:99px;">✓ Review</span>`:''}
           </div>
           <div class="prog-bar"><div class="prog-fill ${fillClass}" style="width:${overall}%"></div></div>
         </div>
@@ -1292,41 +1285,67 @@ function renderAccounts() {
 }
 
 function renderClientDetail(c, cd, idx) {
-  const tasks=cd.tasks||[];
-  const rows=TASK_TYPES.map((type,ti)=>{
-    const existing=tasks.find(t=>t.type===type)||{ type, progress:'Not Yet Started', review:'Not Yet Started' };
-    const pct=progressPct(existing.progress);
+  const status = cd.overallStatus || 'Not Yet Started';
+  const statusColor = status==='Completed'?'var(--success)':status==='In Process'?'var(--warning)':'var(--text-muted)';
+  const reviewNote = status==='Completed'
+    ? `<span style="font-size:0.75rem;color:var(--success);font-weight:600;margin-left:0.5rem">✓ Ready for your review</span>`
+    : '';
+
+  // Overall Client Status block
+  const overallBlock = `
+    <div class="overall-status-box" style="background:var(--card-bg);border:1.5px solid ${status==='Completed'?'rgba(39,174,96,0.35)':status==='In Process'?'rgba(245,166,35,0.35)':'var(--border)'};border-radius:var(--radius-md);padding:1rem 1.2rem;margin-bottom:1rem;">
+      <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-muted);margin-bottom:0.5rem">Overall Client Status</div>
+      <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap">
+        <select onchange="updateOverallStatus('${esc(c.name)}',${idx},this.value)" style="width:180px;font-weight:700;color:${statusColor}">
+          ${OVERALL_STATUS_OPTS.map(o=>`<option${o===status?' selected':''}>${o}</option>`).join('')}
+        </select>
+        ${reviewNote}
+      </div>
+      <div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.5rem">Setting this to <strong>Completed</strong> means all transactions are cleared and the account is ready for review.</div>
+    </div>`;
+
+  // Tasks block
+  const tasks = cd.tasks || [];
+  const taskRows = TASK_TYPES.map(type => {
+    const existing = tasks.find(t=>t.type===type) || { type, progress:'Not Yet Started', otherNote:'' };
+    const pct = progressPct(existing.progress);
+    const isOther = type === 'Other';
+    const otherField = isOther
+      ? `<input type="text" id="other-note-${idx}" value="${esc(existing.otherNote||'')}" placeholder="Please specify…" style="margin-top:0.35rem;font-size:0.78rem" onchange="updateTaskNote('${esc(c.name)}',${idx},this.value)">`
+      : '';
     return `<tr>
-      <td style="color:var(--text-secondary);font-size:0.8rem">${esc(type)}</td>
+      <td style="color:var(--text-secondary);font-size:0.8rem;vertical-align:top;padding-top:0.65rem">${esc(type)}</td>
       <td>
-        <select onchange="updateTask('${esc(c.name)}',${idx},'${esc(type)}','progress',this.value)" style="width:150px">
+        <select onchange="updateTask('${esc(c.name)}',${idx},'${esc(type)}','progress',this.value)" style="width:180px">
           ${PROGRESS_OPTS.map(o=>`<option${o===existing.progress?' selected':''}>${o}</option>`).join('')}
         </select>
-      </td>
-      <td>
-        <select onchange="updateTask('${esc(c.name)}',${idx},'${esc(type)}','review',this.value)" style="width:150px">
-          ${REVIEW_OPTS.map(o=>`<option${o===existing.review?' selected':''}>${o}</option>`).join('')}
-        </select>
+        ${otherField}
       </td>
       <td style="font-weight:700;font-variant-numeric:tabular-nums;${pct===100?'color:var(--success)':pct>0?'color:var(--warning)':'color:var(--text-muted)'}">${pct}%</td>
     </tr>`;
   }).join('');
 
-  return `<table class="task-table">
-    <thead><tr><th style="width:260px">Task</th><th>Assistant's Progress</th><th>For My Review?</th><th>Completion</th></tr></thead>
-    <tbody>${rows}</tbody>
-  </table>
-  <div class="detail-footer">
-    <div class="form-grp">
-      <label>Issues / Flagged Transactions</label>
-      <textarea rows="2" id="issues-${idx}" placeholder="Note any flagged transactions or issues…">${esc(cd.issues||'')}</textarea>
+  const tasksBlock = `
+    <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-muted);margin-bottom:0.5rem">Tasks</div>
+    <table class="task-table" style="margin-bottom:1rem">
+      <thead><tr><th style="width:260px">Task</th><th>Progress</th><th>Completion</th></tr></thead>
+      <tbody>${taskRows}</tbody>
+    </table>`;
+
+  const notesBlock = `
+    <div class="detail-footer">
+      <div class="form-grp">
+        <label>Issues / Flagged Transactions</label>
+        <textarea rows="2" id="issues-${idx}" placeholder="Note any flagged transactions or issues…">${esc(cd.issues||'')}</textarea>
+      </div>
+      <div class="form-grp">
+        <label>Comments</label>
+        <textarea rows="2" id="comments-${idx}" placeholder="Additional comments…">${esc(cd.comments||'')}</textarea>
+      </div>
     </div>
-    <div class="form-grp">
-      <label>Comments</label>
-      <textarea rows="2" id="comments-${idx}" placeholder="Additional comments…">${esc(cd.comments||'')}</textarea>
-    </div>
-  </div>
-  <button class="detail-save" onclick="saveClientNotes('${esc(c.name)}',${idx})">Save Notes</button>`;
+    <button class="detail-save" onclick="saveClientNotes('${esc(c.name)}',${idx})">Save Notes</button>`;
+
+  return overallBlock + tasksBlock + notesBlock;
 }
 
 function toggleClient(idx) {
@@ -1340,11 +1359,10 @@ function updateTask(clientName, idx, taskType, field, value) {
   const cd=getClientData(currentUser,clientName);
   if (!cd.tasks) cd.tasks=[];
   let task=cd.tasks.find(t=>t.type===taskType);
-  if (!task) { task={type:taskType,progress:'Not Yet Started',review:'Not Yet Started'}; cd.tasks.push(task); }
+  if (!task) { task={type:taskType,progress:'Not Yet Started'}; cd.tasks.push(task); }
   task[field]=value;
   saveClientData(currentUser,clientName,cd);
-  // refresh overall in header
-  const overall=calcOverall(cd.tasks);
+  const overall=calcOverall(cd);
   const fillClass=overall===100?'full':overall>0?'half':'zero';
   const pctEl=document.querySelector(`#row-${idx} .client-overall`);
   if (pctEl) {
@@ -1352,6 +1370,34 @@ function updateTask(clientName, idx, taskType, field, value) {
     pctEl.innerHTML=`<div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:3px"><span style="font-size:0.72rem;font-weight:700;${color}">${overall}%</span></div><div class="prog-bar"><div class="prog-fill ${fillClass}" style="width:${overall}%"></div></div>`;
   }
   addActivity(`Updated ${clientName}: ${taskType} → ${value}`);
+}
+
+function updateOverallStatus(clientName, idx, value) {
+  const cd=getClientData(currentUser,clientName);
+  cd.overallStatus=value;
+  saveClientData(currentUser,clientName,cd);
+  const overall=calcOverall(cd);
+  const fillClass=overall===100?'full':overall>0?'half':'zero';
+  const pctEl=document.querySelector(`#row-${idx} .client-overall`);
+  if (pctEl) {
+    const color=overall===100?'color:var(--success)':overall>0?'color:var(--warning)':'color:var(--text-muted)';
+    const badge=overall===100?`<span style="font-size:0.62rem;font-weight:700;color:var(--success);background:rgba(39,174,96,0.1);border:1px solid rgba(39,174,96,0.25);padding:0.05rem 0.4rem;border-radius:99px;">✓ Review</span>`:'';
+    pctEl.innerHTML=`<div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:3px"><span style="font-size:0.72rem;font-weight:700;${color}">${overall}%</span>${badge}</div><div class="prog-bar"><div class="prog-fill ${fillClass}" style="width:${overall}%"></div></div>`;
+  }
+  // update status border color on detail panel
+  const statusColor=value==='Completed'?'rgba(39,174,96,0.35)':value==='In Process'?'rgba(245,166,35,0.35)':'var(--border)';
+  const statusBox=document.querySelector(`#detail-${idx} .overall-status-box`);
+  if (statusBox) statusBox.style.borderColor=statusColor;
+  addActivity(`Updated ${clientName}: Overall Status → ${value}`);
+}
+
+function updateTaskNote(clientName, idx, value) {
+  const cd=getClientData(currentUser,clientName);
+  if (!cd.tasks) cd.tasks=[];
+  let task=cd.tasks.find(t=>t.type==='Other');
+  if (!task) { task={type:'Other',progress:'Not Yet Started'}; cd.tasks.push(task); }
+  task.otherNote=value;
+  saveClientData(currentUser,clientName,cd);
 }
 
 function saveClientNotes(clientName, idx) {
