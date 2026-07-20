@@ -506,7 +506,7 @@ select {
       <div class="nav-section-label">Workspace</div>
       <div class="nav-item active" data-page="overview" onclick="navigate('overview')"><span class="nav-icon">⊞</span> Overview</div>
       <div class="nav-item" data-page="updates" onclick="navigate('updates')"><span class="nav-icon">📌</span> Updates <span class="nav-badge hidden" id="updates-badge"></span></div>
-      <div class="nav-item" data-page="accounts" onclick="navigate('accounts')"><span class="nav-icon">📁</span> Accounts</div>
+      <div class="nav-item" data-page="accounts" onclick="navigate('accounts')"><span class="nav-icon">📖</span> Clients</div>
       <div class="nav-item" data-page="issues" onclick="navigate('issues')"><span class="nav-icon">💬</span> Issues &amp; Questions <span class="nav-badge hidden" id="issues-badge"></span></div>
       <div class="nav-section-label">My Records</div>
       <div class="nav-item" data-page="earnings" onclick="navigate('earnings')"><span class="nav-icon">₱</span> Earnings</div>
@@ -608,7 +608,7 @@ select {
       <!-- ── Accounts ── -->
       <section id="page-accounts" class="page-section">
         <div class="section-header">
-          <div class="section-title">Accounts</div>
+          <div class="section-title">Clients</div>
           <div class="section-desc">End-of-month closing workflow tracker — July 2026.</div>
         </div>
 
@@ -714,6 +714,10 @@ select {
         <div class="section-header">
           <div class="section-title">Shift Log</div>
           <div class="section-desc">Full record of all clock-in and clock-out sessions.</div>
+        </div>
+        <div style="background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.3);border-radius:var(--radius-md);padding:0.85rem 1.1rem;margin-bottom:1.2rem;display:flex;align-items:center;gap:0.75rem">
+          <span style="font-size:1.1rem;flex-shrink:0">⏰</span>
+          <div style="font-size:0.83rem;color:var(--text-secondary)"><strong style="color:var(--text-primary)">Daily reminder:</strong> Your scheduled working hours are <strong style="color:var(--warning)">4 hours per day</strong>. Please make sure to log in and out accurately each shift.</div>
         </div>
         <div class="card">
           <div class="card-header"><span class="card-title">All Shifts</span></div>
@@ -911,7 +915,7 @@ function setSession(s) { localStorage.setItem('aw_session', JSON.stringify(s)); 
 function clearSession(){ localStorage.removeItem('aw_session'); }
 
 function getUserData(u) {
-  const def = { accounts:{}, issues:[], shifts:[], hourlyRate:0, fullName:'', seenUpdates:0, activity:[], clockedIn:false, clockIn:null };
+  const def = { accounts:{}, issues:[], shifts:[], hourlyRate:175, fullName:'', seenUpdates:0, activity:[], clockedIn:false, clockIn:null };
   try { return Object.assign({}, def, JSON.parse(localStorage.getItem('aw_data_'+u)||'{}')); } catch { return def; }
 }
 function setUserData(u,d){ localStorage.setItem('aw_data_'+u, JSON.stringify(d)); }
@@ -1067,7 +1071,7 @@ function greetUser() {
 // ─────────────────────────────────────────────
 // NAVIGATION
 // ─────────────────────────────────────────────
-const PAGE_TITLES = { overview:'Overview', updates:'Updates', accounts:'Accounts', issues:'Issues & Questions', earnings:'Earnings', shifts:'Shift Log', profile:'Profile' };
+const PAGE_TITLES = { overview:'Overview', updates:'Updates', accounts:'Clients', issues:'Issues & Questions', earnings:'Earnings', shifts:'Shift Log', profile:'Profile' };
 
 function navigate(page) {
   document.querySelectorAll('.page-section').forEach(s=>s.classList.remove('active'));
@@ -1249,7 +1253,7 @@ function renderAccounts() {
   }
 
   if (clients.length===0) {
-    list.innerHTML=`<div class="empty-state"><div class="empty-state-icon">📁</div><div class="empty-state-text">No clients match your filter.</div></div>`;
+    list.innerHTML=`<div class="empty-state"><div class="empty-state-icon">📖</div><div class="empty-state-text">No clients match your filter.</div></div>`;
     return;
   }
 
@@ -1426,7 +1430,7 @@ function saveRate() {
 function renderEarnings() {
   userData=getUserData(currentUser);
   const rate=userData.hourlyRate||0;
-  document.getElementById('hourly-rate').value=rate||'';
+  document.getElementById('hourly-rate').value=rate!=null&&rate!==''?rate:175;
   const shifts=userData.shifts||[];
   const now=new Date();
   const todayKey=now.toLocaleDateString('en-US');
