@@ -554,6 +554,9 @@ select {
           <div class="section-title" id="greet-name">Good morning, Cyrel 👋</div>
           <div class="section-desc">Here's your workspace at a glance.</div>
         </div>
+        <div id="prestart-banner" style="display:none;background:rgba(245,166,35,0.1);border:1px solid rgba(245,166,35,0.3);border-radius:var(--radius-md);padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.83rem;color:var(--warning)">
+          ⏳ <strong>Your workspace is active but your work officially starts on Monday, July 27.</strong> Shifts and earnings logged before that date will not be counted.
+        </div>
         <div id="overview-updates-banner" class="updates-banner hidden" onclick="navigate('updates')" style="cursor:pointer">
           <div class="updates-banner-icon">📌</div>
           <div class="updates-banner-text"><strong id="overview-update-preview"></strong> — <span style="color:var(--teal)">View all →</span></div>
@@ -907,6 +910,7 @@ const MASTER_CLIENTS = [
   { name:'New Client', owned:false },
 ];
 
+const WORK_START = new Date('2026-07-27T00:00:00');
 const OVERALL_STATUS_OPTS = ['Not Yet Started','In Process','Completed'];
 // Boss-reviewed clients — updated here when you tell me you've reviewed a client
 const BOSS_REVIEWED = new Set([]);
@@ -942,8 +946,26 @@ function getUserData(u) {
 }
 function setUserData(u,d){ localStorage.setItem('aw_data_'+u, JSON.stringify(d)); }
 
-function getUpdates() { try { return JSON.parse(localStorage.getItem('aw_updates')||'[]'); } catch { return []; } }
-function setUpdates(u){ localStorage.setItem('aw_updates', JSON.stringify(u)); }
+// Seeded updates — new entries added here appear for all users automatically
+const SEED_UPDATES = [
+  {
+    id: 'seed-001',
+    date: 'July 20, 2026',
+    title: 'Work Start Date — July 27, Monday',
+    body: 'Your official start date is Monday, July 27. As of now, I haven\'t received any update from you regarding your work schedule or how you plan to continue moving forward. Please drop me a message on Teams at your earliest convenience.\n\nAll updates and announcements will be posted here — make it a habit to check this tab regularly.\n\nTalk soon! — Jey'
+  }
+];
+
+function getUpdates() {
+  try {
+    const stored = JSON.parse(localStorage.getItem('aw_updates') || '[]');
+    // Merge seed updates (by id) so they always appear
+    const storedIds = new Set(stored.map(u => u.id));
+    const merged = [...SEED_UPDATES.filter(u => !storedIds.has(u.id)), ...stored];
+    return merged;
+  } catch { return SEED_UPDATES.slice(); }
+}
+function setUpdates(u){ localStorage.setItem('aw_updates', JSON.stringify(u.filter(x=>!SEED_UPDATES.find(s=>s.id===x.id)))); }
 
 // accounts[clientName] = { month:'July', tasks:[{type,progress,review}], issues:'', comments:'', flagged:false }
 function getClientData(username, clientName) {
@@ -1177,7 +1199,7 @@ function addActivity(msg) {
 // ─────────────────────────────────────────────
 function refreshOverview() {
   userData=getUserData(currentUser);
-  const shifts=userData.shifts||[];
+  const shifts=(userData.shifts||[]).filter(s=>new Date(s.inISO||s.date)>=WORK_START);
   const updates=getUpdates();
   const now=new Date();
   const todayKey=now.toLocaleDateString('en-US');
@@ -1207,6 +1229,10 @@ function refreshOverview() {
   document.getElementById('stat-hours-today').textContent=todayHrs.toFixed(1);
   const monthHrs=shifts.filter(s=>{ const d=new Date(s.inISO||s.date); return `${d.getMonth()}-${d.getFullYear()}`===monthKey; }).reduce((a,s)=>a+(s.hours||0),0);
   document.getElementById('stat-month-earn').textContent='₱'+(monthHrs*rate).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+  // Pre-start banner
+  const prestartEl=document.getElementById('prestart-banner');
+  if (prestartEl) prestartEl.style.display=new Date()<WORK_START?'block':'none';
 
   // Updates banner
   const banner=document.getElementById('overview-updates-banner');
@@ -1585,7 +1611,8 @@ function renderEarnings() {
   userData=getUserData(currentUser);
   const rate=userData.hourlyRate||0;
   document.getElementById('hourly-rate').value=rate!=null&&rate!==''?rate:175;
-  const shifts=userData.shifts||[];
+  const allShifts=userData.shifts||[];
+  const shifts=allShifts.filter(s=>new Date(s.inISO||s.date)>=WORK_START);
   const now=new Date();
   const todayKey=now.toLocaleDateString('en-US');
   const weekStart=new Date(now); weekStart.setDate(now.getDate()-now.getDay()); weekStart.setHours(0,0,0,0);
