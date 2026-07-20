@@ -506,7 +506,7 @@ select {
         <div class="sidebar-avatar" id="sidebar-avatar-text">CA</div>
         <div>
           <div class="sidebar-username" id="sidebar-username">Loading…</div>
-          <div class="sidebar-usertag">Personal Assistant</div>
+          <div class="sidebar-usertag" id="sidebar-role">Personal Assistant</div>
         </div>
       </div>
     </div>
@@ -781,7 +781,7 @@ select {
                 <div class="profile-avatar-lg" id="profile-avatar-text">CA</div>
                 <div>
                   <div style="font-size:1.05rem;font-weight:800" id="profile-full-name">Cyrel Athan Viloria</div>
-                  <div style="color:var(--teal);font-size:0.75rem;font-weight:600">Personal Assistant</div>
+                  <div style="color:var(--teal);font-size:0.75rem;font-weight:600" id="profile-role">Personal Assistant</div>
                   <div style="color:var(--text-muted);font-size:0.72rem;margin-top:0.1rem">Bookkeeper · Data Specialist</div>
                 </div>
               </div>
@@ -1017,9 +1017,9 @@ async function loadUserData(username) {
   try {
     const snap = await db.collection('users').doc(username).get();
     _udCache[username] = Object.assign({}, def, snap.exists ? snap.data() : {});
-    // Seed fullName for known accounts
+    // Always use seed fullName for known accounts to prevent stale Firestore data
     const seed = SEED_ACCOUNTS.find(a=>a.username===username);
-    if (seed && !_udCache[username].fullName) _udCache[username].fullName = seed.fullName;
+    if (seed && seed.fullName) _udCache[username].fullName = seed.fullName;
   } catch { _udCache[username] = def; }
   return _udCache[username];
 }
@@ -1241,10 +1241,13 @@ function enterApp() {
 function populateSidebar() {
   const name=(userData.fullName||currentUser);
   const initials=name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  const role = currentUser === BOSS_USERNAME ? 'Admin / Boss' : 'Personal Assistant';
   document.getElementById('sidebar-username').textContent=name;
   document.getElementById('sidebar-avatar-text').textContent=initials;
+  document.getElementById('sidebar-role').textContent=role;
   document.getElementById('profile-avatar-text').textContent=initials;
   document.getElementById('profile-full-name').textContent=name;
+  document.getElementById('profile-role').textContent=role;
   document.getElementById('profile-name-input').value=name;
   document.getElementById('profile-username-input').value=currentUser;
 }
