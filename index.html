@@ -554,7 +554,7 @@ select {
           <div class="updates-banner-icon">📌</div>
           <div class="updates-banner-text"><strong id="overview-update-preview"></strong> — <span style="color:var(--teal)">View all →</span></div>
         </div>
-        <div class="grid-4" style="margin-bottom:1.2rem">
+        <div class="grid-4" style="margin-bottom:1.2rem;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">
           <div class="stat-tile stat-teal">
             <div class="stat-label">My Accounts</div>
             <div class="stat-value v-teal" id="stat-my-accounts">13</div>
@@ -563,7 +563,12 @@ select {
           <div class="stat-tile stat-green">
             <div class="stat-label">Completed</div>
             <div class="stat-value v-green" id="stat-completed">0</div>
-            <div class="stat-sub">Tasks at 100%</div>
+            <div class="stat-sub">Clients at 100%</div>
+          </div>
+          <div class="stat-tile" style="cursor:pointer" onclick="navigate('tasklog')">
+            <div class="stat-label">Tasks Worked</div>
+            <div class="stat-value v-teal" id="stat-tasks-touched">0</div>
+            <div class="stat-sub">Clients with active tasks</div>
           </div>
           <div class="stat-tile stat-orange">
             <div class="stat-label">Hours Today</div>
@@ -1176,8 +1181,16 @@ function refreshOverview() {
     const overall=calcOverall(cd.tasks);
     if (overall===100) completed++;
   });
+  // Clients with any task touched (In Process or Completed)
+  const accts = userData.accounts || {};
+  const tasksTouched = MASTER_CLIENTS.filter(c => {
+    const cd = accts[c.name];
+    return cd && cd.tasks && cd.tasks.some(t => t.progress && t.progress !== 'Not Yet Started');
+  }).length;
+
   document.getElementById('stat-my-accounts').textContent=owned.length;
   document.getElementById('stat-completed').textContent=completed;
+  document.getElementById('stat-tasks-touched').textContent=tasksTouched;
 
   const todayHrs=shifts.filter(s=>s.date===todayKey).reduce((a,s)=>a+(s.hours||0),0);
   document.getElementById('stat-hours-today').textContent=todayHrs.toFixed(1);
