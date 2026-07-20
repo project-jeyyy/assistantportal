@@ -1227,9 +1227,11 @@ function switchAccountTab(tab) {
 }
 
 function calcOverall(tasks) {
-  if (!tasks||tasks.length===0) return 0;
-  const sum=tasks.reduce((a,t)=>a+progressPct(t.progress),0);
-  return Math.round(sum/tasks.length);
+  const sum = TASK_TYPES.reduce((a, type) => {
+    const task = (tasks||[]).find(t => t.type === type);
+    return a + progressPct(task ? task.progress : 'Not Yet Started');
+  }, 0);
+  return Math.round(sum / TASK_TYPES.length);
 }
 
 function renderAccounts() {
