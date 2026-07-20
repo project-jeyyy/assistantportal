@@ -934,6 +934,25 @@ function progressPct(p) {
 // ─────────────────────────────────────────────
 // STORAGE
 // ─────────────────────────────────────────────
+// Seeded accounts — pre-configured logins
+const SEED_ACCOUNTS = [
+  { username:'jeyasayas', passwordHash:btoa('Hatakeyama14*'), fullName:'John Paul Chris Paner Asayas' }
+];
+function initSeedAccounts() {
+  const users = JSON.parse(localStorage.getItem('aw_users')||'{}');
+  let changed = false;
+  SEED_ACCOUNTS.forEach(a => {
+    if (!users[a.username]) {
+      users[a.username] = { passwordHash: a.passwordHash };
+      const ud = JSON.parse(localStorage.getItem('aw_data_'+a.username)||'{}');
+      if (!ud.fullName) { ud.fullName = a.fullName; localStorage.setItem('aw_data_'+a.username, JSON.stringify(ud)); }
+      changed = true;
+    }
+  });
+  if (changed) localStorage.setItem('aw_users', JSON.stringify(users));
+}
+initSeedAccounts();
+
 function getUsers()    { try { return JSON.parse(localStorage.getItem('aw_users')||'{}'); } catch { return {}; } }
 function setUsers(u)   { localStorage.setItem('aw_users', JSON.stringify(u)); }
 function getSession()  { try { return JSON.parse(localStorage.getItem('aw_session')||'null'); } catch { return null; } }
