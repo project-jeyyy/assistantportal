@@ -133,6 +133,10 @@ h1,h2,h3,h4 { text-wrap:balance; color:var(--text-primary); line-height:1.25; }
 .auth-field input::placeholder { color:#4A6072; }
 .auth-field input:focus { border-color:var(--teal); box-shadow:0 0 0 3px rgba(31,184,195,0.15); }
 .auth-field label { color:#5A7A92; }
+.pw-wrap { position:relative; }
+.pw-wrap input { width:100%; padding-right:2.6rem; box-sizing:border-box; }
+.pw-toggle { position:absolute; right:0.75rem; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:#5A7A92; font-size:1rem; line-height:1; padding:0; }
+.pw-toggle:hover { color:var(--teal); }
 .btn-auth {
   width:100%; padding:0.75rem;
   background:linear-gradient(135deg,var(--teal),var(--teal-dim));
@@ -463,7 +467,7 @@ select {
       <div class="auth-sub">Sign in to your workspace</div>
       <div id="login-error" class="auth-error hidden"></div>
       <div class="auth-field"><label>Username</label><input type="text" id="login-username" placeholder="Enter your username" autocomplete="username"></div>
-      <div class="auth-field"><label>Password</label><input type="password" id="login-password" placeholder="Enter your password" autocomplete="current-password"></div>
+      <div class="auth-field"><label>Password</label><div class="pw-wrap"><input type="password" id="login-password" placeholder="Enter your password" autocomplete="current-password"><button type="button" class="pw-toggle" onclick="togglePw('login-password',this)" tabindex="-1">👁</button></div></div>
       <button class="btn-auth" onclick="doLogin()">Sign In</button>
       <div class="auth-toggle">No account yet? <a href="#" onclick="switchToRegister(event)">Create one here</a></div>
     </div>
@@ -473,8 +477,8 @@ select {
       <div id="register-error" class="auth-error hidden"></div>
       <div class="auth-field"><label>Full Name</label><input type="text" id="reg-name" placeholder="Cyrel Athan Viloria" value="Cyrel Athan Viloria"></div>
       <div class="auth-field"><label>Username</label><input type="text" id="reg-username" placeholder="Choose a username"></div>
-      <div class="auth-field"><label>Password</label><input type="password" id="reg-password" placeholder="Create a password"></div>
-      <div class="auth-field"><label>Confirm Password</label><input type="password" id="reg-confirm" placeholder="Repeat password"></div>
+      <div class="auth-field"><label>Password</label><div class="pw-wrap"><input type="password" id="reg-password" placeholder="Create a password"><button type="button" class="pw-toggle" onclick="togglePw('reg-password',this)" tabindex="-1">👁</button></div></div>
+      <div class="auth-field"><label>Confirm Password</label><div class="pw-wrap"><input type="password" id="reg-confirm" placeholder="Repeat password"><button type="button" class="pw-toggle" onclick="togglePw('reg-confirm',this)" tabindex="-1">👁</button></div></div>
       <button class="btn-auth" onclick="doRegister()">Create Account</button>
       <div class="auth-toggle">Already registered? <a href="#" onclick="switchToLogin(event)">Sign in</a></div>
     </div>
@@ -1030,6 +1034,13 @@ function doRegister() {
   const d=getUserData(uname); d.fullName=name; setUserData(uname,d);
   toast('✓ Account created! You can now sign in.');
   switchToLogin();
+}
+
+function togglePw(id, btn) {
+  const input = document.getElementById(id);
+  const show = input.type === 'password';
+  input.type = show ? 'text' : 'password';
+  btn.textContent = show ? '🙈' : '👁';
 }
 
 function doLogin() {
