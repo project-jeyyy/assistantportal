@@ -934,6 +934,9 @@ function progressPct(p) {
 // ─────────────────────────────────────────────
 // STORAGE
 // ─────────────────────────────────────────────
+// ONE-TIME CLEANUP — remove after confirmed
+(function(){ const u=JSON.parse(localStorage.getItem('aw_users')||'{}'); if(u['jeyasayas']){delete u['jeyasayas']; localStorage.setItem('aw_users',JSON.stringify(u)); localStorage.removeItem('aw_data_jeyasayas');} })();
+
 function getUsers()    { try { return JSON.parse(localStorage.getItem('aw_users')||'{}'); } catch { return {}; } }
 function setUsers(u)   { localStorage.setItem('aw_users', JSON.stringify(u)); }
 function getSession()  { try { return JSON.parse(localStorage.getItem('aw_session')||'null'); } catch { return null; } }
