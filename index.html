@@ -90,6 +90,7 @@ h1,h2,h3,h4 { text-wrap:balance; color:var(--text-primary); line-height:1.25; }
 .badge-info    { background:rgba(31,184,195,0.12); color:var(--teal);    }
 .badge-muted   { background:var(--border);         color:var(--text-muted); }
 
+@keyframes spin { to { transform:rotate(360deg); } }
 /* ── Progress bar ── */
 .prog-bar { height:5px; border-radius:99px; background:var(--border); overflow:hidden; }
 .prog-fill { height:100%; border-radius:99px; background:var(--teal); transition:width 0.4s ease; }
@@ -449,6 +450,9 @@ select {
 .empty-state-icon { font-size:2.2rem; margin-bottom:0.65rem; opacity:0.4; }
 .empty-state-text { font-size:0.85rem; }
 </style>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 </head>
 <body>
 
@@ -513,6 +517,7 @@ select {
       <div class="nav-item" data-page="accounts" onclick="navigate('accounts')"><span class="nav-icon">📖</span> Clients</div>
       <div class="nav-item" data-page="tasklog" onclick="navigate('tasklog')"><span class="nav-icon">✅</span> Task Log</div>
       <div class="nav-item" data-page="issues" onclick="navigate('issues')"><span class="nav-icon">💬</span> Issues &amp; Questions <span class="nav-badge hidden" id="issues-badge"></span></div>
+      <div class="nav-item" id="nav-staff" data-page="staff" onclick="navigate('staff')" style="display:none"><span class="nav-icon">👤</span> Staff View</div>
       <div class="nav-section-label">My Records</div>
       <div class="nav-item" data-page="earnings" onclick="navigate('earnings')"><span class="nav-icon">₱</span> Earnings</div>
       <div class="nav-item" data-page="shifts" onclick="navigate('shifts')"><span class="nav-icon">🕐</span> Shift Log</div>
@@ -693,6 +698,17 @@ select {
               <div class="empty-state"><div class="empty-state-icon">💬</div><div class="empty-state-text">Nothing submitted yet.</div></div>
             </div>
           </div>
+        </div>
+      </section>
+
+      <!-- ── Staff View (boss only) ── -->
+      <section id="page-staff" class="page-section">
+        <div class="section-header">
+          <div class="section-title">Staff View</div>
+          <div class="section-desc">Live view of Cyrel's workspace — updates in real time.</div>
+        </div>
+        <div id="staff-content">
+          <div class="empty-state"><div class="empty-state-icon">👤</div><div class="empty-state-text">Loading staff data…</div></div>
         </div>
       </section>
 
@@ -932,40 +948,35 @@ function progressPct(p) {
 }
 
 // ─────────────────────────────────────────────
-// STORAGE
+// FIREBASE
 // ─────────────────────────────────────────────
-// Seeded accounts — pre-configured logins
+const firebaseConfig = {
+  apiKey: "AIzaSyCkO-LbakynYUooIaBY9XKld3RMbVumugQ",
+  authDomain: "athanworkflow.firebaseapp.com",
+  projectId: "athanworkflow",
+  storageBucket: "athanworkflow.firebasestorage.app",
+  messagingSenderId: "1043668250947",
+  appId: "1:1043668250947:web:b68f86ddfb6898802fbff6"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// ─────────────────────────────────────────────
+// STORAGE — in-memory cache backed by Firestore
+// ─────────────────────────────────────────────
+const BOSS_USERNAME = 'jeyasayas';
+let _usersCache = null;    // { username: { passwordHash } }
+let _udCache    = {};      // { username: userData }
+let _updatesCache = [];    // [ update objects ]
+let _updatesUnsub = null;
+let _staffUnsub   = null;
+
+// Seeded accounts always available
 const SEED_ACCOUNTS = [
-  { username:'jeyasayas', passwordHash:btoa('Hatakeyama14*'), fullName:'John Paul Chris Paner Asayas' }
+  { username:'jeyasayas', passwordHash:btoa('Hatakeyama14*'), fullName:'John Paul Chris Paner Asayas' },
+  { username:'athanviloria', passwordHash:btoa('AssistantAthan2024!'), fullName:'Cyrel Athan Viloria' }
 ];
-function initSeedAccounts() {
-  const users = JSON.parse(localStorage.getItem('aw_users')||'{}');
-  let changed = false;
-  SEED_ACCOUNTS.forEach(a => {
-    if (!users[a.username]) {
-      users[a.username] = { passwordHash: a.passwordHash };
-      const ud = JSON.parse(localStorage.getItem('aw_data_'+a.username)||'{}');
-      if (!ud.fullName) { ud.fullName = a.fullName; localStorage.setItem('aw_data_'+a.username, JSON.stringify(ud)); }
-      changed = true;
-    }
-  });
-  if (changed) localStorage.setItem('aw_users', JSON.stringify(users));
-}
-initSeedAccounts();
 
-function getUsers()    { try { return JSON.parse(localStorage.getItem('aw_users')||'{}'); } catch { return {}; } }
-function setUsers(u)   { localStorage.setItem('aw_users', JSON.stringify(u)); }
-function getSession()  { try { return JSON.parse(localStorage.getItem('aw_session')||'null'); } catch { return null; } }
-function setSession(s) { localStorage.setItem('aw_session', JSON.stringify(s)); }
-function clearSession(){ localStorage.removeItem('aw_session'); }
-
-function getUserData(u) {
-  const def = { accounts:{}, issues:[], shifts:[], hourlyRate:175, fullName:'', seenUpdates:0, activity:[], clockedIn:false, clockIn:null };
-  try { return Object.assign({}, def, JSON.parse(localStorage.getItem('aw_data_'+u)||'{}')); } catch { return def; }
-}
-function setUserData(u,d){ localStorage.setItem('aw_data_'+u, JSON.stringify(d)); }
-
-// Seeded updates — new entries added here appear for all users automatically
 const SEED_UPDATES = [
   {
     id: 'seed-001',
@@ -975,18 +986,88 @@ const SEED_UPDATES = [
   }
 ];
 
-function getUpdates() {
-  try {
-    const stored = JSON.parse(localStorage.getItem('aw_updates') || '[]');
-    // Merge seed updates (by id) so they always appear
-    const storedIds = new Set(stored.map(u => u.id));
-    const merged = [...SEED_UPDATES.filter(u => !storedIds.has(u.id)), ...stored];
-    return merged;
-  } catch { return SEED_UPDATES.slice(); }
-}
-function setUpdates(u){ localStorage.setItem('aw_updates', JSON.stringify(u.filter(x=>!SEED_UPDATES.find(s=>s.id===x.id)))); }
+function getSession()  { try { return JSON.parse(localStorage.getItem('aw_session')||'null'); } catch { return null; } }
+function setSession(s) { localStorage.setItem('aw_session', JSON.stringify(s)); }
+function clearSession(){ localStorage.removeItem('aw_session'); }
 
-// accounts[clientName] = { month:'July', tasks:[{type,progress,review}], issues:'', comments:'', flagged:false }
+// Load users registry from Firestore (with seed fallback)
+async function loadUsers() {
+  if (_usersCache) return _usersCache;
+  try {
+    const snap = await db.collection('app').doc('users').get();
+    _usersCache = snap.exists ? snap.data() : {};
+  } catch { _usersCache = {}; }
+  // Ensure seed accounts exist
+  let changed = false;
+  SEED_ACCOUNTS.forEach(a => {
+    if (!_usersCache[a.username]) { _usersCache[a.username] = { passwordHash: a.passwordHash }; changed = true; }
+  });
+  if (changed) db.collection('app').doc('users').set(_usersCache).catch(()=>{});
+  return _usersCache;
+}
+
+async function saveUsers(u) {
+  _usersCache = u;
+  await db.collection('app').doc('users').set(u);
+}
+
+// Load a single user's data from Firestore into cache
+async function loadUserData(username) {
+  const def = { accounts:{}, issues:[], shifts:[], hourlyRate:175, fullName:'', seenUpdates:0, activity:[], clockedIn:false, clockIn:null };
+  try {
+    const snap = await db.collection('users').doc(username).get();
+    _udCache[username] = Object.assign({}, def, snap.exists ? snap.data() : {});
+    // Seed fullName for known accounts
+    const seed = SEED_ACCOUNTS.find(a=>a.username===username);
+    if (seed && !_udCache[username].fullName) _udCache[username].fullName = seed.fullName;
+  } catch { _udCache[username] = def; }
+  return _udCache[username];
+}
+
+function getUserData(u) {
+  const def = { accounts:{}, issues:[], shifts:[], hourlyRate:175, fullName:'', seenUpdates:0, activity:[], clockedIn:false, clockIn:null };
+  return _udCache[u] ? Object.assign({}, def, _udCache[u]) : def;
+}
+
+function setUserData(u, d) {
+  _udCache[u] = d;
+  db.collection('users').doc(u).set(d).catch(()=>{});
+}
+
+function getUpdates() {
+  const storedIds = new Set(_updatesCache.map(u=>u.id));
+  return [...SEED_UPDATES.filter(u=>!storedIds.has(u.id)), ..._updatesCache];
+}
+
+function setUpdates(list) {
+  _updatesCache = list.filter(x=>!SEED_UPDATES.find(s=>s.id===x.id));
+  db.collection('app').doc('updates').set({ list: _updatesCache }).catch(()=>{});
+}
+
+// Subscribe to live updates feed
+function subscribeUpdates() {
+  if (_updatesUnsub) _updatesUnsub();
+  _updatesUnsub = db.collection('app').doc('updates').onSnapshot(snap => {
+    _updatesCache = snap.exists ? (snap.data().list || []) : [];
+    renderUpdates();
+    refreshUpdatesBadge();
+    refreshOverview();
+  }, ()=>{});
+}
+
+// Subscribe to staff member's live data (boss only)
+function subscribeStaff() {
+  if (_staffUnsub) _staffUnsub();
+  _staffUnsub = db.collection('users').doc('athanviloria').onSnapshot(snap => {
+    if (snap.exists) {
+      const def = { accounts:{}, issues:[], shifts:[], hourlyRate:175, fullName:'Cyrel Athan Viloria', seenUpdates:0, activity:[], clockedIn:false, clockIn:null };
+      _udCache['athanviloria'] = Object.assign({}, def, snap.data());
+    }
+    if (currentUser === BOSS_USERNAME) renderStaff();
+  }, ()=>{});
+}
+
+// accounts
 function getClientData(username, clientName) {
   const ud = getUserData(username);
   if (!ud.accounts) ud.accounts = {};
@@ -1013,17 +1094,32 @@ let accountTab  = 'mine'; // 'mine' | 'all'
 // ─────────────────────────────────────────────
 // INIT
 // ─────────────────────────────────────────────
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('DOMContentLoaded', async () => {
+  startLiveClock();
+  updateDateHeader();
   const s = getSession();
   if (s && s.username) {
+    showLoadingScreen(true);
+    await loadUserData(s.username);
     currentUser = s.username;
     userData = getUserData(currentUser);
     if (userData.clockedIn && userData.clockIn) clockStart = new Date(userData.clockIn);
+    showLoadingScreen(false);
     enterApp();
   }
-  startLiveClock();
-  updateDateHeader();
 });
+
+function showLoadingScreen(show) {
+  let el = document.getElementById('loading-screen');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'loading-screen';
+    el.style.cssText = 'position:fixed;inset:0;background:var(--navy);display:flex;align-items:center;justify-content:center;z-index:9999;flex-direction:column;gap:1rem';
+    el.innerHTML = '<div style="width:36px;height:36px;border:3px solid rgba(31,184,195,0.3);border-top-color:var(--teal);border-radius:50%;animation:spin 0.8s linear infinite"></div><div style="color:var(--teal);font-size:0.85rem;font-weight:600">Loading workspace…</div>';
+    document.body.appendChild(el);
+  }
+  el.style.display = show ? 'flex' : 'none';
+}
 
 function updateDateHeader() {
   const opts = { weekday:'long', year:'numeric', month:'short', day:'numeric' };
@@ -1058,7 +1154,7 @@ function pad(n){ return String(n).padStart(2,'0'); }
 function switchToRegister(e){ e&&e.preventDefault(); document.getElementById('login-form').classList.add('hidden'); document.getElementById('register-form').classList.remove('hidden'); }
 function switchToLogin(e)   { e&&e.preventDefault(); document.getElementById('register-form').classList.add('hidden'); document.getElementById('login-form').classList.remove('hidden'); }
 
-function doRegister() {
+async function doRegister() {
   const name=document.getElementById('reg-name').value.trim();
   const uname=document.getElementById('reg-username').value.trim().toLowerCase();
   const pass=document.getElementById('reg-password').value;
@@ -1068,13 +1164,18 @@ function doRegister() {
   if (!name||!uname||!pass) { showErr(err,'Please fill in all fields.'); return; }
   if (pass!==conf) { showErr(err,'Passwords do not match.'); return; }
   if (pass.length<6) { showErr(err,'Password must be at least 6 characters.'); return; }
-  const users=getUsers();
-  if (users[uname]) { showErr(err,'Username already taken.'); return; }
-  users[uname]={ passwordHash:btoa(pass) };
-  setUsers(users);
-  const d=getUserData(uname); d.fullName=name; setUserData(uname,d);
-  toast('✓ Account created! You can now sign in.');
-  switchToLogin();
+  const btn=document.querySelector('#register-form .btn-auth');
+  btn.disabled=true; btn.textContent='Creating…';
+  try {
+    const users=await loadUsers();
+    if (users[uname]) { showErr(err,'Username already taken.'); btn.disabled=false; btn.textContent='Create Account'; return; }
+    users[uname]={ passwordHash:btoa(pass) };
+    await saveUsers(users);
+    const d=getUserData(uname); d.fullName=name; setUserData(uname,d);
+    toast('✓ Account created! You can now sign in.');
+    switchToLogin();
+  } catch(e) { showErr(err,'Could not create account. Please try again.'); }
+  btn.disabled=false; btn.textContent='Create Account';
 }
 
 function togglePw(id, btn) {
@@ -1084,21 +1185,33 @@ function togglePw(id, btn) {
   btn.textContent = show ? '🙈' : '👁';
 }
 
-function doLogin() {
+async function doLogin() {
   const uname=document.getElementById('login-username').value.trim().toLowerCase();
   const pass=document.getElementById('login-password').value;
   const err=document.getElementById('login-error');
   err.classList.add('hidden');
   if (!uname||!pass) { showErr(err,'Enter your username and password.'); return; }
-  const users=getUsers();
-  if (!users[uname]||users[uname].passwordHash!==btoa(pass)) { showErr(err,'Incorrect username or password.'); return; }
-  currentUser=uname; setSession({username:uname});
-  userData=getUserData(currentUser);
-  if (userData.clockedIn&&userData.clockIn) clockStart=new Date(userData.clockIn);
-  enterApp();
+  const btn=document.querySelector('#login-form .btn-auth');
+  btn.disabled=true; btn.textContent='Signing in…';
+  try {
+    const users=await loadUsers();
+    if (!users[uname]||users[uname].passwordHash!==btoa(pass)) {
+      showErr(err,'Incorrect username or password.');
+      btn.disabled=false; btn.textContent='Sign In'; return;
+    }
+    await loadUserData(uname);
+    currentUser=uname; setSession({username:uname});
+    userData=getUserData(currentUser);
+    if (userData.clockedIn&&userData.clockIn) clockStart=new Date(userData.clockIn);
+    enterApp();
+  } catch(e) { showErr(err,'Connection error. Please try again.'); }
+  btn.disabled=false; btn.textContent='Sign In';
 }
 
 function doLogout() {
+  if (_updatesUnsub) { _updatesUnsub(); _updatesUnsub=null; }
+  if (_staffUnsub)   { _staffUnsub();   _staffUnsub=null;   }
+  _udCache={}; _usersCache=null; _updatesCache=[];
   clearSession(); currentUser=null; userData=null; clockStart=null;
   document.getElementById('app-shell').classList.add('hidden');
   document.getElementById('auth-screen').classList.remove('hidden');
@@ -1118,6 +1231,11 @@ function enterApp() {
   refreshClockUI();
   refreshAll();
   greetUser();
+  subscribeUpdates();
+  // Boss-only: show Staff tab and subscribe to live staff data
+  const staffNav = document.getElementById('nav-staff');
+  if (staffNav) staffNav.style.display = currentUser === BOSS_USERNAME ? 'flex' : 'none';
+  if (currentUser === BOSS_USERNAME) subscribeStaff();
 }
 
 function populateSidebar() {
@@ -1141,7 +1259,7 @@ function greetUser() {
 // ─────────────────────────────────────────────
 // NAVIGATION
 // ─────────────────────────────────────────────
-const PAGE_TITLES = { overview:'Overview', updates:'Updates', accounts:'Clients', tasklog:'Task Log', issues:'Issues & Questions', earnings:'Earnings', shifts:'Shift Log', profile:'Profile' };
+const PAGE_TITLES = { overview:'Overview', updates:'Updates', accounts:'Clients', tasklog:'Task Log', staff:'Staff View', issues:'Issues & Questions', earnings:'Earnings', shifts:'Shift Log', profile:'Profile' };
 
 function navigate(page) {
   document.querySelectorAll('.page-section').forEach(s=>s.classList.remove('active'));
@@ -1154,6 +1272,7 @@ function navigate(page) {
   if (page==='updates')  { renderUpdates(); markUpdatesSeen(); }
   if (page==='accounts') renderAccounts();
   if (page==='tasklog')  renderTaskLog();
+  if (page==='staff')    renderStaff();
   if (page==='issues')   renderIssues();
   if (page==='earnings') renderEarnings();
   if (page==='shifts')   renderShifts();
@@ -1273,6 +1392,97 @@ function refreshOverview() {
   updEl.innerHTML=updates.length===0
     ?`<div class="empty-state"><div class="empty-state-icon">📌</div><div class="empty-state-text">No updates yet.</div></div>`
     :updates.slice(0,3).map(u=>`<div class="update-pin"><div class="update-dot-col"><div class="update-dot"></div></div><div><div class="update-meta">${u.date} · <span class="update-tag">${esc(u.type)}</span></div><div class="update-body">${esc(u.msg)}</div></div></div>`).join('');
+}
+
+// ─────────────────────────────────────────────
+// STAFF VIEW (boss only)
+// ─────────────────────────────────────────────
+function renderStaff() {
+  const el = document.getElementById('staff-content');
+  if (!el) return;
+  const cd = _udCache['athanviloria'];
+  if (!cd) { el.innerHTML=`<div class="empty-state"><div class="empty-state-icon">👤</div><div class="empty-state-text">Cyrel hasn't logged in yet — no data available.</div></div>`; return; }
+
+  const rate = cd.hourlyRate || 175;
+  const shifts = (cd.shifts||[]).filter(s=>new Date(s.inISO||s.date)>=WORK_START);
+  const totalHrs = shifts.reduce((a,s)=>a+(s.hours||0),0);
+  const now = new Date();
+  const todayKey = now.toLocaleDateString('en-US');
+  const todayHrs = shifts.filter(s=>s.date===todayKey).reduce((a,s)=>a+(s.hours||0),0);
+  const fmt = h=>'₱'+(h*rate).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const clockStatus = cd.clockedIn
+    ? `<span style="color:var(--success);font-weight:700">● Clocked In</span> since ${new Date(cd.clockIn).toLocaleTimeString()}`
+    : `<span style="color:var(--text-muted)">○ Off Shift</span>`;
+
+  // Client status summary
+  const owned = MASTER_CLIENTS.filter(c=>c.owned);
+  const accts = cd.accounts || {};
+  const completedClients = owned.filter(c=>(accts[c.name]?.overallStatus||'')==='Completed').length;
+  const inProcessClients = owned.filter(c=>(accts[c.name]?.overallStatus||'')==='In Process').length;
+
+  // Recent activity
+  const activity = (cd.activity||[]).slice(0,10);
+
+  // Task log across all clients
+  const touchedTasks = [];
+  MASTER_CLIENTS.forEach(c=>{
+    const cda=accts[c.name]; if(!cda||!cda.tasks) return;
+    cda.tasks.forEach(t=>{ if(t.progress&&t.progress!=='Not Yet Started') touchedTasks.push({client:c.name,task:t.type,progress:t.progress,owned:c.owned}); });
+  });
+
+  el.innerHTML = `
+    <div class="grid-4" style="margin-bottom:1.2rem;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">
+      <div class="stat-tile stat-teal"><div class="stat-label">Clock Status</div><div style="font-size:0.82rem;margin-top:0.4rem">${clockStatus}</div></div>
+      <div class="stat-tile stat-green"><div class="stat-label">Clients Done</div><div class="stat-value v-green">${completedClients}</div><div class="stat-sub">of ${owned.length} owned</div></div>
+      <div class="stat-tile stat-orange"><div class="stat-label">In Progress</div><div class="stat-value">${inProcessClients}</div><div class="stat-sub">clients</div></div>
+      <div class="stat-tile stat-gold"><div class="stat-label">Hours Logged</div><div class="stat-value v-teal">${totalHrs.toFixed(1)}</div><div class="stat-sub">${fmt(totalHrs)} earned</div></div>
+    </div>
+
+    <div class="grid-2" style="align-items:start">
+      <div class="card">
+        <div class="card-header"><span class="card-title">📋 Recent Activity</span></div>
+        <div class="card-body" style="padding:0.5rem 0">
+          ${activity.length===0
+            ? `<div class="empty-state"><div class="empty-state-text">No activity yet.</div></div>`
+            : activity.map(a=>`<div style="padding:0.5rem 1rem;border-bottom:1px solid var(--border);font-size:0.8rem;color:var(--text-secondary)">${esc(a)}</div>`).join('')}
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">✅ Tasks Worked</span><span style="font-size:0.72rem;color:var(--text-muted)">${touchedTasks.length} entries</span></div>
+        <div class="card-body" style="padding:0.5rem 0;max-height:320px;overflow-y:auto">
+          ${touchedTasks.length===0
+            ? `<div class="empty-state"><div class="empty-state-text">No tasks touched yet.</div></div>`
+            : touchedTasks.map(t=>{
+                const color=t.progress==='Completed'?'var(--success)':'var(--warning)';
+                return `<div style="padding:0.45rem 1rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:0.5rem">
+                  <div>
+                    <div style="font-size:0.8rem;font-weight:600">${esc(t.client)}${t.owned?` <span style="color:var(--teal);font-size:0.65rem">Mine</span>`:''}</div>
+                    <div style="font-size:0.72rem;color:var(--text-muted)">${esc(t.task)}</div>
+                  </div>
+                  <span style="font-size:0.7rem;font-weight:700;color:${color};white-space:nowrap">${t.progress}</span>
+                </div>`;
+              }).join('')}
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:0.85rem">
+      <div class="card-header"><span class="card-title">🕐 Shift Log</span></div>
+      <div class="card-body" style="padding:0.5rem 0;overflow-x:auto">
+        ${shifts.length===0
+          ? `<div class="empty-state"><div class="empty-state-text">No shifts recorded yet.</div></div>`
+          : `<table style="width:100%;border-collapse:collapse;font-size:0.8rem">
+              <thead><tr style="border-bottom:1px solid var(--border)">${['Date','Clock In','Clock Out','Hours','Earned'].map(h=>`<th style="text-align:left;padding:0.4rem 1rem;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted)">${h}</th>`).join('')}</tr></thead>
+              <tbody>${shifts.map(s=>`<tr style="border-bottom:1px solid var(--border)">
+                <td style="padding:0.5rem 1rem">${s.date}</td>
+                <td style="padding:0.5rem 1rem">${s.inTime}</td>
+                <td style="padding:0.5rem 1rem">${s.outTime}</td>
+                <td style="padding:0.5rem 1rem;font-weight:700;font-variant-numeric:tabular-nums">${(s.hours||0).toFixed(2)}</td>
+                <td style="padding:0.5rem 1rem;color:var(--success);font-weight:700">₱${((s.earned||0)).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+              </tr>`).join('')}</tbody>
+            </table>`}
+      </div>
+    </div>`;
 }
 
 // ─────────────────────────────────────────────
