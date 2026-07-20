@@ -1306,6 +1306,17 @@ function renderClientDetail(c, cd, idx) {
 
   // Tasks block
   const tasks = cd.tasks || [];
+  const completedCount = TASK_TYPES.filter(type => {
+    const t = tasks.find(t=>t.type===type);
+    return t && t.progress==='Completed';
+  }).length;
+  const inProcessCount = TASK_TYPES.filter(type => {
+    const t = tasks.find(t=>t.type===type);
+    return t && t.progress==='In Process';
+  }).length;
+  const taskTotal = TASK_TYPES.length;
+  const taskPct = Math.round((completedCount / taskTotal) * 100);
+  const taskFillClass = taskPct===100?'full':taskPct>0?'half':'zero';
   const taskRows = TASK_TYPES.map(type => {
     const existing = tasks.find(t=>t.type===type) || { type, progress:'Not Yet Started', otherNote:'' };
     const pct = progressPct(existing.progress);
@@ -1326,9 +1337,18 @@ function renderClientDetail(c, cd, idx) {
   }).join('');
 
   const tasksBlock = `
-    <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-muted);margin-bottom:0.5rem">Tasks</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.5rem">
+      <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-muted)">Tasks</div>
+      <div id="task-summary-${idx}" style="display:flex;align-items:center;gap:0.6rem">
+        <span style="font-size:0.72rem;color:var(--text-muted)">${inProcessCount > 0 ? `${inProcessCount} in progress · ` : ''}${completedCount} / ${taskTotal} completed</span>
+        <div style="width:90px;height:5px;background:var(--border);border-radius:99px;overflow:hidden">
+          <div id="task-bar-${idx}" class="prog-fill ${taskFillClass}" style="width:${taskPct}%;height:100%;border-radius:99px;transition:width 0.3s"></div>
+        </div>
+        <span id="task-pct-${idx}" style="font-size:0.72rem;font-weight:700;font-variant-numeric:tabular-nums;min-width:2.5ch;${taskPct===100?'color:var(--success)':taskPct>0?'color:var(--warning)':'color:var(--text-muted)'}">${taskPct}%</span>
+      </div>
+    </div>
     <table class="task-table" style="margin-bottom:1rem">
-      <thead><tr><th style="width:260px">Task</th><th>Progress</th><th>Completion</th></tr></thead>
+      <thead><tr><th style="width:260px">Task</th><th>Progress</th><th>%</th></tr></thead>
       <tbody>${taskRows}</tbody>
     </table>`;
 
@@ -1368,6 +1388,22 @@ function updateTask(clientName, idx, taskType, field, value) {
   if (pctEl) {
     const color=overall===100?'color:var(--success)':overall>0?'color:var(--warning)':'color:var(--text-muted)';
     pctEl.innerHTML=`<div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:3px"><span style="font-size:0.72rem;font-weight:700;${color}">${overall}%</span></div><div class="prog-bar"><div class="prog-fill ${fillClass}" style="width:${overall}%"></div></div>`;
+  }
+  // refresh task summary bar
+  const allTasks = cd.tasks || [];
+  const tTotal = TASK_TYPES.length;
+  const tDone = TASK_TYPES.filter(t=>{ const r=allTasks.find(x=>x.type===t); return r&&r.progress==='Completed'; }).length;
+  const tInProc = TASK_TYPES.filter(t=>{ const r=allTasks.find(x=>x.type===t); return r&&r.progress==='In Process'; }).length;
+  const tPct = Math.round((tDone/tTotal)*100);
+  const tFill = tPct===100?'full':tPct>0?'half':'zero';
+  const tBar=document.getElementById(`task-bar-${idx}`);
+  const tPctEl=document.getElementById(`task-pct-${idx}`);
+  const tSummary=document.getElementById(`task-summary-${idx}`);
+  if (tBar) { tBar.className=`prog-fill ${tFill}`; tBar.style.width=tPct+'%'; }
+  if (tPctEl) { tPctEl.textContent=tPct+'%'; tPctEl.style.color=tPct===100?'var(--success)':tPct>0?'var(--warning)':'var(--text-muted)'; }
+  if (tSummary) {
+    const span=tSummary.querySelector('span');
+    if (span) span.textContent=`${tInProc>0?tInProc+' in progress · ':''}${tDone} / ${tTotal} completed`;
   }
   addActivity(`Updated ${clientName}: ${taskType} → ${value}`);
 }
