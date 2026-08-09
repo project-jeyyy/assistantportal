@@ -615,6 +615,23 @@ select {
           <div class="section-title">Updates</div>
           <div class="section-desc">Messages and announcements from the admin.</div>
         </div>
+        <!-- Boss-only: Post Update form -->
+        <div id="post-update-card" class="card hidden" style="margin-bottom:1rem">
+          <div class="card-header"><span class="card-title">📝 Post New Update</span></div>
+          <div class="card-body">
+            <div class="form-field">
+              <label>Type</label>
+              <select id="update-type">
+                <option value="Announcement">📢 Announcement</option>
+                <option value="Reminder">🔔 Reminder</option>
+                <option value="Feedback">💬 Feedback</option>
+                <option value="Task">✅ Task</option>
+              </select>
+            </div>
+            <div class="form-field"><label>Message</label><textarea id="update-msg" rows="4" placeholder="Write your update here…" style="resize:vertical"></textarea></div>
+            <button class="btn btn-primary" onclick="postUpdate()">Post Update</button>
+          </div>
+        </div>
         <div class="card">
           <div class="card-header"><span class="card-title">📌 All Updates</span></div>
           <div class="card-body" id="updates-list">
@@ -980,8 +997,8 @@ const SEED_UPDATES = [
   {
     id: 'seed-001',
     date: 'July 20, 2026',
-    title: 'Work Start Date — July 27, Monday',
-    body: 'Your official start date is Monday, July 27. As of now, I haven\'t received any update from you regarding your work schedule or how you plan to continue moving forward. Please drop me a message on Teams at your earliest convenience.\n\nAll updates and announcements will be posted here — make it a habit to check this tab regularly.\n\nTalk soon! — Jey'
+    type: 'Announcement',
+    msg: 'Work Start Date — July 27, Monday\n\nYour official start date is Monday, July 27. As of now, I haven\'t received any update from you regarding your work schedule or how you plan to continue moving forward. Please drop me a message on Teams at your earliest convenience.\n\nAll updates and announcements will be posted here — make it a habit to check this tab regularly.\n\nTalk soon! — Jey'
   }
 ];
 
@@ -1235,6 +1252,8 @@ function enterApp() {
   const staffNav = document.getElementById('nav-staff');
   if (staffNav) staffNav.style.display = currentUser === BOSS_USERNAME ? 'flex' : 'none';
   if (currentUser === BOSS_USERNAME) subscribeStaff();
+  const postCard = document.getElementById('post-update-card');
+  if (postCard) postCard.classList.toggle('hidden', currentUser !== BOSS_USERNAME);
 }
 
 function populateSidebar() {
@@ -1378,7 +1397,7 @@ function refreshOverview() {
   const banner=document.getElementById('overview-updates-banner');
   if (updates.length>0) {
     banner.classList.remove('hidden');
-    const preview=updates[0].msg;
+    const preview=(updates[0].msg||'');
     document.getElementById('overview-update-preview').textContent=(preview.length>70?preview.slice(0,70)+'…':preview);
   } else { banner.classList.add('hidden'); }
 
@@ -1557,6 +1576,19 @@ function renderUpdates() {
   el.innerHTML=updates.length===0
     ?`<div class="empty-state"><div class="empty-state-icon">📭</div><div class="empty-state-text">No updates posted yet. Check back soon.</div></div>`
     :updates.map(u=>`<div class="update-pin"><div class="update-dot-col"><div class="update-dot"></div></div><div style="flex:1"><div class="update-meta">${u.date} · <span class="update-tag">${esc(u.type)}</span></div><div class="update-body">${esc(u.msg)}</div></div></div>`).join('');
+}
+
+function postUpdate() {
+  const type = document.getElementById('update-type').value;
+  const msg  = document.getElementById('update-msg').value.trim();
+  if (!msg) { toast('⚠ Message cannot be empty.'); return; }
+  const now = new Date();
+  const date = now.toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+  const updates = getUpdates().filter(u=>!SEED_UPDATES.find(s=>s.id===u.id));
+  updates.unshift({ id: 'upd-'+Date.now(), date, type, msg });
+  setUpdates(updates);
+  document.getElementById('update-msg').value = '';
+  toast('✓ Update posted.');
 }
 
 function markUpdatesSeen() {
