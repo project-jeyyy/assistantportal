@@ -1167,6 +1167,23 @@ function updateElapsed() {
 }
 function pad(n){ return String(n).padStart(2,'0'); }
 
+function getDeviceInfo() {
+  const ua = navigator.userAgent;
+  let os = 'Unknown', browser = 'Unknown', device = 'Desktop';
+  if (/Windows/i.test(ua))               os = 'Windows';
+  else if (/Android/i.test(ua))          { os = 'Android';  device = 'Mobile'; }
+  else if (/iPad/i.test(ua))             { os = 'iPadOS';   device = 'Tablet'; }
+  else if (/iPhone/i.test(ua))           { os = 'iOS';      device = 'Mobile'; }
+  else if (/Mac/i.test(ua))              os = 'macOS';
+  else if (/Linux/i.test(ua))            os = 'Linux';
+  if      (/Edg\//i.test(ua))            browser = 'Edge';
+  else if (/OPR\/|Opera/i.test(ua))      browser = 'Opera';
+  else if (/Chrome/i.test(ua))           browser = 'Chrome';
+  else if (/Firefox/i.test(ua))          browser = 'Firefox';
+  else if (/Safari/i.test(ua))           browser = 'Safari';
+  return { os, browser, device };
+}
+
 // ─────────────────────────────────────────────
 // AUTH
 // ─────────────────────────────────────────────
@@ -1320,6 +1337,7 @@ function toggleClock() {
   if (!userData.clockedIn) {
     const now=new Date();
     userData.clockedIn=true; userData.clockIn=now.toISOString();
+    userData.clockDevice=getDeviceInfo();
     clockStart=now; setUserData(currentUser,userData);
     addActivity(`Clocked in at ${now.toLocaleTimeString()}`);
     toast('✓ Clocked in! Have a great shift.');
@@ -1329,7 +1347,7 @@ function toggleClock() {
     const hrs=(now-inT)/3600000;
     const rate=userData.hourlyRate||0;
     if (!userData.shifts) userData.shifts=[];
-    userData.shifts.unshift({ date:inT.toLocaleDateString('en-US'), inTime:inT.toLocaleTimeString(), outTime:now.toLocaleTimeString(), hours:hrs, earned:hrs*rate, inISO:inT.toISOString(), outISO:now.toISOString() });
+    userData.shifts.unshift({ date:inT.toLocaleDateString('en-US'), inTime:inT.toLocaleTimeString(), outTime:now.toLocaleTimeString(), hours:hrs, earned:hrs*rate, inISO:inT.toISOString(), outISO:now.toISOString(), device:userData.clockDevice||null });
     userData.clockedIn=false; userData.clockIn=null; clockStart=null;
     setUserData(currentUser,userData);
     addActivity(`Clocked out at ${now.toLocaleTimeString()} — ${hrs.toFixed(2)} hrs`);
@@ -1565,6 +1583,7 @@ function renderAttendance() {
                     <th style="text-align:left;padding:0.6rem 1.2rem;font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-muted)">Clock Out</th>
                     <th style="text-align:left;padding:0.6rem 1.2rem;font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-muted)">Hours</th>
                     <th style="text-align:left;padding:0.6rem 1.2rem;font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-muted)">Earned</th>
+                    <th style="text-align:left;padding:0.6rem 1.2rem;font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-muted)">Device</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1576,6 +1595,12 @@ function renderAttendance() {
                       <td style="padding:0.6rem 1.2rem;color:var(--danger);font-weight:600;font-variant-numeric:tabular-nums">${esc(s.outTime)}</td>
                       <td style="padding:0.6rem 1.2rem;font-weight:700;font-variant-numeric:tabular-nums">${(s.hours||0).toFixed(2)}</td>
                       <td style="padding:0.6rem 1.2rem;color:var(--success);font-weight:700;font-variant-numeric:tabular-nums">₱${((s.hours||0)*rate).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+                      <td style="padding:0.6rem 1.2rem">
+                        ${s.device
+                          ? `<div style="font-size:0.78rem;font-weight:600;color:var(--text-primary)">${esc(s.device.browser)} · ${esc(s.device.os)}</div>
+                             <div style="font-size:0.7rem;color:var(--text-muted)">${esc(s.device.device)}</div>`
+                          : `<span style="color:var(--text-muted);font-size:0.75rem">—</span>`}
+                      </td>
                     </tr>`).join('')}
                 </tbody>
               </table>
