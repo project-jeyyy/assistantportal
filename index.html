@@ -993,14 +993,7 @@ const SEED_ACCOUNTS = [
   { username:'athanviloria', passwordHash:btoa('AssistantAthan2024!'), fullName:'Cyrel Athan Viloria' }
 ];
 
-const SEED_UPDATES = [
-  {
-    id: 'seed-001',
-    date: 'July 20, 2026',
-    type: 'Announcement',
-    msg: 'Work Start Date — July 27, Monday\n\nYour official start date is Monday, July 27. As of now, I haven\'t received any update from you regarding your work schedule or how you plan to continue moving forward. Please drop me a message on Teams at your earliest convenience.\n\nAll updates and announcements will be posted here — make it a habit to check this tab regularly.\n\nTalk soon! — Jey'
-  }
-];
+const SEED_UPDATES = [];
 
 function getSession()  { try { return JSON.parse(localStorage.getItem('aw_session')||'null'); } catch { return null; } }
 function setSession(s) { localStorage.setItem('aw_session', JSON.stringify(s)); }
