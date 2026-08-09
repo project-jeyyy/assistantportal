@@ -735,18 +735,7 @@ select {
           <div class="stat-tile"><div class="stat-label">Today</div><div class="stat-value" id="earn-today">₱0.00</div><div class="stat-sub" id="earn-today-hours">0.00 hrs</div></div>
           <div class="stat-tile stat-gold"><div class="stat-label">All Time</div><div class="stat-value" id="earn-total">₱0.00</div><div class="stat-sub" id="earn-total-hours">0.00 hrs</div></div>
         </div>
-        <div class="card">
-          <div class="card-header"><span class="card-title">Hourly Rate</span></div>
-          <div class="card-body">
-            <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
-              <div style="flex:1;min-width:180px">
-                <label>Rate (₱ per hour)</label>
-                <input type="number" id="hourly-rate" placeholder="0.00" min="0" step="0.01" oninput="saveRate()" style="max-width:180px">
-              </div>
-              <div class="text-muted">Rate is saved automatically and applied to all shifts.</div>
-            </div>
-          </div>
-        </div>
+<input type="hidden" id="hourly-rate" value="110">
       </section>
 
       <!-- ── Shift Log ── -->
