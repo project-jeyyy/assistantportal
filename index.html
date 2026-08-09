@@ -1052,7 +1052,7 @@ function setUserData(u, d) {
 
 function getUpdates() {
   const storedIds = new Set(_updatesCache.map(u=>u.id));
-  return [...SEED_UPDATES.filter(u=>!storedIds.has(u.id)), ..._updatesCache];
+  return [..._updatesCache, ...SEED_UPDATES.filter(u=>!storedIds.has(u.id))];
 }
 
 function setUpdates(list) {
