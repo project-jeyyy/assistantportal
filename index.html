@@ -598,7 +598,7 @@ select {
         <div id="boss-avail-bar" style="display:none;background:rgba(31,184,195,0.07);border:1px solid rgba(31,184,195,0.2);border-radius:var(--radius-md);padding:0.65rem 1rem;margin-bottom:1rem;font-size:0.83rem;display:flex;align-items:center;gap:0.75rem">
           <span id="boss-avail-dot" style="font-size:1.2rem">⚫</span>
           <div>
-            <strong id="boss-avail-label" style="color:var(--text-primary)">Boss is Offline</strong>
+            <strong id="boss-avail-label" style="color:var(--text-primary)">Manager is Offline</strong>
             <span id="boss-avail-since" style="color:var(--text-muted);font-size:0.75rem;margin-left:0.5rem"></span>
           </div>
         </div>
@@ -1355,7 +1355,7 @@ function enterApp() {
 function populateSidebar() {
   const name=(userData.fullName||currentUser);
   const initials=name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
-  const role = currentUser === BOSS_USERNAME ? 'Admin / Boss' : 'Personal Assistant';
+  const role = currentUser === BOSS_USERNAME ? 'Admin / Manager' : 'Personal Assistant';
   document.getElementById('sidebar-username').textContent=name;
   document.getElementById('sidebar-avatar-text').textContent=initials;
   document.getElementById('sidebar-role').textContent=role;
@@ -1507,10 +1507,10 @@ function refreshOverview() {
         if (presLastSeen && (Date.now() - presLastSeen.getTime()) > 3 * 60 * 1000) presStatus = 'offline';
       }
       const presMap = {
-        active:  { dot:'🟢', label:'Boss is Online' },
-        idle:    { dot:'🟡', label:'Boss is Idle' },
-        away:    { dot:'🟠', label:'Boss is Away' },
-        offline: { dot:'⚫', label:'Boss is Offline' },
+        active:  { dot:'🟢', label:'Manager is Online' },
+        idle:    { dot:'🟡', label:'Manager is Idle' },
+        away:    { dot:'🟠', label:'Manager is Away' },
+        offline: { dot:'⚫', label:'Manager is Offline' },
       };
       const pi = presMap[presStatus] || presMap.offline;
       document.getElementById('boss-avail-dot').textContent = pi.dot;
