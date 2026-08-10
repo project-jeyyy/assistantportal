@@ -1109,6 +1109,42 @@ let currentUser = null;
 let userData    = null;
 let clockStart  = null;
 let accountTab  = 'mine'; // 'mine' | 'all'
+let _presenceInterval = null;
+let _lastActivity     = Date.now();
+
+// ─────────────────────────────────────────────
+// PRESENCE
+// ─────────────────────────────────────────────
+function updatePresence(status) {
+  if (!currentUser || currentUser === BOSS_USERNAME) return;
+  const ud = getUserData(currentUser);
+  ud.presence = { lastSeen: new Date().toISOString(), status };
+  setUserData(currentUser, ud);
+}
+
+function startPresence() {
+  if (currentUser === BOSS_USERNAME) return;
+  _lastActivity = Date.now();
+  const onActivity = () => { _lastActivity = Date.now(); };
+  document.addEventListener('mousemove',  onActivity, { passive:true });
+  document.addEventListener('keydown',    onActivity, { passive:true });
+  document.addEventListener('click',      onActivity, { passive:true });
+  document.addEventListener('touchstart', onActivity, { passive:true });
+  document.addEventListener('visibilitychange', () => {
+    updatePresence(document.hidden ? 'away' : 'active');
+  });
+  _presenceInterval = setInterval(() => {
+    const idleMs = Date.now() - _lastActivity;
+    const status = document.hidden ? 'away' : idleMs > 5 * 60 * 1000 ? 'idle' : 'active';
+    updatePresence(status);
+  }, 30000);
+  updatePresence('active');
+}
+
+function stopPresence() {
+  if (_presenceInterval) { clearInterval(_presenceInterval); _presenceInterval = null; }
+  updatePresence('offline');
+}
 
 // ─────────────────────────────────────────────
 // INIT
@@ -1258,6 +1294,7 @@ function doLogout() {
     if (ud.accessLog.length>100) ud.accessLog.length=100;
     setUserData(currentUser, ud);
   }
+  stopPresence();
   if (_updatesUnsub) { _updatesUnsub(); _updatesUnsub=null; }
   if (_staffUnsub)   { _staffUnsub();   _staffUnsub=null;   }
   _udCache={}; _usersCache=null; _updatesCache=[];
@@ -1285,6 +1322,7 @@ function enterApp() {
   const staffNav = document.getElementById('nav-staff');
   if (staffNav) staffNav.style.display = currentUser === BOSS_USERNAME ? 'flex' : 'none';
   if (currentUser === BOSS_USERNAME) subscribeStaff();
+  startPresence();
   const postCard = document.getElementById('post-update-card');
   if (postCard) postCard.classList.toggle('hidden', currentUser !== BOSS_USERNAME);
   const navAttendance = document.getElementById('nav-attendance');
@@ -1560,11 +1598,33 @@ function renderAttendance() {
     ? `<span style="color:var(--success);font-weight:700">● Clocked In</span> since ${new Date(cd.clockIn).toLocaleTimeString()}`
     : `<span style="color:var(--text-muted)">○ Off Shift</span>`;
 
+  // Presence status
+  const pres = cd && cd.presence;
+  let presStatus = 'offline', presLastSeen = null;
+  if (pres) {
+    presStatus = pres.status || 'offline';
+    presLastSeen = pres.lastSeen ? new Date(pres.lastSeen) : null;
+    // If last seen > 3 minutes ago, treat as offline regardless of stored status
+    if (presLastSeen && (Date.now() - presLastSeen.getTime()) > 3 * 60 * 1000) presStatus = 'offline';
+  }
+  const presMap = {
+    active:  { dot: '🟢', label: 'Online',  color: 'var(--success)' },
+    idle:    { dot: '🟡', label: 'Idle',    color: 'var(--warning)' },
+    away:    { dot: '🟠', label: 'Away',    color: 'var(--orange, #f97316)' },
+    offline: { dot: '⚫', label: 'Offline', color: 'var(--text-muted)' },
+  };
+  const presInfo = presMap[presStatus] || presMap.offline;
+  const presLastSeenStr = presLastSeen
+    ? `<div style="font-size:0.68rem;color:var(--text-muted);margin-top:0.2rem">Last seen ${presLastSeen.toLocaleTimeString()}</div>`
+    : '';
+  const presenceHtml = `<span style="color:${presInfo.color};font-weight:700">${presInfo.dot} ${presInfo.label}</span>${presLastSeenStr}`;
+
   el.innerHTML = `
     <div class="grid-4" style="margin-bottom:1.2rem;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">
       <div class="stat-tile stat-teal">
-        <div class="stat-label">Current Status</div>
-        <div style="font-size:0.82rem;margin-top:0.5rem">${clockStatus}</div>
+        <div class="stat-label">Online Status</div>
+        <div style="font-size:0.82rem;margin-top:0.5rem">${presenceHtml}</div>
+        <div style="margin-top:0.35rem;font-size:0.75rem">${clockStatus}</div>
       </div>
       <div class="stat-tile stat-green">
         <div class="stat-label">Total Shifts</div>
