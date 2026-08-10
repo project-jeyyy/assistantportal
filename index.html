@@ -520,7 +520,7 @@ select {
       <div class="nav-item" id="nav-staff" data-page="staff" onclick="navigate('staff')" style="display:none"><span class="nav-icon">👤</span> Staff View</div>
       <div class="nav-item" id="nav-attendance" data-page="attendance" onclick="navigate('attendance')" style="display:none"><span class="nav-icon">🕐</span> Attendance</div>
       <div class="nav-section-label">My Records</div>
-      <div class="nav-item" data-page="earnings" onclick="navigate('earnings')"><span class="nav-icon">₱</span> Earnings</div>
+      <div class="nav-item" id="nav-earnings" data-page="earnings" onclick="navigate('earnings')"><span class="nav-icon">₱</span> Earnings</div>
       <div class="nav-item" data-page="shifts" onclick="navigate('shifts')"><span class="nav-icon">🕐</span> Shift Log</div>
       <div class="nav-item" data-page="profile" onclick="navigate('profile')"><span class="nav-icon">👤</span> Profile</div>
     </nav>
@@ -588,10 +588,18 @@ select {
             <div class="stat-value" id="stat-hours-today">0.0</div>
             <div class="stat-sub">Logged</div>
           </div>
-          <div class="stat-tile stat-gold">
+          <div class="stat-tile stat-gold" id="stat-earn-tile">
             <div class="stat-label">This Month</div>
             <div class="stat-value v-teal" id="stat-month-earn">₱0</div>
             <div class="stat-sub">Earnings</div>
+          </div>
+        </div>
+        <!-- Boss availability banner — visible to assistant only, populated by refreshOverview() -->
+        <div id="boss-avail-bar" style="display:none;background:rgba(31,184,195,0.07);border:1px solid rgba(31,184,195,0.2);border-radius:var(--radius-md);padding:0.65rem 1rem;margin-bottom:1rem;font-size:0.83rem;display:flex;align-items:center;gap:0.75rem">
+          <span id="boss-avail-dot" style="font-size:1.2rem">⚫</span>
+          <div>
+            <strong id="boss-avail-label" style="color:var(--text-primary)">Boss is Offline</strong>
+            <span id="boss-avail-since" style="color:var(--text-muted);font-size:0.75rem;margin-left:0.5rem"></span>
           </div>
         </div>
         <div class="grid-2">
@@ -996,6 +1004,7 @@ let _udCache    = {};      // { username: userData }
 let _updatesCache = [];    // [ update objects ]
 let _updatesUnsub = null;
 let _staffUnsub   = null;
+let _bossUnsub    = null;
 
 // Seeded accounts always available
 const SEED_ACCOUNTS = [
@@ -1083,6 +1092,17 @@ function subscribeStaff() {
       _udCache['athanviloria'] = Object.assign({}, def, snap.data());
     }
     if (currentUser === BOSS_USERNAME) { renderStaff(); renderAttendance(); }
+  }, ()=>{});
+}
+
+// Subscribe to boss's live data (assistant only) for availability display
+function subscribeBoss() {
+  if (_bossUnsub) _bossUnsub();
+  _bossUnsub = db.collection('users').doc(BOSS_USERNAME).onSnapshot(snap => {
+    if (snap.exists) {
+      _udCache[BOSS_USERNAME] = Object.assign({ clockedIn:false, clockIn:null }, snap.data());
+    }
+    if (currentUser && currentUser !== BOSS_USERNAME) refreshOverview();
   }, ()=>{});
 }
 
@@ -1297,6 +1317,7 @@ function doLogout() {
   stopPresence();
   if (_updatesUnsub) { _updatesUnsub(); _updatesUnsub=null; }
   if (_staffUnsub)   { _staffUnsub();   _staffUnsub=null;   }
+  if (_bossUnsub)    { _bossUnsub();    _bossUnsub=null;    }
   _udCache={}; _usersCache=null; _updatesCache=[];
   clearSession(); currentUser=null; userData=null; clockStart=null;
   document.getElementById('app-shell').classList.add('hidden');
@@ -1322,11 +1343,14 @@ function enterApp() {
   const staffNav = document.getElementById('nav-staff');
   if (staffNav) staffNav.style.display = currentUser === BOSS_USERNAME ? 'flex' : 'none';
   if (currentUser === BOSS_USERNAME) subscribeStaff();
+  else subscribeBoss();
   startPresence();
   const postCard = document.getElementById('post-update-card');
   if (postCard) postCard.classList.toggle('hidden', currentUser !== BOSS_USERNAME);
   const navAttendance = document.getElementById('nav-attendance');
   if (navAttendance) navAttendance.style.display = currentUser === BOSS_USERNAME ? 'flex' : 'none';
+  const navEarnings = document.getElementById('nav-earnings');
+  if (navEarnings) navEarnings.style.display = currentUser === BOSS_USERNAME ? 'none' : 'flex';
 }
 
 function populateSidebar() {
@@ -1356,6 +1380,7 @@ function greetUser() {
 const PAGE_TITLES = { overview:'Overview', updates:'Updates', accounts:'Clients', tasklog:'Task Log', staff:'Staff View', issues:'Issues & Questions', earnings:'Earnings', shifts:'Shift Log', profile:'Profile' };
 
 function navigate(page) {
+  if (page === 'earnings' && currentUser === BOSS_USERNAME) page = 'overview';
   document.querySelectorAll('.page-section').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   const sec=document.getElementById('page-'+page);
@@ -1463,6 +1488,28 @@ function refreshOverview() {
   document.getElementById('stat-hours-today').textContent=todayHrs.toFixed(1);
   const monthHrs=shifts.filter(s=>{ const d=new Date(s.inISO||s.date); return `${d.getMonth()}-${d.getFullYear()}`===monthKey; }).reduce((a,s)=>a+(s.hours||0),0);
   document.getElementById('stat-month-earn').textContent='₱'+(monthHrs*rate).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+  // Hide earnings tile for boss; show boss-availability bar for assistant
+  const earnTile = document.getElementById('stat-earn-tile');
+  if (earnTile) earnTile.style.display = currentUser === BOSS_USERNAME ? 'none' : '';
+  const bossBar = document.getElementById('boss-avail-bar');
+  if (bossBar) {
+    if (currentUser === BOSS_USERNAME) {
+      bossBar.style.display = 'none';
+    } else {
+      bossBar.style.display = 'flex';
+      const bd = _udCache[BOSS_USERNAME];
+      const onShift = bd && bd.clockedIn;
+      document.getElementById('boss-avail-dot').textContent = onShift ? '🟢' : '⚫';
+      document.getElementById('boss-avail-label').textContent = onShift ? 'Boss is On Shift' : 'Boss is Off Shift';
+      const sinceEl = document.getElementById('boss-avail-since');
+      if (onShift && bd.clockIn) {
+        sinceEl.textContent = `— since ${new Date(bd.clockIn).toLocaleTimeString()}`;
+      } else {
+        sinceEl.textContent = '';
+      }
+    }
+  }
 
   // Pre-start banner
   const prestartEl=document.getElementById('prestart-banner');
