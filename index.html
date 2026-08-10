@@ -1136,14 +1136,13 @@ let _lastActivity     = Date.now();
 // PRESENCE
 // ─────────────────────────────────────────────
 function updatePresence(status) {
-  if (!currentUser || currentUser === BOSS_USERNAME) return;
+  if (!currentUser) return;
   const ud = getUserData(currentUser);
   ud.presence = { lastSeen: new Date().toISOString(), status };
   setUserData(currentUser, ud);
 }
 
 function startPresence() {
-  if (currentUser === BOSS_USERNAME) return;
   _lastActivity = Date.now();
   const onActivity = () => { _lastActivity = Date.now(); };
   document.addEventListener('mousemove',  onActivity, { passive:true });
@@ -1499,12 +1498,30 @@ function refreshOverview() {
     } else {
       bossBar.style.display = 'flex';
       const bd = _udCache[BOSS_USERNAME];
-      const onShift = bd && bd.clockedIn;
-      document.getElementById('boss-avail-dot').textContent = onShift ? '🟢' : '⚫';
-      document.getElementById('boss-avail-label').textContent = onShift ? 'Boss is On Shift' : 'Boss is Off Shift';
+      const pres = bd && bd.presence;
+      let presStatus = 'offline';
+      let presLastSeen = null;
+      if (pres) {
+        presStatus = pres.status || 'offline';
+        presLastSeen = pres.lastSeen ? new Date(pres.lastSeen) : null;
+        if (presLastSeen && (Date.now() - presLastSeen.getTime()) > 3 * 60 * 1000) presStatus = 'offline';
+      }
+      const presMap = {
+        active:  { dot:'🟢', label:'Boss is Online' },
+        idle:    { dot:'🟡', label:'Boss is Idle' },
+        away:    { dot:'🟠', label:'Boss is Away' },
+        offline: { dot:'⚫', label:'Boss is Offline' },
+      };
+      const pi = presMap[presStatus] || presMap.offline;
+      document.getElementById('boss-avail-dot').textContent = pi.dot;
+      document.getElementById('boss-avail-label').textContent = pi.label;
       const sinceEl = document.getElementById('boss-avail-since');
-      if (onShift && bd.clockIn) {
-        sinceEl.textContent = `— since ${new Date(bd.clockIn).toLocaleTimeString()}`;
+      const onShift = bd && bd.clockedIn;
+      if (presStatus !== 'offline' && presLastSeen) {
+        const shiftStr = onShift && bd.clockIn ? ` · On shift since ${new Date(bd.clockIn).toLocaleTimeString()}` : '';
+        sinceEl.textContent = `— last seen ${presLastSeen.toLocaleTimeString()}${shiftStr}`;
+      } else if (onShift) {
+        sinceEl.textContent = `— On shift since ${new Date(bd.clockIn).toLocaleTimeString()}`;
       } else {
         sinceEl.textContent = '';
       }
