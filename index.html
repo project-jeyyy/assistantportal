@@ -1296,8 +1296,12 @@ async function doLogin() {
     if (userData.clockedIn&&userData.clockIn) clockStart=new Date(userData.clockIn);
     // Log portal access
     if (!userData.accessLog) userData.accessLog=[];
-    userData.accessLog.unshift({ type:'Login', time:new Date().toISOString(), device:getDeviceInfo() });
+    const loginDev = getDeviceInfo();
+    userData.accessLog.unshift({ type:'Login', time:new Date().toISOString(), device:loginDev });
     if (userData.accessLog.length>100) userData.accessLog.length=100;
+    if (!userData.activity) userData.activity=[];
+    userData.activity.unshift({ msg:`Signed in via ${loginDev.browser} on ${loginDev.os} (${loginDev.device})`, time:new Date().toISOString() });
+    if (userData.activity.length>20) userData.activity.length=20;
     setUserData(uname, userData);
     enterApp();
   } catch(e) { showErr(err,'Connection error. Please try again.'); }
@@ -1309,8 +1313,12 @@ function doLogout() {
   if (currentUser && currentUser !== BOSS_USERNAME) {
     const ud = getUserData(currentUser);
     if (!ud.accessLog) ud.accessLog=[];
-    ud.accessLog.unshift({ type:'Logout', time:new Date().toISOString(), device:getDeviceInfo() });
+    const logoutDev = getDeviceInfo();
+    ud.accessLog.unshift({ type:'Logout', time:new Date().toISOString(), device:logoutDev });
     if (ud.accessLog.length>100) ud.accessLog.length=100;
+    if (!ud.activity) ud.activity=[];
+    ud.activity.unshift({ msg:`Signed out (${logoutDev.browser} · ${logoutDev.os})`, time:new Date().toISOString() });
+    if (ud.activity.length>20) ud.activity.length=20;
     setUserData(currentUser, ud);
   }
   stopPresence();
