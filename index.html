@@ -521,7 +521,7 @@ select {
       <div class="nav-item" id="nav-attendance" data-page="attendance" onclick="navigate('attendance')" style="display:none"><span class="nav-icon">🕐</span> Attendance</div>
       <div class="nav-section-label">My Records</div>
       <div class="nav-item" id="nav-earnings" data-page="earnings" onclick="navigate('earnings')"><span class="nav-icon">₱</span> Earnings</div>
-      <div class="nav-item" data-page="shifts" onclick="navigate('shifts')"><span class="nav-icon">🕐</span> Shift Log</div>
+      <div class="nav-item" id="nav-shifts" data-page="shifts" onclick="navigate('shifts')"><span class="nav-icon">🕐</span> Shift Log</div>
       <div class="nav-item" data-page="profile" onclick="navigate('profile')"><span class="nav-icon">👤</span> Profile</div>
     </nav>
     <div class="sidebar-footer">
@@ -1350,6 +1350,8 @@ function enterApp() {
   if (navAttendance) navAttendance.style.display = currentUser === BOSS_USERNAME ? 'flex' : 'none';
   const navEarnings = document.getElementById('nav-earnings');
   if (navEarnings) navEarnings.style.display = currentUser === BOSS_USERNAME ? 'none' : 'flex';
+  const navShifts = document.getElementById('nav-shifts');
+  if (navShifts) navShifts.style.display = currentUser === BOSS_USERNAME ? 'none' : 'flex';
 }
 
 function populateSidebar() {
@@ -1379,7 +1381,7 @@ function greetUser() {
 const PAGE_TITLES = { overview:'Overview', updates:'Updates', accounts:'Clients', tasklog:'Task Log', staff:'Staff View', issues:'Issues & Questions', earnings:'Earnings', shifts:'Shift Log', profile:'Profile' };
 
 function navigate(page) {
-  if (page === 'earnings' && currentUser === BOSS_USERNAME) page = 'overview';
+  if ((page === 'earnings' || page === 'shifts') && currentUser === BOSS_USERNAME) page = 'overview';
   document.querySelectorAll('.page-section').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   const sec=document.getElementById('page-'+page);
