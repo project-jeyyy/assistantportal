@@ -603,7 +603,7 @@ select {
 
         <!-- Toolbar -->
         <div class="accounts-toolbar">
-          <div class="tab-pills">
+          <div class="tab-pills" id="accounts-tab-pills">
             <button class="tab-pill active" id="tab-mine" onclick="switchAccountTab('mine')">My Accounts <span style="color:var(--teal)">(13)</span></button>
             <button class="tab-pill" id="tab-all"  onclick="switchAccountTab('all')">All Clients <span style="color:var(--text-muted)">(110)</span></button>
           </div>
@@ -612,10 +612,11 @@ select {
             <input type="text" id="account-search" placeholder="Search client name…" oninput="renderAccounts()">
           </div>
           <select class="filter-select" id="filter-progress" onchange="renderAccounts()" style="width:auto">
-            <option value="">All Progress</option>
+            <option value="">All Status</option>
             <option value="Not Yet Started">Not Yet Started</option>
             <option value="In Process">In Process</option>
             <option value="Completed">Completed</option>
+            <option value="Closed">Closed</option>
           </select>
         </div>
 
@@ -1339,6 +1340,9 @@ function enterApp() {
   if (navIssues) navIssues.style.display = currentUser === BOSS_USERNAME ? 'none' : 'flex';
   const navRecords = document.getElementById('nav-section-records');
   if (navRecords) navRecords.style.display = currentUser === BOSS_USERNAME ? 'none' : '';
+  const tabPills = document.getElementById('accounts-tab-pills');
+  if (tabPills) tabPills.style.display = currentUser === BOSS_USERNAME ? 'none' : '';
+  if (currentUser === BOSS_USERNAME) { accountTab = 'all'; }
 }
 
 function populateSidebar() {
