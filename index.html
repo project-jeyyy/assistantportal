@@ -2045,6 +2045,8 @@ function renderAccounts() {
   const search=(document.getElementById('account-search').value||'').toLowerCase().trim();
   const filterProg=document.getElementById('filter-progress').value;
   const list=document.getElementById('accounts-list');
+  // Manager always views Athan's actual work data
+  const clientUser = currentUser === BOSS_USERNAME ? 'athanviloria' : currentUser;
 
   let clients=MASTER_CLIENTS;
   if (accountTab==='mine') clients=clients.filter(c=>c.owned);
@@ -2052,7 +2054,7 @@ function renderAccounts() {
 
   if (filterProg) {
     clients=clients.filter(c=>{
-      const cd=getClientData(currentUser,c.name);
+      const cd=getClientData(clientUser,c.name);
       const s=cd.overallStatus||'Not Yet Started';
       return s===filterProg;
     });
@@ -2064,7 +2066,7 @@ function renderAccounts() {
   }
 
   list.innerHTML=clients.map((c,i)=>{
-    const cd=getClientData(currentUser,c.name);
+    const cd=getClientData(clientUser,c.name);
     const overall=calcOverall(cd);
     const flagged=(cd.issues&&cd.issues.trim())||cd.flagged;
     let pctClass='cp-0', pctLabel=`${overall}%`;
@@ -2090,13 +2092,14 @@ function renderAccounts() {
         </div>
       </div>
       <div class="client-detail" id="detail-${i}">
-        ${renderClientDetail(c, cd, i)}
+        ${renderClientDetail(c, cd, i, clientUser)}
       </div>
     </div>`;
   }).join('');
 }
 
-function renderClientDetail(c, cd, idx) {
+function renderClientDetail(c, cd, idx, clientUser) {
+  clientUser = clientUser || currentUser;
   const status = cd.overallStatus || 'Not Yet Started';
   const bossReviewed = BOSS_REVIEWED.has(c.name);
   const statusColor = status==='Closed'?'#4A6FE3':status==='Completed'?'var(--success)':status==='In Process'?'var(--warning)':'var(--text-muted)';
@@ -2111,7 +2114,6 @@ function renderClientDetail(c, cd, idx) {
     reviewBadge = `<span style="font-size:0.75rem;font-weight:600;color:var(--success);background:rgba(39,174,96,0.1);border:1px solid rgba(39,174,96,0.3);padding:0.2rem 0.7rem;border-radius:99px;margin-left:0.5rem">⏳ Pending Your Review</span>`;
   }
 
-  // Overall Client Status block
   const overallBlock = `
     <div class="overall-status-box" style="background:var(--card-bg);border:1.5px solid ${borderColor};border-radius:var(--radius-md);padding:1rem 1.2rem;margin-bottom:1rem;">
       <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-muted);margin-bottom:0.5rem">Overall Client Status</div>
@@ -2121,10 +2123,40 @@ function renderClientDetail(c, cd, idx) {
         </select>
         ${reviewBadge}
       </div>
-      ${bossReviewed?'':'<div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.5rem">Setting this to <strong>Completed</strong> means all transactions are cleared and the account is ready for review.</div>'}
+      ${currentUser===BOSS_USERNAME
+        ? '<div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.5rem">Set to <strong>Closed</strong> to archive this client for the month. Athan\'s dropdown will lock.</div>'
+        : bossReviewed?'':'<div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.5rem">Setting this to <strong>Completed</strong> means all transactions are cleared and the account is ready for review.</div>'}
     </div>`;
 
-  // Tasks block — only show tasks that have been touched (not Not Yet Started), plus always show all for editing
+  // ── Manager view: read-only summary of Athan's work ──
+  if (currentUser === BOSS_USERNAME) {
+    const tasks = (cd.tasks || []).filter(t => t.progress && t.progress !== 'Not Yet Started');
+    const taskSummary = tasks.length === 0
+      ? `<div style="color:var(--text-muted);font-size:0.83rem;padding:0.4rem 0">No tasks worked on yet.</div>`
+      : tasks.map(t => {
+          const pct = progressPct(t.progress);
+          const col = pct===100?'var(--success)':pct>0?'var(--warning)':'var(--text-muted)';
+          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:0.4rem 0;border-bottom:1px solid var(--border);font-size:0.82rem">
+            <span style="color:var(--text-secondary)">${esc(t.type)}${t.otherNote?` <span style="color:var(--text-muted);font-size:0.72rem">(${esc(t.otherNote)})</span>`:''}</span>
+            <span style="font-weight:700;color:${col}">${esc(t.progress)}</span>
+          </div>`;
+        }).join('');
+
+    const issuesHtml = cd.issues && cd.issues.trim()
+      ? `<div style="margin-top:0.75rem"><div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-muted);margin-bottom:0.3rem">Issues / Flagged</div>
+          <div style="font-size:0.82rem;color:var(--text-secondary);background:rgba(231,76,60,0.06);border:1px solid rgba(231,76,60,0.15);border-radius:6px;padding:0.5rem 0.75rem">${esc(cd.issues)}</div></div>` : '';
+    const commentsHtml = cd.comments && cd.comments.trim()
+      ? `<div style="margin-top:0.75rem"><div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-muted);margin-bottom:0.3rem">Athan's Comments</div>
+          <div style="font-size:0.82rem;color:var(--text-secondary)">${esc(cd.comments)}</div></div>` : '';
+
+    return overallBlock + `
+      <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-muted);margin-bottom:0.35rem">Athan's Task Progress</div>
+      ${taskSummary}
+      ${issuesHtml}
+      ${commentsHtml}`;
+  }
+
+  // ── Staff view: full editable interface ──
   const tasks = cd.tasks || [];
   const taskRows = TASK_TYPES.map(type => {
     const existing = tasks.find(t=>t.type===type) || { type, progress:'Not Yet Started', otherNote:'' };
@@ -2193,9 +2225,16 @@ function updateTask(clientName, idx, taskType, field, value) {
 }
 
 function updateOverallStatus(clientName, idx, value) {
-  const cd=getClientData(currentUser,clientName);
+  const clientUser = currentUser === BOSS_USERNAME ? 'athanviloria' : currentUser;
+  const cd=getClientData(clientUser,clientName);
   cd.overallStatus=value;
-  saveClientData(currentUser,clientName,cd);
+  saveClientData(clientUser,clientName,cd);
+  // Keep manager's own doc in sync too
+  if (currentUser === BOSS_USERNAME) {
+    const bcd=getClientData(BOSS_USERNAME,clientName);
+    bcd.overallStatus=value;
+    saveClientData(BOSS_USERNAME,clientName,bcd);
+  }
   const overall=calcOverall(cd);
   const fillClass=overall===100?'full':overall>0?'half':'zero';
   const pctEl=document.querySelector(`#row-${idx} .client-overall`);
