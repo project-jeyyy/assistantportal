@@ -515,11 +515,11 @@ select {
       <div class="nav-item active" data-page="overview" onclick="navigate('overview')"><span class="nav-icon">⊞</span> Overview</div>
       <div class="nav-item" data-page="updates" onclick="navigate('updates')"><span class="nav-icon">📌</span> Updates <span class="nav-badge hidden" id="updates-badge"></span></div>
       <div class="nav-item" data-page="accounts" onclick="navigate('accounts')"><span class="nav-icon">📖</span> Clients</div>
-      <div class="nav-item" data-page="tasklog" onclick="navigate('tasklog')"><span class="nav-icon">✅</span> Task Log</div>
-      <div class="nav-item" data-page="issues" onclick="navigate('issues')"><span class="nav-icon">💬</span> Issues &amp; Questions <span class="nav-badge hidden" id="issues-badge"></span></div>
+      <div class="nav-item" id="nav-tasklog" data-page="tasklog" onclick="navigate('tasklog')"><span class="nav-icon">✅</span> Task Log</div>
+      <div class="nav-item" id="nav-issues" data-page="issues" onclick="navigate('issues')"><span class="nav-icon">💬</span> Issues &amp; Questions <span class="nav-badge hidden" id="issues-badge"></span></div>
       <div class="nav-item" id="nav-staff" data-page="staff" onclick="navigate('staff')" style="display:none"><span class="nav-icon">👤</span> Staff View</div>
       <div class="nav-item" id="nav-attendance" data-page="attendance" onclick="navigate('attendance')" style="display:none"><span class="nav-icon">🕐</span> Attendance</div>
-      <div class="nav-section-label">My Records</div>
+      <div class="nav-section-label" id="nav-section-records">My Records</div>
       <div class="nav-item" id="nav-earnings" data-page="earnings" onclick="navigate('earnings')"><span class="nav-icon">₱</span> Earnings</div>
       <div class="nav-item" id="nav-shifts" data-page="shifts" onclick="navigate('shifts')"><span class="nav-icon">🕐</span> Shift Log</div>
       <div class="nav-item" data-page="profile" onclick="navigate('profile')"><span class="nav-icon">👤</span> Profile</div>
@@ -558,64 +558,9 @@ select {
       <section id="page-overview" class="page-section active">
         <div class="section-header">
           <div class="section-title" id="greet-name">Good morning, Cyrel 👋</div>
-          <div class="section-desc">Here's your workspace at a glance.</div>
+          <div class="section-desc" id="overview-desc">Here's your workspace at a glance.</div>
         </div>
-        <div id="prestart-banner" style="display:none;background:rgba(245,166,35,0.1);border:1px solid rgba(245,166,35,0.3);border-radius:var(--radius-md);padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.83rem;color:var(--warning)">
-          ⏳ <strong>Your workspace is active but your work officially starts on Monday, July 27.</strong> Shifts and earnings logged before that date will not be counted.
-        </div>
-        <div id="overview-updates-banner" class="updates-banner hidden" onclick="navigate('updates')" style="cursor:pointer">
-          <div class="updates-banner-icon">📌</div>
-          <div class="updates-banner-text"><strong id="overview-update-preview"></strong> — <span style="color:var(--teal)">View all →</span></div>
-        </div>
-        <div class="grid-4" style="margin-bottom:1.2rem;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">
-          <div class="stat-tile stat-teal">
-            <div class="stat-label">My Accounts</div>
-            <div class="stat-value v-teal" id="stat-my-accounts">13</div>
-            <div class="stat-sub">Owned by me</div>
-          </div>
-          <div class="stat-tile stat-green">
-            <div class="stat-label">Completed</div>
-            <div class="stat-value v-green" id="stat-completed">0</div>
-            <div class="stat-sub">Clients at 100%</div>
-          </div>
-          <div class="stat-tile" style="cursor:pointer" onclick="navigate('tasklog')">
-            <div class="stat-label">Tasks Worked</div>
-            <div class="stat-value v-teal" id="stat-tasks-touched">0</div>
-            <div class="stat-sub">Clients with active tasks</div>
-          </div>
-          <div class="stat-tile stat-orange">
-            <div class="stat-label">Hours Today</div>
-            <div class="stat-value" id="stat-hours-today">0.0</div>
-            <div class="stat-sub">Logged</div>
-          </div>
-          <div class="stat-tile stat-gold" id="stat-earn-tile">
-            <div class="stat-label">This Month</div>
-            <div class="stat-value v-teal" id="stat-month-earn">₱0</div>
-            <div class="stat-sub">Earnings</div>
-          </div>
-        </div>
-        <!-- Boss availability banner — visible to assistant only, populated by refreshOverview() -->
-        <div id="boss-avail-bar" style="display:none;background:rgba(31,184,195,0.07);border:1px solid rgba(31,184,195,0.2);border-radius:var(--radius-md);padding:0.65rem 1rem;margin-bottom:1rem;font-size:0.83rem;display:flex;align-items:center;gap:0.75rem">
-          <span id="boss-avail-dot" style="font-size:1.2rem">⚫</span>
-          <div>
-            <strong id="boss-avail-label" style="color:var(--text-primary)">Manager is Offline</strong>
-            <span id="boss-avail-since" style="color:var(--text-muted);font-size:0.75rem;margin-left:0.5rem"></span>
-          </div>
-        </div>
-        <div class="grid-2">
-          <div class="card">
-            <div class="card-header"><span class="card-title">Recent Activity</span></div>
-            <div class="card-body" id="recent-activity">
-              <div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-text">No recent activity yet.</div></div>
-            </div>
-          </div>
-          <div class="card">
-            <div class="card-header"><span class="card-title">Latest Updates</span></div>
-            <div class="card-body" id="overview-updates-list">
-              <div class="empty-state"><div class="empty-state-icon">📌</div><div class="empty-state-text">No updates yet.</div></div>
-            </div>
-          </div>
-        </div>
+        <div id="overview-body"></div>
       </section>
 
       <!-- ── Updates ── -->
@@ -1119,7 +1064,7 @@ function subscribeStaff() {
       const def = { accounts:{}, issues:[], shifts:[], hourlyRate:175, fullName:'Cyrel Athan Viloria', seenUpdates:0, activity:[], clockedIn:false, clockIn:null };
       _udCache['athanviloria'] = Object.assign({}, def, snap.data());
     }
-    if (currentUser === BOSS_USERNAME) { renderStaff(); renderAttendance(); }
+    if (currentUser === BOSS_USERNAME) { renderStaff(); renderAttendance(); refreshOverview(); }
   }, ()=>{});
 }
 
@@ -1388,6 +1333,12 @@ function enterApp() {
   if (navEarnings) navEarnings.style.display = currentUser === BOSS_USERNAME ? 'none' : 'flex';
   const navShifts = document.getElementById('nav-shifts');
   if (navShifts) navShifts.style.display = currentUser === BOSS_USERNAME ? 'none' : 'flex';
+  const navTasklog = document.getElementById('nav-tasklog');
+  if (navTasklog) navTasklog.style.display = currentUser === BOSS_USERNAME ? 'none' : 'flex';
+  const navIssues = document.getElementById('nav-issues');
+  if (navIssues) navIssues.style.display = currentUser === BOSS_USERNAME ? 'none' : 'flex';
+  const navRecords = document.getElementById('nav-section-records');
+  if (navRecords) navRecords.style.display = currentUser === BOSS_USERNAME ? 'none' : '';
 }
 
 function populateSidebar() {
@@ -1409,15 +1360,17 @@ function greetUser() {
   const g=h<12?'Good morning':h<17?'Good afternoon':'Good evening';
   const fname=(userData.fullName||currentUser).split(' ')[0];
   document.getElementById('greet-name').textContent=`${g}, ${fname} 👋`;
+  const descEl=document.getElementById('overview-desc');
+  if (descEl) descEl.textContent=currentUser===BOSS_USERNAME?"Monitor Athan's work and client pipeline.":'Here\'s your workspace at a glance.';
 }
 
 // ─────────────────────────────────────────────
 // NAVIGATION
 // ─────────────────────────────────────────────
-const PAGE_TITLES = { overview:'Overview', updates:'Updates', accounts:'Clients', tasklog:'Task Log', staff:'Staff View', issues:'Issues & Questions', earnings:'Earnings', shifts:'Shift Log', profile:'Profile' };
+const PAGE_TITLES = { overview:'Overview', updates:'Updates', accounts:'Clients', tasklog:'Task Log', staff:'Staff View', issues:'Issues & Questions', earnings:'Earnings', shifts:'Shift Log', attendance:'Attendance', profile:'Profile' };
 
 function navigate(page) {
-  if ((page === 'earnings' || page === 'shifts') && currentUser === BOSS_USERNAME) page = 'overview';
+  if ((page === 'earnings' || page === 'shifts' || page === 'tasklog' || page === 'issues') && currentUser === BOSS_USERNAME) page = 'overview';
   document.querySelectorAll('.page-section').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   const sec=document.getElementById('page-'+page);
@@ -1494,102 +1447,249 @@ function addActivity(msg) {
 // OVERVIEW
 // ─────────────────────────────────────────────
 function refreshOverview() {
-  userData=getUserData(currentUser);
-  const shifts=(userData.shifts||[]).filter(s=>new Date(s.inISO||s.date)>=WORK_START);
-  const updates=getUpdates();
-  const now=new Date();
-  const todayKey=now.toLocaleDateString('en-US');
-  const monthKey=`${now.getMonth()}-${now.getFullYear()}`;
-  const rate=userData.hourlyRate||0;
+  if (currentUser === BOSS_USERNAME) _renderBossOverview();
+  else _renderStaffOverview();
+}
 
-  // My accounts completion
-  const owned=MASTER_CLIENTS.filter(c=>c.owned);
-  let completed=0;
-  owned.forEach(c=>{
-    const cd=getClientData(currentUser,c.name);
-    const overall=calcOverall(cd.tasks);
-    if (overall===100) completed++;
+function _renderBossOverview() {
+  const cd = _udCache['athanviloria'];
+  const updates = getUpdates();
+  const now = new Date();
+  const todayStr = now.toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric', year:'numeric'});
+
+  // Athan's presence
+  const pres = cd && cd.presence;
+  let presStatus = 'offline', presLastSeen = null;
+  if (pres) {
+    presStatus = pres.status || 'offline';
+    presLastSeen = pres.lastSeen ? new Date(pres.lastSeen) : null;
+    if (presLastSeen && (Date.now() - presLastSeen.getTime()) > 3 * 60 * 1000) presStatus = 'offline';
+  }
+  const pMap = {
+    active:  { dot:'🟢', label:'Online',  color:'var(--success)' },
+    idle:    { dot:'🟡', label:'Idle',    color:'var(--warning)' },
+    away:    { dot:'🟠', label:'Away',    color:'#f97316' },
+    offline: { dot:'⚫', label:'Offline', color:'var(--text-muted)' },
+  };
+  const pi = pMap[presStatus] || pMap.offline;
+  const clockStatus = cd && cd.clockedIn
+    ? `<span style="color:var(--success);font-weight:700">● Clocked In</span> since ${new Date(cd.clockIn).toLocaleTimeString()}`
+    : `<span style="color:var(--text-muted)">○ Off Shift</span>`;
+
+  // Client pipeline from Athan's Firestore data
+  const accts = cd ? (cd.accounts || {}) : {};
+  const owned = MASTER_CLIENTS.filter(c => c.owned);
+  const closedCount    = owned.filter(c => (accts[c.name]?.overallStatus||'') === 'Closed').length;
+  const completedCount = owned.filter(c => (accts[c.name]?.overallStatus||'') === 'Completed').length;
+  const inProcessCount = owned.filter(c => (accts[c.name]?.overallStatus||'') === 'In Process').length;
+  const notStartedCount = owned.length - closedCount - completedCount - inProcessCount;
+
+  // Last verification stored in boss doc
+  const bossUd = getUserData(BOSS_USERNAME);
+  const lastRep = bossUd.lastReportVerification || null;
+
+  // Athan's recent activity
+  const activity = (cd ? (cd.activity || []) : []).slice(0, 8);
+
+  const updBanner = updates.length > 0
+    ? `<div class="updates-banner" onclick="navigate('updates')" style="cursor:pointer;margin-bottom:1rem">
+        <div class="updates-banner-icon">📌</div>
+        <div class="updates-banner-text"><strong>${esc((updates[0].msg||'').slice(0,70))}${(updates[0].msg||'').length>70?'…':''}</strong> — <span style="color:var(--teal)">View all →</span></div>
+       </div>` : '';
+
+  document.getElementById('overview-body').innerHTML = `
+    ${updBanner}
+    <div class="grid-4" style="margin-bottom:1.2rem;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">
+      <div class="stat-tile stat-teal">
+        <div class="stat-label">Athan's Status</div>
+        <div style="font-size:0.82rem;margin-top:0.5rem;color:${pi.color};font-weight:700">${pi.dot} ${pi.label}</div>
+        <div style="margin-top:0.35rem;font-size:0.75rem">${clockStatus}</div>
+      </div>
+      <div class="stat-tile" style="border-left:3px solid rgba(74,111,227,0.6)">
+        <div class="stat-label">Closed</div>
+        <div class="stat-value" style="color:#4A6FE3">${closedCount}</div>
+        <div class="stat-sub">clients this month</div>
+      </div>
+      <div class="stat-tile stat-gold" style="cursor:pointer" onclick="navigate('accounts')">
+        <div class="stat-label">Pending Review</div>
+        <div class="stat-value" style="color:var(--warning)">${completedCount}</div>
+        <div class="stat-sub">completed, not closed</div>
+      </div>
+      <div class="stat-tile stat-orange">
+        <div class="stat-label">In Progress</div>
+        <div class="stat-value">${inProcessCount}</div>
+        <div class="stat-sub">clients</div>
+      </div>
+      <div class="stat-tile">
+        <div class="stat-label">Not Started</div>
+        <div class="stat-value" style="color:var(--text-muted)">${notStartedCount}</div>
+        <div class="stat-sub">clients</div>
+      </div>
+    </div>
+
+    <div class="grid-2" style="align-items:start;margin-bottom:0.85rem">
+      <div class="card">
+        <div class="card-header"><span class="card-title">📋 Daily Report</span></div>
+        <div class="card-body">
+          <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:0.75rem">Expected by 11:00 PM PH Time · ${esc(todayStr)}</div>
+          ${lastRep
+            ? `<div style="margin-bottom:0.4rem">
+                <span style="font-weight:700;color:${lastRep.status==='COMPLETE'?'var(--success)':'var(--danger)'}">● ${esc(lastRep.status)}</span>
+                <span style="color:var(--text-muted);font-size:0.72rem;margin-left:0.5rem">Verified ${esc(lastRep.date)}</span>
+               </div>
+               ${lastRep.issues && lastRep.issues.length
+                 ? lastRep.issues.map(i=>`<div style="font-size:0.78rem;color:var(--danger);margin-top:0.2rem">• ${esc(i)}</div>`).join('')
+                 : `<div style="font-size:0.78rem;color:var(--text-muted)">No issues found.</div>`}`
+            : `<div style="color:var(--text-muted);font-size:0.83rem">Not yet verified today.</div>
+               <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.4rem">Ask Ace to run the daily report check.</div>`}
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">👤 Athan's Recent Activity</span></div>
+        <div class="card-body" style="padding:0.5rem 0;max-height:260px;overflow-y:auto">
+          ${activity.length === 0
+            ? `<div class="empty-state"><div class="empty-state-text">No activity yet.</div></div>`
+            : activity.map(a => {
+                const msg = typeof a === 'string' ? a : (a.msg || '');
+                const time = a.time ? new Date(a.time).toLocaleString() : '';
+                return `<div style="padding:0.45rem 1rem;border-bottom:1px solid var(--border)">
+                  ${time?`<div style="font-size:0.68rem;color:var(--text-muted)">${time}</div>`:''}
+                  <div style="font-size:0.8rem;color:var(--text-secondary);margin-top:0.1rem">${esc(msg)}</div>
+                </div>`;
+              }).join('')}
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span class="card-title">📌 Updates Posted by You</span></div>
+      <div class="card-body">
+        ${updates.length === 0
+          ? `<div class="empty-state"><div class="empty-state-icon">📌</div><div class="empty-state-text">No updates posted yet.</div></div>`
+          : updates.slice(0,3).map(u=>`<div class="update-pin"><div class="update-dot-col"><div class="update-dot"></div></div><div><div class="update-meta">${esc(u.date)} · <span class="update-tag">${esc(u.type)}</span></div><div class="update-body">${esc(u.msg)}</div></div></div>`).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function _renderStaffOverview() {
+  userData = getUserData(currentUser);
+  const shifts = (userData.shifts||[]).filter(s => new Date(s.inISO||s.date) >= WORK_START);
+  const updates = getUpdates();
+  const now = new Date();
+  const todayKey = now.toLocaleDateString('en-US');
+  const monthKey = `${now.getMonth()}-${now.getFullYear()}`;
+  const rate = userData.hourlyRate || 0;
+
+  const owned = MASTER_CLIENTS.filter(c => c.owned);
+  let completed = 0;
+  owned.forEach(c => {
+    const cd = getClientData(currentUser, c.name);
+    if (calcOverall(cd.tasks) === 100) completed++;
   });
-  // Clients with any task touched (In Process or Completed)
   const accts = userData.accounts || {};
   const tasksTouched = MASTER_CLIENTS.filter(c => {
     const cd = accts[c.name];
     return cd && cd.tasks && cd.tasks.some(t => t.progress && t.progress !== 'Not Yet Started');
   }).length;
+  const todayHrs = shifts.filter(s => s.date === todayKey).reduce((a,s) => a+(s.hours||0), 0);
+  const monthHrs = shifts.filter(s => { const d = new Date(s.inISO||s.date); return `${d.getMonth()}-${d.getFullYear()}` === monthKey; }).reduce((a,s) => a+(s.hours||0), 0);
+  const monthEarn = '₱'+(monthHrs*rate).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
 
-  document.getElementById('stat-my-accounts').textContent=owned.length;
-  document.getElementById('stat-completed').textContent=completed;
-  document.getElementById('stat-tasks-touched').textContent=tasksTouched;
-
-  const todayHrs=shifts.filter(s=>s.date===todayKey).reduce((a,s)=>a+(s.hours||0),0);
-  document.getElementById('stat-hours-today').textContent=todayHrs.toFixed(1);
-  const monthHrs=shifts.filter(s=>{ const d=new Date(s.inISO||s.date); return `${d.getMonth()}-${d.getFullYear()}`===monthKey; }).reduce((a,s)=>a+(s.hours||0),0);
-  document.getElementById('stat-month-earn').textContent='₱'+(monthHrs*rate).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
-
-  // Hide earnings tile for boss; show boss-availability bar for assistant
-  const earnTile = document.getElementById('stat-earn-tile');
-  if (earnTile) earnTile.style.display = currentUser === BOSS_USERNAME ? 'none' : '';
-  const bossBar = document.getElementById('boss-avail-bar');
-  if (bossBar) {
-    if (currentUser === BOSS_USERNAME) {
-      bossBar.style.display = 'none';
-    } else {
-      bossBar.style.display = 'flex';
-      const bd = _udCache[BOSS_USERNAME];
-      const pres = bd && bd.presence;
-      let presStatus = 'offline';
-      let presLastSeen = null;
-      if (pres) {
-        presStatus = pres.status || 'offline';
-        presLastSeen = pres.lastSeen ? new Date(pres.lastSeen) : null;
-        if (presLastSeen && (Date.now() - presLastSeen.getTime()) > 3 * 60 * 1000) presStatus = 'offline';
-      }
-      const presMap = {
-        active:  { dot:'🟢', label:'Manager is Online' },
-        idle:    { dot:'🟡', label:'Manager is Idle' },
-        away:    { dot:'🟠', label:'Manager is Away' },
-        offline: { dot:'⚫', label:'Manager is Offline' },
-      };
-      const pi = presMap[presStatus] || presMap.offline;
-      document.getElementById('boss-avail-dot').textContent = pi.dot;
-      document.getElementById('boss-avail-label').textContent = pi.label;
-      const sinceEl = document.getElementById('boss-avail-since');
-      const onShift = bd && bd.clockedIn;
-      if (presStatus !== 'offline' && presLastSeen) {
-        const shiftStr = onShift && bd.clockIn ? ` · On shift since ${new Date(bd.clockIn).toLocaleTimeString()}` : '';
-        sinceEl.textContent = `— last seen ${presLastSeen.toLocaleTimeString()}${shiftStr}`;
-      } else if (onShift) {
-        sinceEl.textContent = `— On shift since ${new Date(bd.clockIn).toLocaleTimeString()}`;
-      } else {
-        sinceEl.textContent = '';
-      }
-    }
+  // Manager availability
+  const bd = _udCache[BOSS_USERNAME];
+  const bPres = bd && bd.presence;
+  let bPresStatus = 'offline', bPresLastSeen = null;
+  if (bPres) {
+    bPresStatus = bPres.status || 'offline';
+    bPresLastSeen = bPres.lastSeen ? new Date(bPres.lastSeen) : null;
+    if (bPresLastSeen && (Date.now() - bPresLastSeen.getTime()) > 3 * 60 * 1000) bPresStatus = 'offline';
+  }
+  const bpMap = {
+    active:  { dot:'🟢', label:'Manager is Online' },
+    idle:    { dot:'🟡', label:'Manager is Idle' },
+    away:    { dot:'🟠', label:'Manager is Away' },
+    offline: { dot:'⚫', label:'Manager is Offline' },
+  };
+  const bpi = bpMap[bPresStatus] || bpMap.offline;
+  const bOnShift = bd && bd.clockedIn;
+  let bSinceStr = '';
+  if (bPresStatus !== 'offline' && bPresLastSeen) {
+    const shiftStr = bOnShift && bd.clockIn ? ` · On shift since ${new Date(bd.clockIn).toLocaleTimeString()}` : '';
+    bSinceStr = `— last seen ${bPresLastSeen.toLocaleTimeString()}${shiftStr}`;
+  } else if (bOnShift && bd.clockIn) {
+    bSinceStr = `— On shift since ${new Date(bd.clockIn).toLocaleTimeString()}`;
   }
 
-  // Pre-start banner
-  const prestartEl=document.getElementById('prestart-banner');
-  if (prestartEl) prestartEl.style.display=new Date()<WORK_START?'block':'none';
+  const acts = (userData.activity || []).slice(0, 6);
 
-  // Updates banner
-  const banner=document.getElementById('overview-updates-banner');
-  if (updates.length>0) {
-    banner.classList.remove('hidden');
-    const preview=(updates[0].msg||'');
-    document.getElementById('overview-update-preview').textContent=(preview.length>70?preview.slice(0,70)+'…':preview);
-  } else { banner.classList.add('hidden'); }
+  const updBanner = updates.length > 0
+    ? `<div class="updates-banner" onclick="navigate('updates')" style="cursor:pointer;margin-bottom:1rem">
+        <div class="updates-banner-icon">📌</div>
+        <div class="updates-banner-text"><strong>${esc((updates[0].msg||'').slice(0,70))}${(updates[0].msg||'').length>70?'…':''}</strong> — <span style="color:var(--teal)">View all →</span></div>
+       </div>` : '';
 
-  // Activity
-  const actEl=document.getElementById('recent-activity');
-  const acts=userData.activity||[];
-  actEl.innerHTML=acts.length===0
-    ?`<div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-text">No recent activity yet.</div></div>`
-    :acts.slice(0,6).map(a=>`<div class="update-pin"><div class="update-dot-col"><div class="update-dot" style="background:var(--text-muted);box-shadow:none"></div></div><div><div class="update-meta">${new Date(a.time).toLocaleString()}</div><div class="update-body">${esc(a.msg)}</div></div></div>`).join('');
+  const prestartBanner = new Date() < WORK_START
+    ? `<div style="background:rgba(245,166,35,0.1);border:1px solid rgba(245,166,35,0.3);border-radius:var(--radius-md);padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.83rem;color:var(--warning)">
+        ⏳ <strong>Your workspace is active but your work officially starts on Monday, July 27.</strong> Shifts and earnings logged before that date will not be counted.
+       </div>` : '';
 
-  // Latest updates
-  const updEl=document.getElementById('overview-updates-list');
-  updEl.innerHTML=updates.length===0
-    ?`<div class="empty-state"><div class="empty-state-icon">📌</div><div class="empty-state-text">No updates yet.</div></div>`
-    :updates.slice(0,3).map(u=>`<div class="update-pin"><div class="update-dot-col"><div class="update-dot"></div></div><div><div class="update-meta">${u.date} · <span class="update-tag">${esc(u.type)}</span></div><div class="update-body">${esc(u.msg)}</div></div></div>`).join('');
+  document.getElementById('overview-body').innerHTML = `
+    ${updBanner}
+    ${prestartBanner}
+    <div class="grid-4" style="margin-bottom:1.2rem;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">
+      <div class="stat-tile stat-teal">
+        <div class="stat-label">My Accounts</div>
+        <div class="stat-value v-teal">${owned.length}</div>
+        <div class="stat-sub">Owned by me</div>
+      </div>
+      <div class="stat-tile stat-green">
+        <div class="stat-label">Completed</div>
+        <div class="stat-value v-green">${completed}</div>
+        <div class="stat-sub">Clients at 100%</div>
+      </div>
+      <div class="stat-tile" style="cursor:pointer" onclick="navigate('tasklog')">
+        <div class="stat-label">Tasks Worked</div>
+        <div class="stat-value v-teal">${tasksTouched}</div>
+        <div class="stat-sub">Clients with active tasks</div>
+      </div>
+      <div class="stat-tile stat-orange">
+        <div class="stat-label">Hours Today</div>
+        <div class="stat-value">${todayHrs.toFixed(1)}</div>
+        <div class="stat-sub">Logged</div>
+      </div>
+      <div class="stat-tile stat-gold">
+        <div class="stat-label">This Month</div>
+        <div class="stat-value v-teal">${monthEarn}</div>
+        <div class="stat-sub">Earnings</div>
+      </div>
+    </div>
+    <div style="background:rgba(31,184,195,0.07);border:1px solid rgba(31,184,195,0.2);border-radius:var(--radius-md);padding:0.65rem 1rem;margin-bottom:1rem;font-size:0.83rem;display:flex;align-items:center;gap:0.75rem">
+      <span style="font-size:1.2rem">${bpi.dot}</span>
+      <div>
+        <strong style="color:var(--text-primary)">${bpi.label}</strong>
+        <span style="color:var(--text-muted);font-size:0.75rem;margin-left:0.5rem">${bSinceStr}</span>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Recent Activity</span></div>
+        <div class="card-body">
+          ${acts.length === 0
+            ? `<div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-text">No recent activity yet.</div></div>`
+            : acts.map(a=>`<div class="update-pin"><div class="update-dot-col"><div class="update-dot" style="background:var(--text-muted);box-shadow:none"></div></div><div><div class="update-meta">${new Date(a.time).toLocaleString()}</div><div class="update-body">${esc(a.msg)}</div></div></div>`).join('')}
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Latest Updates</span></div>
+        <div class="card-body">
+          ${updates.length === 0
+            ? `<div class="empty-state"><div class="empty-state-icon">📌</div><div class="empty-state-text">No updates yet.</div></div>`
+            : updates.slice(0,3).map(u=>`<div class="update-pin"><div class="update-dot-col"><div class="update-dot"></div></div><div><div class="update-meta">${esc(u.date)} · <span class="update-tag">${esc(u.type)}</span></div><div class="update-body">${esc(u.msg)}</div></div></div>`).join('')}
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 // ─────────────────────────────────────────────
