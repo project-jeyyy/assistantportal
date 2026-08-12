@@ -1850,6 +1850,11 @@ function renderAttendance() {
         <div class="stat-value v-teal" style="font-size:1.2rem">₱${totalEarned.toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
         <div class="stat-sub">@ ₱${rate}/hr</div>
       </div>
+      <div class="stat-tile">
+        <div class="stat-label">Daily Rate</div>
+        <div class="stat-value" style="color:var(--text-primary);font-size:1.1rem">₱${(rate*8).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+        <div class="stat-sub">₱${rate}/hr × 8 hrs</div>
+      </div>
     </div>
     <div class="card">
       <div class="card-header"><span class="card-title">🕐 Sign In / Out Log</span><span style="font-size:0.72rem;color:var(--text-muted)">${shifts.length} session${shifts.length!==1?'s':''}</span></div>
@@ -1879,10 +1884,12 @@ function renderAttendance() {
                       <td style="padding:0.6rem 1.2rem;font-weight:700;font-variant-numeric:tabular-nums">${(s.hours||0).toFixed(2)}</td>
                       <td style="padding:0.6rem 1.2rem;color:var(--success);font-weight:700;font-variant-numeric:tabular-nums">₱${((s.hours||0)*rate).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
                       <td style="padding:0.6rem 1.2rem">
-                        ${s.device
-                          ? `<div style="font-size:0.78rem;font-weight:600;color:var(--text-primary)">${esc(s.device.browser)} · ${esc(s.device.os)}</div>
-                             <div style="font-size:0.7rem;color:var(--text-muted)">${esc(s.device.device)}</div>`
-                          : `<span style="color:var(--text-muted);font-size:0.75rem">—</span>`}
+                        ${s.markedBy === 'Ace'
+                          ? `<span style="font-size:0.72rem;font-weight:700;color:#4A6FE3;background:rgba(74,111,227,0.1);border:1px solid rgba(74,111,227,0.25);padding:0.15rem 0.6rem;border-radius:99px;">✓ Ace</span>${s.note ? `<div style="font-size:0.68rem;color:var(--text-muted);margin-top:0.25rem">${esc(s.note)}</div>` : ''}`
+                          : s.device
+                            ? `<div style="font-size:0.78rem;font-weight:600;color:var(--text-primary)">${esc(s.device.browser)} · ${esc(s.device.os)}</div>
+                               <div style="font-size:0.7rem;color:var(--text-muted)">${esc(s.device.device)}</div>`
+                            : `<span style="color:var(--text-muted);font-size:0.75rem">—</span>`}
                       </td>
                     </tr>`).join('')}
                 </tbody>
