@@ -1004,7 +1004,7 @@ const TASK_TYPES = [
 const PROGRESS_OPTS = ['Not Yet Started','In Process','Completed'];
 
 function progressPct(p) {
-  if (p === 'Completed') return 100;
+  if (p === 'Completed' || p === 'Closed') return 100;
   if (p === 'In Process') return 50;
   return 0;
 }
@@ -1981,7 +1981,7 @@ function renderAccounts() {
         <div class="client-overall">
           <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:3px">
             <span style="font-size:0.72rem;font-weight:700;${pctClass==='cp-100'?'color:var(--success)':pctClass==='cp-50'?'color:var(--warning)':'color:var(--text-muted)'}">${pctLabel}</span>
-            ${overall===100?`<span style="font-size:0.62rem;font-weight:700;color:var(--success);background:rgba(39,174,96,0.1);border:1px solid rgba(39,174,96,0.25);padding:0.05rem 0.4rem;border-radius:99px;">✓ Review</span>`:''}
+            ${cd.overallStatus==='Closed'?`<span style="font-size:0.62rem;font-weight:700;color:#4A6FE3;background:rgba(74,111,227,0.1);border:1px solid rgba(74,111,227,0.25);padding:0.05rem 0.4rem;border-radius:99px;">✓ Closed</span>`:overall===100?`<span style="font-size:0.62rem;font-weight:700;color:var(--success);background:rgba(39,174,96,0.1);border:1px solid rgba(39,174,96,0.25);padding:0.05rem 0.4rem;border-radius:99px;">✓ Review</span>`:''}
           </div>
           <div class="prog-bar"><div class="prog-fill ${fillClass}" style="width:${overall}%"></div></div>
         </div>
@@ -2003,7 +2003,9 @@ function renderClientDetail(c, cd, idx) {
   const borderColor = status==='Closed'?'rgba(74,111,227,0.6)':bossReviewed?'rgba(39,174,96,0.6)':status==='Completed'?'rgba(39,174,96,0.35)':status==='In Process'?'rgba(245,166,35,0.35)':'var(--border)';
 
   let reviewBadge = '';
-  if (bossReviewed) {
+  if (status==='Closed') {
+    reviewBadge = `<span style="font-size:0.75rem;font-weight:700;color:#fff;background:#4A6FE3;padding:0.2rem 0.7rem;border-radius:99px;margin-left:0.5rem">✓ Closed</span>`;
+  } else if (bossReviewed) {
     reviewBadge = `<span style="font-size:0.75rem;font-weight:700;color:#fff;background:var(--success);padding:0.2rem 0.7rem;border-radius:99px;margin-left:0.5rem">✓ Reviewed</span>`;
   } else if (status==='Completed') {
     reviewBadge = `<span style="font-size:0.75rem;font-weight:600;color:var(--success);background:rgba(39,174,96,0.1);border:1px solid rgba(39,174,96,0.3);padding:0.2rem 0.7rem;border-radius:99px;margin-left:0.5rem">⏳ Pending Your Review</span>`;
@@ -2099,7 +2101,7 @@ function updateOverallStatus(clientName, idx, value) {
   const pctEl=document.querySelector(`#row-${idx} .client-overall`);
   if (pctEl) {
     const color=overall===100?'color:var(--success)':overall>0?'color:var(--warning)':'color:var(--text-muted)';
-    const badge=overall===100?`<span style="font-size:0.62rem;font-weight:700;color:var(--success);background:rgba(39,174,96,0.1);border:1px solid rgba(39,174,96,0.25);padding:0.05rem 0.4rem;border-radius:99px;">✓ Review</span>`:'';
+    const badge=value==='Closed'?`<span style="font-size:0.62rem;font-weight:700;color:#4A6FE3;background:rgba(74,111,227,0.1);border:1px solid rgba(74,111,227,0.25);padding:0.05rem 0.4rem;border-radius:99px;">✓ Closed</span>`:overall===100?`<span style="font-size:0.62rem;font-weight:700;color:var(--success);background:rgba(39,174,96,0.1);border:1px solid rgba(39,174,96,0.25);padding:0.05rem 0.4rem;border-radius:99px;">✓ Review</span>`:'';
     pctEl.innerHTML=`<div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:3px"><span style="font-size:0.72rem;font-weight:700;${color}">${overall}%</span>${badge}</div><div class="prog-bar"><div class="prog-fill ${fillClass}" style="width:${overall}%"></div></div>`;
   }
   // update status border color on detail panel
