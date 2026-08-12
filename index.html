@@ -961,7 +961,7 @@ const MASTER_CLIENTS = [
 ];
 
 const WORK_START = new Date('2026-07-27T00:00:00');
-const OVERALL_STATUS_OPTS = ['Not Yet Started','In Process','Completed'];
+const OVERALL_STATUS_OPTS = ['Not Yet Started','In Process','Completed','Closed'];
 // Boss-reviewed clients — updated here when you tell me you've reviewed a client
 const BOSS_REVIEWED = new Set([
   'ABI P&O, Inc.',
@@ -1999,8 +1999,8 @@ function renderAccounts() {
 function renderClientDetail(c, cd, idx) {
   const status = cd.overallStatus || 'Not Yet Started';
   const bossReviewed = BOSS_REVIEWED.has(c.name);
-  const statusColor = status==='Completed'?'var(--success)':status==='In Process'?'var(--warning)':'var(--text-muted)';
-  const borderColor = bossReviewed?'rgba(39,174,96,0.6)':status==='Completed'?'rgba(39,174,96,0.35)':status==='In Process'?'rgba(245,166,35,0.35)':'var(--border)';
+  const statusColor = status==='Closed'?'#4A6FE3':status==='Completed'?'var(--success)':status==='In Process'?'var(--warning)':'var(--text-muted)';
+  const borderColor = status==='Closed'?'rgba(74,111,227,0.6)':bossReviewed?'rgba(39,174,96,0.6)':status==='Completed'?'rgba(39,174,96,0.35)':status==='In Process'?'rgba(245,166,35,0.35)':'var(--border)';
 
   let reviewBadge = '';
   if (bossReviewed) {
@@ -2014,7 +2014,7 @@ function renderClientDetail(c, cd, idx) {
     <div class="overall-status-box" style="background:var(--card-bg);border:1.5px solid ${borderColor};border-radius:var(--radius-md);padding:1rem 1.2rem;margin-bottom:1rem;">
       <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-muted);margin-bottom:0.5rem">Overall Client Status</div>
       <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap">
-        <select onchange="updateOverallStatus('${esc(c.name)}',${idx},this.value)" style="width:180px;font-weight:700;color:${statusColor}" ${bossReviewed?'disabled':''}>
+        <select onchange="updateOverallStatus('${esc(c.name)}',${idx},this.value)" style="width:180px;font-weight:700;color:${statusColor}" ${(status==='Closed'||bossReviewed)&&currentUser!==BOSS_USERNAME?'disabled':''}>
           ${OVERALL_STATUS_OPTS.map(o=>`<option${o===status?' selected':''}>${o}</option>`).join('')}
         </select>
         ${reviewBadge}
@@ -2103,7 +2103,7 @@ function updateOverallStatus(clientName, idx, value) {
     pctEl.innerHTML=`<div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:3px"><span style="font-size:0.72rem;font-weight:700;${color}">${overall}%</span>${badge}</div><div class="prog-bar"><div class="prog-fill ${fillClass}" style="width:${overall}%"></div></div>`;
   }
   // update status border color on detail panel
-  const statusColor=value==='Completed'?'rgba(39,174,96,0.35)':value==='In Process'?'rgba(245,166,35,0.35)':'var(--border)';
+  const statusColor=value==='Closed'?'rgba(74,111,227,0.6)':value==='Completed'?'rgba(39,174,96,0.35)':value==='In Process'?'rgba(245,166,35,0.35)':'var(--border)';
   const statusBox=document.querySelector(`#detail-${idx} .overall-status-box`);
   if (statusBox) statusBox.style.borderColor=statusColor;
   addActivity(`Updated ${clientName}: Overall Status → ${value}`);
