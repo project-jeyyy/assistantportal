@@ -474,6 +474,15 @@ select {
       <div class="auth-field"><label>Password</label><div class="pw-wrap"><input type="password" id="login-password" placeholder="Enter your password" autocomplete="current-password"><button type="button" class="pw-toggle" onclick="togglePw('login-password',this)" tabindex="-1">👁</button></div></div>
       <button class="btn-auth" onclick="doLogin()">Sign In</button>
       <div class="auth-toggle">No account yet? <a href="#" onclick="switchToRegister(event)">Create one here</a></div>
+      <div class="auth-toggle" style="margin-top:0.5rem;padding-top:0.5rem;border-top:1px solid rgba(255,255,255,0.06)">Manager? <a href="#" onclick="switchToManagerAccess(event)">Access as Jey Asayas</a></div>
+    </div>
+    <div id="manager-access-form" class="hidden">
+      <div class="auth-title" style="display:flex;align-items:center;gap:0.5rem">🔑 Manager Access</div>
+      <div class="auth-sub">Enter your password to view Cyrel's portal</div>
+      <div id="manager-error" class="auth-error hidden"></div>
+      <div class="auth-field"><label>Password (Jey Asayas)</label><div class="pw-wrap"><input type="password" id="manager-password" placeholder="Enter your password" autocomplete="current-password"><button type="button" class="pw-toggle" onclick="togglePw('manager-password',this)" tabindex="-1">👁</button></div></div>
+      <button class="btn-auth" onclick="doManagerLogin()" style="background:linear-gradient(135deg,#1d4ed8,#2563eb)">Access Cyrel's Portal</button>
+      <div class="auth-toggle" style="margin-top:0.75rem"><a href="#" onclick="switchToLogin(event)">← Back to Sign In</a></div>
     </div>
     <div id="register-form" class="hidden">
       <div class="auth-title">Create your account</div>
@@ -542,6 +551,11 @@ select {
   </aside>
 
   <div class="main">
+    <div id="manager-access-banner" style="display:none;background:linear-gradient(90deg,rgba(37,99,235,0.13),rgba(59,130,246,0.07));border-bottom:1.5px solid rgba(59,130,246,0.28);padding:0.55rem 1.5rem;align-items:center;gap:0.75rem;font-size:0.82rem;font-weight:600;color:#3b82f6">
+      <span>🔑 Manager Access</span>
+      <span style="font-weight:400;color:var(--text-muted);margin-left:0.25rem">— Jey Asayas is viewing Cyrel's portal</span>
+      <button onclick="doLogout()" style="margin-left:auto;font-size:0.75rem;padding:0.28rem 0.8rem;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.28);color:#3b82f6;border-radius:6px;cursor:pointer;font-weight:600;transition:background 0.15s" onmouseover="this.style.background='rgba(59,130,246,0.2)'" onmouseout="this.style.background='rgba(59,130,246,0.1)'">Exit Manager View</button>
+    </div>
     <header class="topbar">
       <div>
         <div class="topbar-title" id="topbar-title">Overview</div>
@@ -1111,10 +1125,11 @@ function saveClientData(username, clientName, data) {
 // ─────────────────────────────────────────────
 // STATE
 // ─────────────────────────────────────────────
-let currentUser = null;
-let userData    = null;
-let clockStart  = null;
-let _shiftNotif = { warn: false, done: false, over: false };
+let currentUser       = null;
+let userData          = null;
+let clockStart        = null;
+let _shiftNotif       = { warn: false, done: false, over: false };
+let managerAccessMode = false;
 const MAX_SHIFT_HRS = 5;
 const ACE_SYSTEM_PROMPT = `You are Ace, the AI Work Assistant for Jey Asayas at Hedgi AI, LLC. You are answering questions from Cyrel Athan A. Viloria, a Bookkeeping Associate on trial basis working remotely under Jey.
 
@@ -1299,8 +1314,9 @@ function getDeviceInfo() {
 // ─────────────────────────────────────────────
 // AUTH
 // ─────────────────────────────────────────────
-function switchToRegister(e){ e&&e.preventDefault(); document.getElementById('login-form').classList.add('hidden'); document.getElementById('register-form').classList.remove('hidden'); }
-function switchToLogin(e)   { e&&e.preventDefault(); document.getElementById('register-form').classList.add('hidden'); document.getElementById('login-form').classList.remove('hidden'); }
+function switchToRegister(e)      { e&&e.preventDefault(); document.getElementById('login-form').classList.add('hidden'); document.getElementById('register-form').classList.remove('hidden'); document.getElementById('manager-access-form').classList.add('hidden'); }
+function switchToLogin(e)         { e&&e.preventDefault(); document.getElementById('register-form').classList.add('hidden'); document.getElementById('manager-access-form').classList.add('hidden'); document.getElementById('login-form').classList.remove('hidden'); }
+function switchToManagerAccess(e) { e&&e.preventDefault(); document.getElementById('login-form').classList.add('hidden'); document.getElementById('register-form').classList.add('hidden'); document.getElementById('manager-access-form').classList.remove('hidden'); document.getElementById('manager-password').value=''; document.getElementById('manager-error').classList.add('hidden'); }
 
 async function doRegister() {
   const name=document.getElementById('reg-name').value.trim();
@@ -1365,6 +1381,38 @@ async function doLogin() {
   btn.disabled=false; btn.textContent='Sign In';
 }
 
+async function doManagerLogin() {
+  const pass = document.getElementById('manager-password').value;
+  const err  = document.getElementById('manager-error');
+  err.classList.add('hidden');
+  if (!pass) { showErr(err, 'Enter your password.'); return; }
+  const btn = document.querySelector('#manager-access-form .btn-auth');
+  btn.disabled=true; btn.textContent='Verifying…';
+  try {
+    const users = await loadUsers();
+    if (!users[BOSS_USERNAME] || users[BOSS_USERNAME].passwordHash !== btoa(pass)) {
+      showErr(err, 'Incorrect password for Jey Asayas.');
+      btn.disabled=false; btn.textContent='Access Cyrel\'s Portal'; return;
+    }
+    await loadUserData('athanviloria');
+    currentUser = 'athanviloria';
+    managerAccessMode = true;
+    setSession({ username: 'athanviloria', managerAccess: true });
+    userData = getUserData(currentUser);
+    if (userData.clockedIn && userData.clockIn) clockStart = new Date(userData.clockIn);
+    // Log manager access in Cyrel's activity
+    if (!userData.accessLog) userData.accessLog = [];
+    userData.accessLog.unshift({ type:'ManagerAccess', time:new Date().toISOString(), by:'jeyasayas' });
+    if (userData.accessLog.length > 100) userData.accessLog.length = 100;
+    if (!userData.activity) userData.activity = [];
+    userData.activity.unshift({ msg:'Manager (Jey Asayas) accessed portal', time:new Date().toISOString() });
+    if (userData.activity.length > 20) userData.activity.length = 20;
+    setUserData('athanviloria', userData);
+    enterApp();
+  } catch(e) { showErr(err, 'Connection error. Please try again.'); }
+  btn.disabled=false; btn.textContent='Access Cyrel\'s Portal';
+}
+
 function doLogout() {
   // Log portal sign-out before clearing
   if (currentUser && currentUser !== BOSS_USERNAME) {
@@ -1383,11 +1431,15 @@ function doLogout() {
   if (_staffUnsub)   { _staffUnsub();   _staffUnsub=null;   }
   if (_bossUnsub)    { _bossUnsub();    _bossUnsub=null;    }
   _udCache={}; _usersCache=null; _updatesCache=[];
-  clearSession(); currentUser=null; userData=null; clockStart=null;
+  clearSession(); currentUser=null; userData=null; clockStart=null; managerAccessMode=false;
+  const managerBanner = document.getElementById('manager-access-banner');
+  if (managerBanner) managerBanner.style.display='none';
   document.getElementById('app-shell').classList.add('hidden');
   document.getElementById('auth-screen').classList.remove('hidden');
   document.getElementById('login-username').value='';
   document.getElementById('login-password').value='';
+  document.getElementById('manager-access-form').classList.add('hidden');
+  document.getElementById('login-form').classList.remove('hidden');
 }
 
 function showErr(el,msg){ el.textContent=msg; el.classList.remove('hidden'); }
@@ -1426,12 +1478,16 @@ function enterApp() {
   const tabPills = document.getElementById('accounts-tab-pills');
   if (tabPills) tabPills.style.display = currentUser === BOSS_USERNAME ? 'none' : '';
   if (currentUser === BOSS_USERNAME) { accountTab = 'all'; }
+  // Manager access banner
+  managerAccessMode = getSession().managerAccess === true;
+  const managerBanner = document.getElementById('manager-access-banner');
+  if (managerBanner) managerBanner.style.display = managerAccessMode ? 'flex' : 'none';
 }
 
 function populateSidebar() {
   const name=(userData.fullName||currentUser);
   const initials=name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
-  const role = currentUser === BOSS_USERNAME ? 'Admin / Manager' : 'Personal Assistant';
+  const role = managerAccessMode ? 'Viewed by Jey Asayas' : (currentUser === BOSS_USERNAME ? 'Admin / Manager' : 'Personal Assistant');
   document.getElementById('sidebar-username').textContent=name;
   document.getElementById('sidebar-avatar-text').textContent=initials;
   document.getElementById('sidebar-role').textContent=role;
@@ -1535,9 +1591,12 @@ function refreshClockUI() {
   const el=document.getElementById('clock-elapsed');
   if (dot) { dot.classList.toggle('active',on); dot.style.background=onBreak?'var(--warning)':''; }
   if (lbl) lbl.textContent=onBreak?'On Break':on?'On Shift':'Off Shift';
-  if (btn) { btn.textContent=on?'Clock Out':'Clock In'; btn.className='btn-clock'+(on?' clocked-in':''); }
+  if (btn) {
+    btn.textContent=on?'Clock Out':'Clock In'; btn.className='btn-clock'+(on?' clocked-in':'');
+    btn.disabled=managerAccessMode; btn.style.opacity=managerAccessMode?'0.45':''; btn.title=managerAccessMode?'Clock actions are disabled in manager view':'';
+  }
   if (breakBtn) {
-    breakBtn.style.display=(on&&currentUser!=='jeyasayas')?'block':'none';
+    breakBtn.style.display=(on&&currentUser!=='jeyasayas'&&!managerAccessMode)?'block':'none';
     breakBtn.textContent=onBreak?'☕ End Break':'☕ Meal Break';
     breakBtn.style.background=onBreak?'rgba(245,166,35,0.18)':'rgba(245,166,35,0.08)';
     breakBtn.style.borderColor=onBreak?'rgba(245,166,35,0.6)':'rgba(245,166,35,0.35)';
