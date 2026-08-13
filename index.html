@@ -1205,7 +1205,11 @@ function updateElapsed() {
   if (currentUser === 'jeyasayas') return;
   if (elapsed >= WARN_MS  && !_shiftNotif.warn) { _shiftNotif.warn = true; _shiftNotify('⏰ 15 minutes left', 'You have 15 minutes remaining on your 5-hour shift.'); }
   if (elapsed >= SHIFT_MS && !_shiftNotif.done) { _shiftNotif.done = true; _shiftNotify('✅ Shift Complete!', "You've reached 5 hours. Don't forget to clock out."); }
-  if (elapsed >= SHIFT_MS + 300000 && !_shiftNotif.over) { _shiftNotif.over = true; _shiftNotify('⚠️ Shift Exceeded', 'You\'ve gone past 5 hours. No additional pay for overtime.'); }
+  if (elapsed >= SHIFT_MS + 300000 && !_shiftNotif.over) {
+    const todayStr = new Date().toLocaleDateString('en-US');
+    const overtimeAuth = _udCache['athanviloria'] && _udCache['athanviloria'].overtimeAuthDate === todayStr;
+    if (!overtimeAuth) { _shiftNotif.over = true; _shiftNotify('⚠️ Shift Exceeded', "You've gone past 5 hours. No additional pay for overtime."); }
+  }
 }
 function _shiftNotify(title, body) {
   toast(`${title} — ${body}`);
@@ -1473,6 +1477,17 @@ function addActivity(msg) {
 
 // ─────────────────────────────────────────────
 // OVERVIEW
+function toggleOvertimeAuth() {
+  const todayStr = new Date().toLocaleDateString('en-US');
+  const cd = _udCache['athanviloria'] || {};
+  const authorized = cd.overtimeAuthDate === todayStr;
+  const newVal = authorized ? '' : todayStr;
+  db.collection('users').doc('athanviloria').update({ overtimeAuthDate: newVal }).catch(()=>{});
+  _udCache['athanviloria'] = Object.assign({}, cd, { overtimeAuthDate: newVal });
+  renderAttendance();
+  toast(newVal ? '✓ Overtime authorized for today.' : 'Overtime authorization revoked.');
+}
+
 // ─────────────────────────────────────────────
 function refreshOverview() {
   if (currentUser === BOSS_USERNAME) _renderBossOverview();
@@ -1879,6 +1894,20 @@ function renderAttendance() {
         <div class="stat-value" style="color:var(--text-primary);font-size:1.1rem">₱${(rate*5).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
         <div class="stat-sub">₱${rate}/hr × 5 hrs</div>
       </div>
+      ${(() => {
+        const todayStr = new Date().toLocaleDateString('en-US');
+        const authDate = cd && cd.overtimeAuthDate;
+        const authorized = authDate === todayStr;
+        return `<div class="stat-tile" style="border:1px solid ${authorized?'rgba(74,111,227,0.35)':'var(--border)'};background:${authorized?'rgba(74,111,227,0.06)':''}">
+          <div class="stat-label">Overtime Today</div>
+          <div style="margin-top:0.4rem;font-size:0.82rem;font-weight:700;color:${authorized?'#4A6FE3':'var(--text-muted)'}">
+            ${authorized?'✓ Authorized':'Not Authorized'}
+          </div>
+          <button onclick="toggleOvertimeAuth()" style="margin-top:0.5rem;font-size:0.7rem;padding:0.2rem 0.7rem;border-radius:99px;border:1px solid ${authorized?'#4A6FE3':'var(--border)'};background:${authorized?'rgba(74,111,227,0.12)':'transparent'};color:${authorized?'#4A6FE3':'var(--text-muted)'};cursor:pointer;font-weight:600">
+            ${authorized?'Revoke':'Authorize'}
+          </button>
+        </div>`;
+      })()}
     </div>
     <div class="card">
       <div class="card-header"><span class="card-title">🕐 Sign In / Out Log</span><span style="font-size:0.72rem;color:var(--text-muted)">${shifts.length} session${shifts.length!==1?'s':''}</span></div>
