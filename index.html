@@ -534,6 +534,7 @@ select {
         <div class="clock-time" id="clock-elapsed">—</div>
       </div>
       <button class="btn-clock" id="btn-clock" onclick="toggleClock()">Login</button>
+      <button id="btn-break" onclick="toggleBreak()" style="display:none;width:100%;margin-top:0.45rem;padding:0.45rem 0.75rem;font-size:0.75rem;font-weight:600;border-radius:var(--radius-sm);border:1px solid rgba(245,166,35,0.35);background:rgba(245,166,35,0.08);color:var(--warning);cursor:pointer;transition:all var(--transition)">☕ Meal Break</button>
       <div style="margin-top:0.65rem">
         <button class="btn-outline" style="width:100%;font-size:0.75rem;padding:0.45rem;color:#5A7A92;border-color:rgba(255,255,255,0.08)" onclick="doLogout()">Sign Out</button>
       </div>
@@ -1189,23 +1190,39 @@ function startLiveClock() {
     if (clockStart) updateElapsed();
   }, 1000);
 }
+function getWorkMs() {
+  if (!clockStart) return 0;
+  const ud = getUserData(currentUser);
+  const totalElapsed = Date.now() - clockStart.getTime();
+  const doneBreakMs  = (ud.totalBreakSecs || 0) * 1000;
+  const liveBreakMs  = (ud.onBreak && ud.breakStart) ? (Date.now() - new Date(ud.breakStart).getTime()) : 0;
+  return Math.max(0, totalElapsed - doneBreakMs - liveBreakMs);
+}
 function updateElapsed() {
   if (!clockStart) return;
-  const elapsed = Date.now() - clockStart.getTime();
-  const d = Math.floor(elapsed / 1000);
-  const h = Math.floor(d/3600), m = Math.floor((d%3600)/60), s = d%60;
+  const ud = getUserData(currentUser);
   const el = document.getElementById('clock-elapsed');
   if (!el) return;
+  if (ud.onBreak && ud.breakStart) {
+    const bd = Math.floor((Date.now() - new Date(ud.breakStart).getTime()) / 1000);
+    const bm = Math.floor(bd/60), bs = bd%60;
+    el.textContent = `☕ ${pad(bm)}:${pad(bs)}`;
+    el.style.color = 'var(--warning)';
+    return;
+  }
+  const workMs = getWorkMs();
+  const d = Math.floor(workMs / 1000);
+  const h = Math.floor(d/3600), m = Math.floor((d%3600)/60), s = d%60;
   el.textContent = `${pad(h)}:${pad(m)}:${pad(s)}`;
-  const SHIFT_MS  = MAX_SHIFT_HRS * 3600000;
-  const WARN_MS   = (MAX_SHIFT_HRS - 0.25) * 3600000;
-  if      (elapsed >= SHIFT_MS) el.style.color = 'var(--danger)';
-  else if (elapsed >= WARN_MS)  el.style.color = 'var(--warning)';
-  else                          el.style.color = '';
+  const SHIFT_MS = MAX_SHIFT_HRS * 3600000;
+  const WARN_MS  = (MAX_SHIFT_HRS - 0.25) * 3600000;
+  if      (workMs >= SHIFT_MS) el.style.color = 'var(--danger)';
+  else if (workMs >= WARN_MS)  el.style.color = 'var(--warning)';
+  else                         el.style.color = '';
   if (currentUser === 'jeyasayas') return;
-  if (elapsed >= WARN_MS  && !_shiftNotif.warn) { _shiftNotif.warn = true; _shiftNotify('⏰ 15 minutes left', 'You have 15 minutes remaining on your 5-hour shift.'); }
-  if (elapsed >= SHIFT_MS && !_shiftNotif.done) { _shiftNotif.done = true; _shiftNotify('✅ Shift Complete!', "You've reached 5 hours. Don't forget to clock out."); }
-  if (elapsed >= SHIFT_MS + 300000 && !_shiftNotif.over) {
+  if (workMs >= WARN_MS  && !_shiftNotif.warn) { _shiftNotif.warn = true; _shiftNotify('⏰ 15 minutes left', 'You have 15 minutes remaining on your 5-hour shift.'); }
+  if (workMs >= SHIFT_MS && !_shiftNotif.done) { _shiftNotif.done = true; _shiftNotify('✅ Shift Complete!', "You've reached 5 hours. Don't forget to clock out."); }
+  if (workMs >= SHIFT_MS + 300000 && !_shiftNotif.over) {
     const todayStr = new Date().toLocaleDateString('en-US');
     const overtimeAuth = _udCache['athanviloria'] && _udCache['athanviloria'].overtimeAuthDate === todayStr;
     if (!overtimeAuth) { _shiftNotif.over = true; _shiftNotify('⚠️ Shift Exceeded', "You've gone past 5 hours. No additional pay for overtime."); }
@@ -1434,6 +1451,7 @@ function toggleClock() {
     _shiftNotif={ warn:false, done:false, over:false };
     userData.clockedIn=true; userData.clockIn=now.toISOString();
     userData.clockDevice=getDeviceInfo();
+    userData.onBreak=false; userData.breakStart=null; userData.totalBreakSecs=0;
     clockStart=now; setUserData(currentUser,userData);
     addActivity(`Clocked in at ${now.toLocaleTimeString()}`);
     toast('✓ Clocked in! Have a great shift.');
@@ -1441,15 +1459,22 @@ function toggleClock() {
   } else {
     const now=new Date();
     const inT=new Date(userData.clockIn);
-    const hrs=(now-inT)/3600000;
+    if (userData.onBreak && userData.breakStart) {
+      userData.totalBreakSecs=(userData.totalBreakSecs||0)+(now-new Date(userData.breakStart))/1000;
+      userData.onBreak=false; userData.breakStart=null;
+    }
+    const totalMs=now-inT;
+    const workedMs=Math.max(0,totalMs-(userData.totalBreakSecs||0)*1000);
+    const hrs=workedMs/3600000;
     const rate=userData.hourlyRate||0;
     const earned=Math.min(hrs,MAX_SHIFT_HRS)*rate;
+    const breakMins=Math.round((userData.totalBreakSecs||0)/60);
     if (!userData.shifts) userData.shifts=[];
-    userData.shifts.unshift({ date:inT.toLocaleDateString('en-US'), inTime:inT.toLocaleTimeString(), outTime:now.toLocaleTimeString(), hours:hrs, earned, inISO:inT.toISOString(), outISO:now.toISOString(), device:userData.clockDevice||null });
-    userData.clockedIn=false; userData.clockIn=null; clockStart=null;
+    userData.shifts.unshift({ date:inT.toLocaleDateString('en-US'), inTime:inT.toLocaleTimeString(), outTime:now.toLocaleTimeString(), hours:hrs, earned, breakMins, inISO:inT.toISOString(), outISO:now.toISOString(), device:userData.clockDevice||null });
+    userData.clockedIn=false; userData.clockIn=null; clockStart=null; userData.totalBreakSecs=0;
     setUserData(currentUser,userData);
-    addActivity(`Clocked out at ${now.toLocaleTimeString()} — ${hrs.toFixed(2)} hrs`);
-    toast(`✓ Clocked out. ${hrs.toFixed(2)} hrs logged.`);
+    addActivity(`Clocked out at ${now.toLocaleTimeString()} — ${hrs.toFixed(2)} hrs worked${breakMins>0?` (${breakMins} min break)`:''}`);
+    toast(`✓ Clocked out. ${hrs.toFixed(2)} hrs worked.`);
   }
   refreshClockUI(); refreshAll();
 }
@@ -1457,15 +1482,44 @@ function toggleClock() {
 function refreshClockUI() {
   userData=getUserData(currentUser);
   const on=userData.clockedIn;
+  const onBreak=userData.onBreak;
   const dot=document.getElementById('clock-dot');
   const lbl=document.getElementById('clock-status-label');
   const btn=document.getElementById('btn-clock');
+  const breakBtn=document.getElementById('btn-break');
   const el=document.getElementById('clock-elapsed');
-  if (dot) dot.classList.toggle('active',on);
-  if (lbl) lbl.textContent=on?'On Shift':'Off Shift';
-  if (btn) { btn.textContent=on?'Logout':'Login'; btn.className='btn-clock'+(on?' clocked-in':''); }
-  if (!on&&el) el.textContent='—';
+  if (dot) { dot.classList.toggle('active',on); dot.style.background=onBreak?'var(--warning)':''; }
+  if (lbl) lbl.textContent=onBreak?'On Break':on?'On Shift':'Off Shift';
+  if (btn) { btn.textContent=on?'Clock Out':'Clock In'; btn.className='btn-clock'+(on?' clocked-in':''); }
+  if (breakBtn) {
+    breakBtn.style.display=(on&&currentUser!=='jeyasayas')?'block':'none';
+    breakBtn.textContent=onBreak?'☕ End Break':'☕ Meal Break';
+    breakBtn.style.background=onBreak?'rgba(245,166,35,0.18)':'rgba(245,166,35,0.08)';
+    breakBtn.style.borderColor=onBreak?'rgba(245,166,35,0.6)':'rgba(245,166,35,0.35)';
+  }
+  if (!on&&el) { el.textContent='—'; el.style.color=''; }
   if (on&&userData.clockIn) clockStart=new Date(userData.clockIn);
+}
+function toggleBreak() {
+  userData=getUserData(currentUser);
+  if (!userData.clockedIn) return;
+  const now=new Date();
+  if (!userData.onBreak) {
+    userData.onBreak=true; userData.breakStart=now.toISOString();
+    setUserData(currentUser,userData);
+    addActivity('Started meal break');
+    toast('☕ Meal break started.');
+  } else {
+    const bs=new Date(userData.breakStart);
+    const breakSecs=(now-bs)/1000;
+    userData.totalBreakSecs=(userData.totalBreakSecs||0)+breakSecs;
+    userData.onBreak=false; userData.breakStart=null;
+    setUserData(currentUser,userData);
+    const mins=Math.round(breakSecs/60);
+    addActivity(`Ended meal break — ${mins} min`);
+    toast(`✓ Break ended. ${mins} min taken.`);
+  }
+  refreshClockUI();
 }
 
 function addActivity(msg) {
@@ -1943,7 +1997,8 @@ function renderAttendance() {
                           ? `<span style="font-size:0.72rem;font-weight:700;color:#4A6FE3;background:rgba(74,111,227,0.1);border:1px solid rgba(74,111,227,0.25);padding:0.15rem 0.6rem;border-radius:99px;">✓ Ace</span>${s.note ? `<div style="font-size:0.68rem;color:var(--text-muted);margin-top:0.25rem">${esc(s.note)}</div>` : ''}`
                           : s.device
                             ? `<div style="font-size:0.78rem;font-weight:600;color:var(--text-primary)">${esc(s.device.browser)} · ${esc(s.device.os)}</div>
-                               <div style="font-size:0.7rem;color:var(--text-muted)">${esc(s.device.device)}</div>`
+                               <div style="font-size:0.7rem;color:var(--text-muted)">${esc(s.device.device)}</div>
+                               ${s.breakMins ? `<div style="font-size:0.68rem;color:var(--warning);margin-top:0.15rem">☕ ${s.breakMins} min break</div>` : ''}`
                             : `<span style="color:var(--text-muted);font-size:0.75rem">—</span>`}
                       </td>
                     </tr>`).join('')}
