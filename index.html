@@ -771,6 +771,17 @@ select {
               <button class="btn btn-primary" onclick="changePassword()">Update Password</button>
             </div>
           </div>
+          <div class="card" id="ace-api-card" style="display:none">
+            <div class="card-header"><span class="card-title">✦ Ace API Setup</span></div>
+            <div class="card-body">
+              <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:1rem">Paste your Claude API key below to enable the <strong>Ask Jey</strong> chat feature for Cyrel. The key is stored securely in your database.</p>
+              <div class="form-field">
+                <label>Claude API Key</label>
+                <input type="password" id="claude-api-key-input" placeholder="sk-ant-api03-…" style="font-family:monospace;font-size:0.78rem">
+              </div>
+              <button class="btn btn-primary" onclick="saveClaudeApiKey()">Save API Key</button>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -1105,6 +1116,38 @@ let userData    = null;
 let clockStart  = null;
 let _shiftNotif = { warn: false, done: false, over: false };
 const MAX_SHIFT_HRS = 5;
+const ACE_SYSTEM_PROMPT = `You are Ace, the AI Work Assistant for Jey Asayas at Hedgi AI, LLC. You are answering questions from Cyrel Athan A. Viloria, a Bookkeeping Associate on trial basis working remotely under Jey.
+
+ABOUT JEY ASAYAS (your principal):
+- Manager/owner at Hedgi AI, LLC
+- Oversees Cyrel's bookkeeping work remotely
+- Email: project.jeyyy@gmail.com
+- Professional, expects quality, punctuality, and clear communication
+
+WORKPLACE RULES:
+- Working hours: 5 hours per day, Monday to Friday only (no weekend work)
+- Hourly rate: ₱110/hr · Daily rate: ₱550/day (capped at 5 hrs — no overtime pay unless Jey explicitly authorizes it)
+- Clock in via the portal when starting, clock out when done
+- 1-hour meal break is available — use the "Meal Break" button; break time is not counted in hours or pay
+- Daily reports must be submitted to project.jeyyy@gmail.com before 11:00 PM PH Time every working day
+- Required email subject: "Daily Report — Cyrel Athan Viloria — [Date]"
+- All communication with Jey is through email only at project.jeyyy@gmail.com — no Teams, no other platforms
+
+CYREL'S RESPONSIBILITIES:
+- Bookkeeping Associate (trial basis, started August 12, 2026 — first day credited by Jey)
+- Managing assigned client accounts in the portal
+- Updating task statuses for each client (Not Yet Started → In Process → Completed)
+- Submitting accurate daily reports with the accounts worked and time records
+- Flagging any issues or pending items in the daily report
+
+PORTAL USAGE:
+- Clock In / Clock Out buttons are in the left sidebar
+- Meal Break button appears in sidebar when clocked in
+- Clients page shows your assigned accounts — update task progress there
+- Issues & Questions tab for formal concerns
+
+Respond warmly but professionally as Ace. Be concise — Cyrel reads this in a small card. If something requires Jey's direct decision or approval, say "I'll note this for Jey" and advise emailing project.jeyyy@gmail.com. Never share information outside what's described above.`;
+
 let accountTab  = 'mine'; // 'mine' | 'all'
 let _presenceInterval = null;
 let _lastActivity     = Date.now();
@@ -1397,6 +1440,8 @@ function populateSidebar() {
   document.getElementById('profile-role').textContent=role;
   document.getElementById('profile-name-input').value=name;
   document.getElementById('profile-username-input').value=currentUser;
+  const apiCard = document.getElementById('ace-api-card');
+  if (apiCard) apiCard.style.display = currentUser === BOSS_USERNAME ? 'block' : 'none';
 }
 
 function greetUser() {
@@ -1669,6 +1714,83 @@ function _renderBossOverview() {
   `;
 }
 
+// ─────────────────────────────────────────────
+// ASK ACE
+// ─────────────────────────────────────────────
+async function getClaudeApiKey() {
+  const snap = await db.collection('app').doc('settings').get();
+  return snap.exists ? (snap.data().claudeApiKey || '') : '';
+}
+async function _callClaudeApi(messages) {
+  const key = await getClaudeApiKey();
+  if (!key) throw new Error('no-key');
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type':'application/json', 'x-api-key':key, 'anthropic-version':'2023-06-01', 'anthropic-dangerous-allow-browser':'true' },
+    body: JSON.stringify({ model:'claude-haiku-4-5-20251001', max_tokens:512, system:ACE_SYSTEM_PROMPT, messages })
+  });
+  if (!res.ok) { const t=await res.text(); throw new Error(t); }
+  const d = await res.json();
+  return d.content[0].text;
+}
+function renderAceChat(loading) {
+  const el = document.getElementById('ace-chat-messages');
+  if (!el) return;
+  const ud = getUserData(currentUser);
+  const msgs = (ud.aceChat || []).slice(-30);
+  if (msgs.length === 0) {
+    el.innerHTML = `<div style="text-align:center;color:var(--text-muted);font-size:0.8rem;padding:1.5rem 0.5rem">Hi Cyrel! I'm Ace, Jey's AI Work Assistant.<br>Ask me anything about your work, schedule, or pay.</div>`;
+  } else {
+    el.innerHTML = msgs.map(m => {
+      const u = m.role==='user';
+      return `<div style="display:flex;justify-content:${u?'flex-end':'flex-start'};margin-bottom:0.55rem">
+        <div style="max-width:82%;padding:0.45rem 0.7rem;border-radius:${u?'12px 12px 2px 12px':'12px 12px 12px 2px'};background:${u?'var(--teal)':'var(--card-bg,var(--surface))'};color:${u?'white':'var(--text-primary)'};font-size:0.79rem;line-height:1.45;border:${u?'none':'1px solid var(--border)'};word-break:break-word">
+          ${u?'':' <div style="font-size:0.62rem;font-weight:700;color:var(--teal);margin-bottom:0.15rem">✦ Ace</div>'}
+          ${esc(m.msg).replace(/\n/g,'<br>')}
+        </div>
+      </div>`;
+    }).join('');
+  }
+  if (loading) el.innerHTML += `<div style="display:flex;justify-content:flex-start;margin-bottom:0.55rem"><div style="padding:0.45rem 0.7rem;border-radius:12px 12px 12px 2px;background:var(--card-bg,var(--surface));border:1px solid var(--border);font-size:0.79rem;color:var(--text-muted)"><div style="font-size:0.62rem;font-weight:700;color:var(--teal);margin-bottom:0.15rem">✦ Ace</div>Typing…</div></div>`;
+  el.scrollTop = el.scrollHeight;
+}
+async function sendAceMessage() {
+  const input = document.getElementById('ace-chat-input');
+  if (!input) return;
+  const q = input.value.trim();
+  if (!q) return;
+  input.value = '';
+  userData = getUserData(currentUser);
+  if (!userData.aceChat) userData.aceChat = [];
+  userData.aceChat.push({ role:'user', msg:q, time:new Date().toISOString() });
+  setUserData(currentUser, userData);
+  renderAceChat(true);
+  const apiMessages = userData.aceChat.slice(-12).map(m => ({ role:m.role, content:m.msg }));
+  try {
+    const reply = await _callClaudeApi(apiMessages);
+    userData = getUserData(currentUser);
+    userData.aceChat.push({ role:'assistant', msg:reply, time:new Date().toISOString() });
+    if (userData.aceChat.length > 40) userData.aceChat = userData.aceChat.slice(-40);
+    setUserData(currentUser, userData);
+  } catch(e) {
+    userData = getUserData(currentUser);
+    const errMsg = e.message==='no-key'
+      ? "I'm not fully set up yet — Jey needs to add the API key in his Profile settings."
+      : "Sorry, I couldn't reach the AI right now. Please try again in a moment.";
+    userData.aceChat.push({ role:'assistant', msg:errMsg, time:new Date().toISOString() });
+    setUserData(currentUser, userData);
+  }
+  renderAceChat();
+}
+async function saveClaudeApiKey() {
+  const input = document.getElementById('claude-api-key-input');
+  if (!input) return;
+  const key = input.value.trim();
+  await db.collection('app').doc('settings').set({ claudeApiKey: key }, { merge: true });
+  input.value = '';
+  toast(key ? '✓ API key saved — Ask Ace is ready.' : '✓ API key removed.');
+}
+
 function _renderStaffOverview() {
   userData = getUserData(currentUser);
   const shifts = (userData.shifts||[]).filter(s => new Date(s.inISO||s.date) >= WORK_START);
@@ -1787,7 +1909,21 @@ function _renderStaffOverview() {
         </div>
       </div>
     </div>
+    <div class="card" style="margin-top:1.2rem">
+      <div class="card-header">
+        <span class="card-title">✦ Ask Jey</span>
+        <span style="font-size:0.72rem;color:var(--teal);font-weight:600">Powered by Ace</span>
+      </div>
+      <div id="ace-chat-messages" style="height:200px;overflow-y:auto;padding:0.75rem 1rem;border-bottom:1px solid var(--border)"></div>
+      <div style="padding:0.6rem 1rem;display:flex;gap:0.5rem;align-items:center">
+        <input id="ace-chat-input" type="text" placeholder="Ask about your schedule, pay, tasks…"
+          style="flex:1;font-size:0.8rem;padding:0.45rem 0.7rem;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface);color:var(--text-primary);outline:none"
+          onkeydown="if(event.key==='Enter')sendAceMessage()">
+        <button onclick="sendAceMessage()" style="padding:0.45rem 0.9rem;font-size:0.8rem;font-weight:600;border-radius:var(--radius-sm);background:var(--teal);color:white;border:none;cursor:pointer;flex-shrink:0">Send</button>
+      </div>
+    </div>
   `;
+  setTimeout(renderAceChat, 0);
 }
 
 // ─────────────────────────────────────────────
