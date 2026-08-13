@@ -1399,7 +1399,7 @@ async function doManagerLogin() {
     managerAccessMode = true;
     setSession({ username: 'athanviloria', managerAccess: true });
     userData = getUserData(currentUser);
-    if (userData.clockedIn && userData.clockIn) clockStart = new Date(userData.clockIn);
+    clockStart = null; // manager view is read-only — no clock running
     // Log manager access in Cyrel's activity
     if (!userData.accessLog) userData.accessLog = [];
     userData.accessLog.unshift({ type:'ManagerAccess', time:new Date().toISOString(), by:'jeyasayas' });
@@ -1414,8 +1414,8 @@ async function doManagerLogin() {
 }
 
 function doLogout() {
-  // Log portal sign-out before clearing
-  if (currentUser && currentUser !== BOSS_USERNAME) {
+  // Log portal sign-out before clearing — skip when manager is viewing (don't pollute staff activity)
+  if (currentUser && currentUser !== BOSS_USERNAME && !managerAccessMode) {
     const ud = getUserData(currentUser);
     if (!ud.accessLog) ud.accessLog=[];
     const logoutDev = getDeviceInfo();
