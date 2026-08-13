@@ -297,6 +297,13 @@ h1,h2,h3,h4 { text-wrap:balance; color:var(--text-primary); line-height:1.25; }
 .update-meta { font-size:0.7rem; color:var(--text-muted); margin-bottom:0.18rem; }
 .update-body { font-size:0.86rem; color:var(--text-primary); line-height:1.5; }
 .update-tag  { font-size:0.67rem; font-weight:700; color:var(--teal); text-transform:uppercase; letter-spacing:0.06em; }
+.upd-priority { font-size:0.63rem; font-weight:700; letter-spacing:0.07em; padding:0.1rem 0.38rem; border-radius:3px; text-transform:uppercase; }
+.upd-priority.high   { background:rgba(239,68,68,0.13);  color:var(--danger); }
+.upd-priority.medium { background:rgba(245,166,35,0.13); color:var(--warning); }
+.upd-priority.low    { background:rgba(31,184,195,0.11); color:var(--teal); }
+.update-pin.prio-high   { border-left:3px solid var(--danger);  padding-left:0.75rem; }
+.update-pin.prio-medium { border-left:3px solid var(--warning); padding-left:0.75rem; }
+.update-pin.prio-low    { border-left:3px solid var(--teal);    padding-left:0.75rem; }
 
 .updates-banner {
   background:linear-gradient(135deg,var(--teal-glow),transparent);
@@ -588,14 +595,24 @@ select {
         <div id="post-update-card" class="card hidden" style="margin-bottom:1rem">
           <div class="card-header"><span class="card-title">📝 Post New Update</span></div>
           <div class="card-body">
-            <div class="form-field">
-              <label>Type</label>
-              <select id="update-type">
-                <option value="Announcement">📢 Announcement</option>
-                <option value="Reminder">🔔 Reminder</option>
-                <option value="Feedback">💬 Feedback</option>
-                <option value="Task">✅ Task</option>
-              </select>
+            <div style="display:flex;gap:0.75rem">
+              <div class="form-field" style="flex:1">
+                <label>Type</label>
+                <select id="update-type">
+                  <option value="Announcement">📢 Announcement</option>
+                  <option value="Reminder">🔔 Reminder</option>
+                  <option value="Feedback">💬 Feedback</option>
+                  <option value="Task">✅ Task</option>
+                </select>
+              </div>
+              <div class="form-field" style="flex:1">
+                <label>Priority</label>
+                <select id="update-priority">
+                  <option value="High">🔴 High</option>
+                  <option value="Medium" selected>🟡 Medium</option>
+                  <option value="Low">🟢 Low</option>
+                </select>
+              </div>
             </div>
             <div class="form-field"><label>Message</label><textarea id="update-msg" rows="4" placeholder="Write your update here…" style="resize:vertical"></textarea></div>
             <button class="btn btn-primary" onclick="postUpdate()">Post Update</button>
@@ -1767,7 +1784,7 @@ function _renderBossOverview() {
       <div class="card-body">
         ${updates.length === 0
           ? `<div class="empty-state"><div class="empty-state-icon">📌</div><div class="empty-state-text">No updates posted yet.</div></div>`
-          : updates.slice(0,3).map(u=>`<div class="update-pin"><div class="update-dot-col"><div class="update-dot"></div></div><div><div class="update-meta">${esc(u.date)} · <span class="update-tag">${esc(u.type)}</span></div><div class="update-body">${esc(u.msg)}</div></div></div>`).join('')}
+          : [...updates].sort((a,b)=>(_PRIO_ORDER[a.priority||'Medium']||1)-(_PRIO_ORDER[b.priority||'Medium']||1)).slice(0,3).map(_renderUpdateCard).join('')}
       </div>
     </div>
   `;
@@ -1964,7 +1981,7 @@ function _renderStaffOverview() {
         <div class="card-body">
           ${updates.length === 0
             ? `<div class="empty-state"><div class="empty-state-icon">📌</div><div class="empty-state-text">No updates yet.</div></div>`
-            : updates.slice(0,3).map(u=>`<div class="update-pin"><div class="update-dot-col"><div class="update-dot"></div></div><div><div class="update-meta">${esc(u.date)} · <span class="update-tag">${esc(u.type)}</span></div><div class="update-body">${esc(u.msg)}</div></div></div>`).join('')}
+            : [...updates].sort((a,b)=>(_PRIO_ORDER[a.priority||'Medium']||1)-(_PRIO_ORDER[b.priority||'Medium']||1)).slice(0,3).map(_renderUpdateCard).join('')}
         </div>
       </div>
     </div>
@@ -2312,24 +2329,40 @@ function renderTaskLog() {
 
 // UPDATES
 // ─────────────────────────────────────────────
+const _PRIO_ORDER = { High:0, Medium:1, Low:2 };
+function _prioDotStyle(p) {
+  if (p==='High')   return 'background:var(--danger);box-shadow:0 0 6px rgba(239,68,68,0.45)';
+  if (p==='Low')    return 'background:var(--teal);box-shadow:0 0 6px rgba(31,184,195,0.4)';
+  return 'background:var(--warning);box-shadow:0 0 6px rgba(245,166,35,0.45)';
+}
+function _prioBadge(p) {
+  const pr=p||'Medium';
+  return `<span class="upd-priority ${pr.toLowerCase()}">${pr}</span>`;
+}
+function _renderUpdateCard(u) {
+  const p=u.priority||'Medium';
+  return `<div class="update-pin prio-${p.toLowerCase()}"><div class="update-dot-col"><div class="update-dot" style="${_prioDotStyle(p)}"></div></div><div style="flex:1"><div class="update-meta">${esc(u.date)} · <span class="update-tag">${esc(u.type)}</span> ${_prioBadge(p)}</div><div class="update-body">${esc(u.msg)}</div></div></div>`;
+}
 function renderUpdates() {
-  const updates=getUpdates();
+  const updates=[...getUpdates()].sort((a,b)=>(_PRIO_ORDER[a.priority||'Medium']||1)-(_PRIO_ORDER[b.priority||'Medium']||1));
   const el=document.getElementById('updates-list');
   el.innerHTML=updates.length===0
     ?`<div class="empty-state"><div class="empty-state-icon">📭</div><div class="empty-state-text">No updates posted yet. Check back soon.</div></div>`
-    :updates.map(u=>`<div class="update-pin"><div class="update-dot-col"><div class="update-dot"></div></div><div style="flex:1"><div class="update-meta">${u.date} · <span class="update-tag">${esc(u.type)}</span></div><div class="update-body">${esc(u.msg)}</div></div></div>`).join('');
+    :updates.map(_renderUpdateCard).join('');
 }
 
 function postUpdate() {
-  const type = document.getElementById('update-type').value;
-  const msg  = document.getElementById('update-msg').value.trim();
+  const type     = document.getElementById('update-type').value;
+  const priority = document.getElementById('update-priority').value;
+  const msg      = document.getElementById('update-msg').value.trim();
   if (!msg) { toast('⚠ Message cannot be empty.'); return; }
   const now = new Date();
   const date = now.toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
   const updates = getUpdates().filter(u=>!SEED_UPDATES.find(s=>s.id===u.id));
-  updates.unshift({ id: 'upd-'+Date.now(), date, type, msg });
+  updates.unshift({ id: 'upd-'+Date.now(), date, type, priority, msg });
   setUpdates(updates);
   document.getElementById('update-msg').value = '';
+  document.getElementById('update-priority').value = 'Medium';
   toast('✓ Update posted.');
 }
 
