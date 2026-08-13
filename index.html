@@ -1637,7 +1637,8 @@ function _renderStaffOverview() {
   }).length;
   const todayHrs = shifts.filter(s => s.date === todayKey).reduce((a,s) => a+(s.hours||0), 0);
   const monthHrs = shifts.filter(s => { const d = new Date(s.inISO||s.date); return `${d.getMonth()}-${d.getFullYear()}` === monthKey; }).reduce((a,s) => a+(s.hours||0), 0);
-  const monthEarn = '₱'+(monthHrs*rate).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const monthEarnVal = shifts.filter(s => { const d = new Date(s.inISO||s.date); return `${d.getMonth()}-${d.getFullYear()}` === monthKey; }).reduce((a,s) => a+(s.earned!==undefined?s.earned:Math.min(s.hours||0,MAX_SHIFT_HRS)*rate), 0);
+  const monthEarn = '₱'+monthEarnVal.toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
 
   // Manager availability
   const bd = _udCache[BOSS_USERNAME];
@@ -1747,10 +1748,11 @@ function renderStaff() {
   const rate = cd.hourlyRate || 175;
   const shifts = (cd.shifts||[]).filter(s=>new Date(s.inISO||s.date)>=WORK_START);
   const totalHrs = shifts.reduce((a,s)=>a+(s.hours||0),0);
+  const totalEarned = shifts.reduce((a,s)=>a+(s.earned!==undefined?s.earned:Math.min(s.hours||0,MAX_SHIFT_HRS)*rate),0);
   const now = new Date();
   const todayKey = now.toLocaleDateString('en-US');
   const todayHrs = shifts.filter(s=>s.date===todayKey).reduce((a,s)=>a+(s.hours||0),0);
-  const fmt = h=>'₱'+(h*rate).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const fmtP = v=>'₱'+v.toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
   const clockStatus = cd.clockedIn
     ? `<span style="color:var(--success);font-weight:700">● Clocked In</span> since ${new Date(cd.clockIn).toLocaleTimeString()}`
     : `<span style="color:var(--text-muted)">○ Off Shift</span>`;
@@ -1776,7 +1778,7 @@ function renderStaff() {
       <div class="stat-tile stat-teal"><div class="stat-label">Clock Status</div><div style="font-size:0.82rem;margin-top:0.4rem">${clockStatus}</div></div>
       <div class="stat-tile stat-green"><div class="stat-label">Clients Done</div><div class="stat-value v-green">${completedClients}</div><div class="stat-sub">of ${owned.length} owned</div></div>
       <div class="stat-tile stat-orange"><div class="stat-label">In Progress</div><div class="stat-value">${inProcessClients}</div><div class="stat-sub">clients</div></div>
-      <div class="stat-tile stat-gold"><div class="stat-label">Hours Logged</div><div class="stat-value v-teal">${totalHrs.toFixed(1)}</div><div class="stat-sub">${fmt(totalHrs)} earned</div></div>
+      <div class="stat-tile stat-gold"><div class="stat-label">Hours Logged</div><div class="stat-value v-teal">${totalHrs.toFixed(1)}</div><div class="stat-sub">${fmtP(totalEarned)} earned</div></div>
     </div>
 
     <div class="grid-2" style="align-items:start">
