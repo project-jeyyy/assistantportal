@@ -1102,6 +1102,8 @@ function saveClientData(username, clientName, data) {
 let currentUser = null;
 let userData    = null;
 let clockStart  = null;
+let _shiftNotif = { warn: false, done: false, over: false };
+const MAX_SHIFT_HRS = 5;
 let accountTab  = 'mine'; // 'mine' | 'all'
 let _presenceInterval = null;
 let _lastActivity     = Date.now();
@@ -1189,10 +1191,27 @@ function startLiveClock() {
 }
 function updateElapsed() {
   if (!clockStart) return;
-  const d = Math.floor((Date.now() - clockStart.getTime()) / 1000);
+  const elapsed = Date.now() - clockStart.getTime();
+  const d = Math.floor(elapsed / 1000);
   const h = Math.floor(d/3600), m = Math.floor((d%3600)/60), s = d%60;
   const el = document.getElementById('clock-elapsed');
-  if (el) el.textContent = `${pad(h)}:${pad(m)}:${pad(s)}`;
+  if (!el) return;
+  el.textContent = `${pad(h)}:${pad(m)}:${pad(s)}`;
+  const SHIFT_MS  = MAX_SHIFT_HRS * 3600000;
+  const WARN_MS   = (MAX_SHIFT_HRS - 0.25) * 3600000;
+  if      (elapsed >= SHIFT_MS) el.style.color = 'var(--danger)';
+  else if (elapsed >= WARN_MS)  el.style.color = 'var(--warning)';
+  else                          el.style.color = '';
+  if (currentUser === 'jeyasayas') return;
+  if (elapsed >= WARN_MS  && !_shiftNotif.warn) { _shiftNotif.warn = true; _shiftNotify('⏰ 15 minutes left', 'You have 15 minutes remaining on your 5-hour shift.'); }
+  if (elapsed >= SHIFT_MS && !_shiftNotif.done) { _shiftNotif.done = true; _shiftNotify('✅ Shift Complete!', "You've reached 5 hours. Don't forget to clock out."); }
+  if (elapsed >= SHIFT_MS + 300000 && !_shiftNotif.over) { _shiftNotif.over = true; _shiftNotify('⚠️ Shift Exceeded', 'You\'ve gone past 5 hours. No additional pay for overtime.'); }
+}
+function _shiftNotify(title, body) {
+  toast(`${title} — ${body}`);
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification(title, { body });
+  }
 }
 function pad(n){ return String(n).padStart(2,'0'); }
 
@@ -1406,18 +1425,23 @@ function toggleClock() {
   userData=getUserData(currentUser);
   if (!userData.clockedIn) {
     const now=new Date();
+    const day=now.getDay();
+    if (day===0||day===6) { toast('⚠️ No clock-in on weekends — you can only work Monday to Friday.'); return; }
+    _shiftNotif={ warn:false, done:false, over:false };
     userData.clockedIn=true; userData.clockIn=now.toISOString();
     userData.clockDevice=getDeviceInfo();
     clockStart=now; setUserData(currentUser,userData);
     addActivity(`Clocked in at ${now.toLocaleTimeString()}`);
     toast('✓ Clocked in! Have a great shift.');
+    if ('Notification' in window && Notification.permission==='default') Notification.requestPermission();
   } else {
     const now=new Date();
     const inT=new Date(userData.clockIn);
     const hrs=(now-inT)/3600000;
     const rate=userData.hourlyRate||0;
+    const earned=Math.min(hrs,MAX_SHIFT_HRS)*rate;
     if (!userData.shifts) userData.shifts=[];
-    userData.shifts.unshift({ date:inT.toLocaleDateString('en-US'), inTime:inT.toLocaleTimeString(), outTime:now.toLocaleTimeString(), hours:hrs, earned:hrs*rate, inISO:inT.toISOString(), outISO:now.toISOString(), device:userData.clockDevice||null });
+    userData.shifts.unshift({ date:inT.toLocaleDateString('en-US'), inTime:inT.toLocaleTimeString(), outTime:now.toLocaleTimeString(), hours:hrs, earned, inISO:inT.toISOString(), outISO:now.toISOString(), device:userData.clockDevice||null });
     userData.clockedIn=false; userData.clockIn=null; clockStart=null;
     setUserData(currentUser,userData);
     addActivity(`Clocked out at ${now.toLocaleTimeString()} — ${hrs.toFixed(2)} hrs`);
@@ -1801,7 +1825,7 @@ function renderAttendance() {
   const rate = cd ? (cd.hourlyRate || 110) : 110;
   const shifts = cd ? (cd.shifts || []).filter(s => new Date(s.inISO || s.date) >= WORK_START) : [];
   const totalHrs = shifts.reduce((a, s) => a + (s.hours || 0), 0);
-  const totalEarned = totalHrs * rate;
+  const totalEarned = shifts.reduce((a, s) => a + (s.earned !== undefined ? s.earned : Math.min(s.hours||0, MAX_SHIFT_HRS)*rate), 0);
 
   const clockStatus = cd && cd.clockedIn
     ? `<span style="color:var(--success);font-weight:700">● Clocked In</span> since ${new Date(cd.clockIn).toLocaleTimeString()}`
@@ -1882,7 +1906,7 @@ function renderAttendance() {
                       <td style="padding:0.6rem 1.2rem;color:var(--success);font-weight:600;font-variant-numeric:tabular-nums">${esc(s.inTime)}</td>
                       <td style="padding:0.6rem 1.2rem;color:var(--danger);font-weight:600;font-variant-numeric:tabular-nums">${esc(s.outTime)}</td>
                       <td style="padding:0.6rem 1.2rem;font-weight:700;font-variant-numeric:tabular-nums">${(s.hours||0).toFixed(2)}</td>
-                      <td style="padding:0.6rem 1.2rem;color:var(--success);font-weight:700;font-variant-numeric:tabular-nums">₱${((s.hours||0)*rate).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+                      <td style="padding:0.6rem 1.2rem;color:var(--success);font-weight:700;font-variant-numeric:tabular-nums">₱${(s.earned!==undefined?s.earned:Math.min(s.hours||0,MAX_SHIFT_HRS)*rate).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
                       <td style="padding:0.6rem 1.2rem">
                         ${s.markedBy === 'Ace'
                           ? `<span style="font-size:0.72rem;font-weight:700;color:#4A6FE3;background:rgba(74,111,227,0.1);border:1px solid rgba(74,111,227,0.25);padding:0.15rem 0.6rem;border-radius:99px;">✓ Ace</span>${s.note ? `<div style="font-size:0.68rem;color:var(--text-muted);margin-top:0.25rem">${esc(s.note)}</div>` : ''}`
@@ -2358,17 +2382,17 @@ function renderEarnings() {
   const todayKey=now.toLocaleDateString('en-US');
   const weekStart=new Date(now); weekStart.setDate(now.getDate()-now.getDay()); weekStart.setHours(0,0,0,0);
   const monthKey=`${now.getMonth()}-${now.getFullYear()}`;
-  const sum=arr=>arr.reduce((a,s)=>a+(s.hours||0),0);
-  const fmt=(h,r)=>'₱'+(h*r).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const sumH=arr=>arr.reduce((a,s)=>a+(s.hours||0),0);
+  const sumE=arr=>arr.reduce((a,s)=>a+(s.earned!==undefined?s.earned:Math.min(s.hours||0,MAX_SHIFT_HRS)*rate),0);
+  const fmt=v=>'₱'+v.toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
   const fmtH=h=>h.toFixed(2)+' hrs';
-  const todayH=sum(shifts.filter(s=>s.date===todayKey));
-  const weekH =sum(shifts.filter(s=>new Date(s.inISO||s.date)>=weekStart));
-  const monthH=sum(shifts.filter(s=>{ const d=new Date(s.inISO||s.date); return `${d.getMonth()}-${d.getFullYear()}`===monthKey; }));
-  const totalH=sum(shifts);
-  document.getElementById('earn-today').textContent=fmt(todayH,rate); document.getElementById('earn-today-hours').textContent=fmtH(todayH);
-  document.getElementById('earn-week').textContent =fmt(weekH,rate);  document.getElementById('earn-week-hours').textContent =fmtH(weekH);
-  document.getElementById('earn-month').textContent=fmt(monthH,rate); document.getElementById('earn-month-hours').textContent=fmtH(monthH);
-  document.getElementById('earn-total').textContent=fmt(totalH,rate); document.getElementById('earn-total-hours').textContent=fmtH(totalH);
+  const todayS=shifts.filter(s=>s.date===todayKey);
+  const weekS =shifts.filter(s=>new Date(s.inISO||s.date)>=weekStart);
+  const monthS=shifts.filter(s=>{ const d=new Date(s.inISO||s.date); return `${d.getMonth()}-${d.getFullYear()}`===monthKey; });
+  document.getElementById('earn-today').textContent=fmt(sumE(todayS)); document.getElementById('earn-today-hours').textContent=fmtH(sumH(todayS));
+  document.getElementById('earn-week').textContent =fmt(sumE(weekS));  document.getElementById('earn-week-hours').textContent =fmtH(sumH(weekS));
+  document.getElementById('earn-month').textContent=fmt(sumE(monthS)); document.getElementById('earn-month-hours').textContent=fmtH(sumH(monthS));
+  document.getElementById('earn-total').textContent=fmt(sumE(shifts));  document.getElementById('earn-total-hours').textContent=fmtH(sumH(shifts));
 }
 
 // ─────────────────────────────────────────────
@@ -2381,7 +2405,7 @@ function renderShifts() {
   const el=document.getElementById('shift-log-body');
   if (shifts.length===0) { el.innerHTML=`<div class="empty-state"><div class="empty-state-icon">🕐</div><div class="empty-state-text">No shifts logged yet.</div></div>`; return; }
   el.innerHTML=`<div class="shift-row" style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-muted)"><span class="shift-date">Date</span><span class="shift-time">Clock In → Out</span><span class="shift-hours">Hours</span><span class="shift-earn">Earned</span></div>`
-    +shifts.map(s=>`<div class="shift-row"><span class="shift-date">${esc(s.date)}</span><span class="shift-time">${esc(s.inTime)} → ${esc(s.outTime)}</span><span class="shift-hours">${(s.hours||0).toFixed(2)}</span><span class="shift-earn">₱${((s.hours||0)*rate).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2})}</span></div>`).join('');
+    +shifts.map(s=>`<div class="shift-row"><span class="shift-date">${esc(s.date)}</span><span class="shift-time">${esc(s.inTime)} → ${esc(s.outTime)}</span><span class="shift-hours">${(s.hours||0).toFixed(2)}</span><span class="shift-earn">₱${(s.earned!==undefined?s.earned:Math.min(s.hours||0,MAX_SHIFT_HRS)*rate).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2})}</span></div>`).join('');
 }
 
 // ─────────────────────────────────────────────
