@@ -570,6 +570,7 @@ select {
       </div>
       <div class="ml-auto flex items-center gap-2">
         <span id="live-clock-top" style="font-size:0.8rem;color:var(--text-muted);font-variant-numeric:tabular-nums"></span>
+        <button id="btn-guide" class="btn-icon" onclick="showIntro()" title="Workspace guide" style="display:none;font-size:0.85rem">?</button>
         <button class="btn-icon" onclick="toggleTheme()" title="Toggle theme">◑</button>
       </div>
     </header>
@@ -1495,6 +1496,12 @@ function enterApp() {
   const tabPills = document.getElementById('accounts-tab-pills');
   if (tabPills) tabPills.style.display = currentUser === BOSS_USERNAME ? 'none' : '';
   if (currentUser === BOSS_USERNAME) { accountTab = 'all'; }
+  // Guide button — staff only
+  const guideBtn = document.getElementById('btn-guide');
+  if (guideBtn) {
+    const dismissed = !!localStorage.getItem('aw_intro_dismissed');
+    guideBtn.style.display = (currentUser !== BOSS_USERNAME && !managerAccessMode && dismissed) ? 'flex' : 'none';
+  }
   // Manager access banner
   managerAccessMode = getSession().managerAccess === true;
   const managerBanner = document.getElementById('manager-access-banner');
@@ -1664,6 +1671,20 @@ function toggleOvertimeAuth() {
 }
 
 // ─────────────────────────────────────────────
+function dismissIntro() {
+  localStorage.setItem('aw_intro_dismissed','1');
+  const card = document.getElementById('workspace-intro-card');
+  if (card) card.style.opacity='0';
+  setTimeout(()=>{ const c=document.getElementById('workspace-intro-card'); if(c) c.remove(); }, 250);
+  const btn = document.getElementById('btn-guide');
+  if (btn) btn.style.display='flex';
+}
+function showIntro() {
+  localStorage.removeItem('aw_intro_dismissed');
+  navigate('overview');
+  refreshOverview();
+}
+
 function refreshOverview() {
   if (currentUser === BOSS_USERNAME) _renderBossOverview();
   else _renderStaffOverview();
@@ -1930,7 +1951,47 @@ function _renderStaffOverview() {
         ⏳ <strong>Your workspace is active but your work officially starts on Monday, July 27.</strong> Shifts and earnings logged before that date will not be counted.
        </div>` : '';
 
+  const introDismissed = !!localStorage.getItem('aw_intro_dismissed');
+  const guideBtn = document.getElementById('btn-guide');
+  if (guideBtn) guideBtn.style.display = (!managerAccessMode && introDismissed) ? 'flex' : 'none';
+
+  const introCard = introDismissed || managerAccessMode ? '' : `
+    <div id="workspace-intro-card" class="card" style="margin-bottom:1.2rem;border:1px solid rgba(31,184,195,0.22);background:linear-gradient(135deg,rgba(31,184,195,0.04),transparent);transition:opacity 0.25s">
+      <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;padding-bottom:0.5rem">
+        <span class="card-title">👋 Welcome to Your Workspace</span>
+        <button onclick="dismissIntro()" style="font-size:0.75rem;color:var(--text-muted);background:none;border:none;cursor:pointer;padding:0.2rem 0.4rem;border-radius:4px;line-height:1" title="Dismiss">✕</button>
+      </div>
+      <div class="card-body" style="padding-top:0">
+        <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:1rem">Here's a quick overview of everything available in your portal.</p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:0.6rem">
+          ${[
+            ['⊞','Overview','Your daily dashboard — earnings, shift status, and latest updates at a glance.'],
+            ['🕐','Clock In / Out','Start and end your shift directly from the sidebar. Earnings are calculated automatically.'],
+            ['☕','Meal Break','Pause your timer for a 1-hour break. Break time does not count toward your hours or pay.'],
+            ['📖','Clients','View and update your assigned client accounts and track task progress.'],
+            ['✅','Task Log','Log completed work and mark task stages for each client.'],
+            ['💬','Issues & Questions','Raise a concern or ask Jey a question. He reviews all submissions.'],
+            ['📌','Updates','Messages and announcements posted by Jey — priority-sorted so urgent ones appear first.'],
+            ['₱','Earnings','View your total earnings, per-shift breakdown, and monthly summary.'],
+            ['🕐','Shift Log','Your complete clock-in/out history with hours and break time recorded.'],
+            ['✦','Ask Jey','Chat with Ace, Jey\'s AI assistant, for quick answers about your work.'],
+          ].map(([icon,title,desc])=>`
+            <div style="display:flex;gap:0.6rem;padding:0.65rem 0.75rem;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm)">
+              <span style="font-size:1rem;flex-shrink:0;line-height:1.4">${icon}</span>
+              <div>
+                <div style="font-size:0.78rem;font-weight:700;color:var(--text-primary);margin-bottom:0.18rem">${title}</div>
+                <div style="font-size:0.72rem;color:var(--text-muted);line-height:1.45">${desc}</div>
+              </div>
+            </div>`).join('')}
+        </div>
+        <div style="margin-top:0.9rem;text-align:right">
+          <button onclick="dismissIntro()" style="font-size:0.78rem;padding:0.35rem 1rem;background:var(--teal);color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;font-weight:600">Got it, let's go →</button>
+        </div>
+      </div>
+    </div>`;
+
   document.getElementById('overview-body').innerHTML = `
+    ${introCard}
     ${updBanner}
     ${prestartBanner}
     <div class="grid-4" style="margin-bottom:1.2rem;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">
