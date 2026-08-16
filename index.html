@@ -2853,7 +2853,7 @@ function toggleIssueStatus(id) {
   const target = currentUser === BOSS_USERNAME ? 'athanviloria' : currentUser;
   const cd = _udCache[target] || getUserData(target);
   const issues = cd.issues || [];
-  const idx = issues.findIndex(i => i.id === id);
+  const idx = issues.findIndex(i => String(i.id) === String(id));
   if (idx === -1) return;
   issues[idx].status = issues[idx].status === 'Open' ? 'Resolved' : 'Open';
   _udCache[target] = Object.assign({}, cd, { issues });
