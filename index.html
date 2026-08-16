@@ -304,6 +304,22 @@ h1,h2,h3,h4 { text-wrap:balance; color:var(--text-primary); line-height:1.25; }
 .update-pin.prio-high   { border-left:3px solid var(--danger);  padding-left:0.75rem; }
 .update-pin.prio-medium { border-left:3px solid var(--warning); padding-left:0.75rem; }
 .update-pin.prio-low    { border-left:3px solid var(--teal);    padding-left:0.75rem; }
+.upd-ack-bar { border-top:1px solid var(--border);margin-top:0.65rem;padding-top:0.6rem;display:flex;align-items:center;flex-wrap:wrap;gap:0.45rem; }
+.upd-ack-btn { font-size:0.72rem;font-weight:600;padding:0.22rem 0.65rem;border-radius:99px;border:1.5px solid;cursor:pointer;background:transparent;transition:background 0.15s; }
+.upd-ack-btn.understood  { border-color:var(--success);color:var(--success); }
+.upd-ack-btn.understood:hover  { background:rgba(39,174,96,0.1); }
+.upd-ack-btn.acknowledged{ border-color:var(--teal);color:var(--teal); }
+.upd-ack-btn.acknowledged:hover{ background:rgba(31,184,195,0.1); }
+.upd-ack-btn.confused    { border-color:var(--warning);color:var(--warning); }
+.upd-ack-btn.confused:hover    { background:rgba(245,166,35,0.1); }
+.upd-ack-status { font-size:0.7rem;font-weight:700;padding:0.18rem 0.55rem;border-radius:99px; }
+.upd-ack-status.understood  { background:rgba(39,174,96,0.12);color:var(--success); }
+.upd-ack-status.acknowledged{ background:rgba(31,184,195,0.12);color:var(--teal); }
+.upd-ack-status.confused    { background:rgba(245,166,35,0.12);color:var(--warning); }
+.upd-ack-status.pending     { background:rgba(150,150,150,0.1);color:var(--text-muted); }
+.upd-ack-note { font-size:0.75rem;color:var(--text-secondary);font-style:italic;background:var(--bg);border-radius:var(--radius-sm);padding:0.35rem 0.6rem;border:1px solid var(--border);width:100%;box-sizing:border-box; }
+.upd-notify-btn { font-size:0.72rem;font-weight:600;padding:0.22rem 0.65rem;border-radius:99px;border:1.5px solid var(--teal);color:var(--teal);cursor:pointer;background:transparent; }
+.upd-notify-btn:hover { background:rgba(31,184,195,0.1); }
 
 .updates-banner {
   background:linear-gradient(135deg,var(--teal-glow),transparent);
@@ -2430,8 +2446,51 @@ function _prioBadge(p) {
   return `<span class="upd-priority ${pr.toLowerCase()}">${pr}</span>`;
 }
 function _renderUpdateCard(u) {
-  const p=u.priority||'Medium';
-  return `<div class="update-pin prio-${p.toLowerCase()}"><div class="update-dot-col"><div class="update-dot" style="${_prioDotStyle(p)}"></div></div><div style="flex:1"><div class="update-meta">${esc(u.date)} · <span class="update-tag">${esc(u.type)}</span> ${_prioBadge(p)}</div><div class="update-body">${esc(u.msg)}</div></div></div>`;
+  const p = u.priority || 'Medium';
+  const isBoss  = currentUser === BOSS_USERNAME;
+  const isStaff = !isBoss && !managerAccessMode;
+
+  let ackBar = '';
+
+  if (isBoss) {
+    if (!u.notified) {
+      ackBar = `<div class="upd-ack-bar"><button class="upd-notify-btn" onclick="notifyUpdate('${u.id}')">📣 Notify Athan</button></div>`;
+    } else {
+      const ackLabel = u.ack==='understood' ? '✅ Understood'
+        : u.ack==='acknowledged' ? '✓ Acknowledged'
+        : u.ack==='confused'     ? '❓ Confused'
+        : '⏳ Pending Response';
+      const ackClass = u.ack || 'pending';
+      const noteHtml = u.ackNote ? `<div class="upd-ack-note">💬 "${esc(u.ackNote)}"</div>` : '';
+      ackBar = `<div class="upd-ack-bar"><span style="font-size:0.68rem;color:var(--text-muted)">Notified ·</span><span class="upd-ack-status ${ackClass}">${ackLabel}</span>${noteHtml?`<div style="width:100%">${noteHtml}</div>`:''}</div>`;
+    }
+  }
+
+  if (isStaff && u.notified) {
+    const noteArea = `<div style="width:100%;margin-top:0.5rem;display:flex;gap:0.4rem;align-items:flex-end">
+      <textarea id="acknote-${u.id}" rows="2" placeholder="Add a note or reply (optional)…" style="flex:1;font-size:0.78rem;resize:none;border-radius:var(--radius-sm);border:1px solid var(--border);padding:0.35rem 0.55rem;background:var(--bg);color:var(--text)">${esc(u.ackNote||'')}</textarea>
+      <button class="btn btn-sm" onclick="saveAckNote('${u.id}')" style="font-size:0.72rem;padding:0.28rem 0.65rem;white-space:nowrap">Save Note</button>
+    </div>`;
+    if (!u.ack) {
+      ackBar = `<div class="upd-ack-bar">
+        <span style="font-size:0.68rem;font-weight:700;color:var(--warning);width:100%">🔔 Action required — please respond below</span>
+        <button class="upd-ack-btn understood"   onclick="ackUpdate('${u.id}','understood')">✅ I Understand</button>
+        <button class="upd-ack-btn acknowledged" onclick="ackUpdate('${u.id}','acknowledged')">✓ Acknowledged</button>
+        <button class="upd-ack-btn confused"     onclick="ackUpdate('${u.id}','confused')">❓ Confusing</button>
+        ${noteArea}
+      </div>`;
+    } else {
+      const ackLabel = u.ack==='understood' ? '✅ I Understand'
+        : u.ack==='acknowledged' ? '✓ Acknowledged'
+        : '❓ Confusing';
+      ackBar = `<div class="upd-ack-bar">
+        <span class="upd-ack-status ${u.ack}">${ackLabel}</span>
+        ${noteArea}
+      </div>`;
+    }
+  }
+
+  return `<div class="update-pin prio-${p.toLowerCase()}"><div class="update-dot-col"><div class="update-dot" style="${_prioDotStyle(p)}"></div></div><div style="flex:1"><div class="update-meta">${esc(u.date)} · <span class="update-tag">${esc(u.type)}</span> ${_prioBadge(p)}</div><div class="update-body">${esc(u.msg)}</div>${ackBar}</div></div>`;
 }
 function renderUpdates() {
   const updates=[...getUpdates()].sort((a,b)=>(_PRIO_ORDER[a.priority||'Medium']||1)-(_PRIO_ORDER[b.priority||'Medium']||1));
@@ -2454,6 +2513,38 @@ function postUpdate() {
   document.getElementById('update-msg').value = '';
   document.getElementById('update-priority').value = 'Medium';
   toast('✓ Update posted.');
+}
+
+function notifyUpdate(id) {
+  const all = getUpdates();
+  const idx = all.findIndex(u => u.id === id);
+  if (idx === -1) return;
+  all[idx] = { ...all[idx], notified: true };
+  setUpdates(all.filter(u => !SEED_UPDATES.find(s => s.id === u.id)));
+  renderUpdates();
+  toast('📣 Athan has been notified.');
+}
+
+function ackUpdate(id, status) {
+  const all = getUpdates();
+  const idx = all.findIndex(u => u.id === id);
+  if (idx === -1) return;
+  const note = (document.getElementById(`acknote-${id}`) || {}).value || all[idx].ackNote || '';
+  all[idx] = { ...all[idx], ack: status, ackDate: new Date().toISOString(), ackNote: note };
+  setUpdates(all.filter(u => !SEED_UPDATES.find(s => s.id === u.id)));
+  renderUpdates();
+  toast('✓ Response saved.');
+}
+
+function saveAckNote(id) {
+  const ta = document.getElementById(`acknote-${id}`);
+  if (!ta) return;
+  const all = getUpdates();
+  const idx = all.findIndex(u => u.id === id);
+  if (idx === -1) return;
+  all[idx] = { ...all[idx], ackNote: ta.value.trim() };
+  setUpdates(all.filter(u => !SEED_UPDATES.find(s => s.id === u.id)));
+  toast('✓ Note saved.');
 }
 
 function markUpdatesSeen() {
