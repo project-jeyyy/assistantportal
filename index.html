@@ -317,6 +317,10 @@ h1,h2,h3,h4 { text-wrap:balance; color:var(--text-primary); line-height:1.25; }
 .upd-ack-status.acknowledged{ background:rgba(31,184,195,0.12);color:var(--teal); }
 .upd-ack-status.confused    { background:rgba(245,166,35,0.12);color:var(--warning); }
 .upd-ack-status.pending     { background:rgba(150,150,150,0.1);color:var(--text-muted); }
+.upd-ack-status.closed      { background:rgba(74,111,227,0.12);color:#4A6FE3; }
+.upd-close-btn { font-size:0.7rem;font-weight:600;padding:0.2rem 0.6rem;border-radius:99px;border:1.5px solid var(--border);color:var(--text-muted);cursor:pointer;background:transparent;margin-left:auto; }
+.upd-close-btn:hover { border-color:var(--danger);color:var(--danger); }
+.update-pin.is-closed { opacity:0.55; }
 .upd-ack-note { font-size:0.75rem;color:var(--text-secondary);font-style:italic;background:var(--bg);border-radius:var(--radius-sm);padding:0.35rem 0.6rem;border:1px solid var(--border);width:100%;box-sizing:border-box; }
 .upd-notify-btn { font-size:0.72rem;font-weight:600;padding:0.22rem 0.65rem;border-radius:99px;border:1.5px solid var(--teal);color:var(--teal);cursor:pointer;background:transparent; }
 .upd-notify-btn:hover { background:rgba(31,184,195,0.1); }
@@ -2449,20 +2453,28 @@ function _renderUpdateCard(u) {
   const p = u.priority || 'Medium';
   const isBoss  = currentUser === BOSS_USERNAME;
   const isStaff = !isBoss && !managerAccessMode;
+  const closeBtn = `<button class="upd-close-btn" onclick="closeUpdate('${u.id}')" title="Mark as Closed">✕ Close</button>`;
 
   let ackBar = '';
 
+  // If closed — simple closed badge on both portals
+  if (u.closed) {
+    const noteHtml = u.ackNote && isBoss ? `<div style="width:100%"><div class="upd-ack-note">💬 "${esc(u.ackNote)}"</div></div>` : '';
+    ackBar = `<div class="upd-ack-bar"><span class="upd-ack-status closed">✓ Closed</span>${isBoss?`<span style="font-size:0.67rem;color:var(--text-muted);margin-left:0.25rem">— no further action needed</span>`:''}${noteHtml}</div>`;
+    return `<div class="update-pin prio-${p.toLowerCase()} is-closed"><div class="update-dot-col"><div class="update-dot" style="${_prioDotStyle(p)}"></div></div><div style="flex:1"><div class="update-meta">${esc(u.date)} · <span class="update-tag">${esc(u.type)}</span> ${_prioBadge(p)}</div><div class="update-body">${esc(u.msg)}</div>${ackBar}</div></div>`;
+  }
+
   if (isBoss) {
     if (!u.notified) {
-      ackBar = `<div class="upd-ack-bar"><button class="upd-notify-btn" onclick="notifyUpdate('${u.id}')">📣 Notify Athan</button></div>`;
+      ackBar = `<div class="upd-ack-bar"><button class="upd-notify-btn" onclick="notifyUpdate('${u.id}')">📣 Notify Athan</button>${closeBtn}</div>`;
     } else {
       const ackLabel = u.ack==='understood' ? '✅ Understood'
         : u.ack==='acknowledged' ? '✓ Acknowledged'
         : u.ack==='confused'     ? '❓ Confused'
         : '⏳ Pending Response';
       const ackClass = u.ack || 'pending';
-      const noteHtml = u.ackNote ? `<div class="upd-ack-note">💬 "${esc(u.ackNote)}"</div>` : '';
-      ackBar = `<div class="upd-ack-bar"><span style="font-size:0.68rem;color:var(--text-muted)">Notified ·</span><span class="upd-ack-status ${ackClass}">${ackLabel}</span>${noteHtml?`<div style="width:100%">${noteHtml}</div>`:''}</div>`;
+      const noteHtml = u.ackNote ? `<div style="width:100%"><div class="upd-ack-note">💬 "${esc(u.ackNote)}"</div></div>` : '';
+      ackBar = `<div class="upd-ack-bar"><span style="font-size:0.68rem;color:var(--text-muted)">Notified ·</span><span class="upd-ack-status ${ackClass}">${ackLabel}</span>${closeBtn}${noteHtml}</div>`;
     }
   }
 
@@ -2483,10 +2495,7 @@ function _renderUpdateCard(u) {
       const ackLabel = u.ack==='understood' ? '✅ I Understand'
         : u.ack==='acknowledged' ? '✓ Acknowledged'
         : '❓ Confusing';
-      ackBar = `<div class="upd-ack-bar">
-        <span class="upd-ack-status ${u.ack}">${ackLabel}</span>
-        ${noteArea}
-      </div>`;
+      ackBar = `<div class="upd-ack-bar"><span class="upd-ack-status ${u.ack}">${ackLabel}</span>${noteArea}</div>`;
     }
   }
 
@@ -2534,6 +2543,16 @@ function ackUpdate(id, status) {
   setUpdates(all.filter(u => !SEED_UPDATES.find(s => s.id === u.id)));
   renderUpdates();
   toast('✓ Response saved.');
+}
+
+function closeUpdate(id) {
+  const all = getUpdates();
+  const idx = all.findIndex(u => u.id === id);
+  if (idx === -1) return;
+  all[idx] = { ...all[idx], closed: true };
+  setUpdates(all.filter(u => !SEED_UPDATES.find(s => s.id === u.id)));
+  renderUpdates();
+  toast('✓ Update closed.');
 }
 
 function saveAckNote(id) {
