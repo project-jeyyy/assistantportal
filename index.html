@@ -2058,9 +2058,7 @@ function _renderStaffOverview() {
       <div class="card">
         <div class="card-header"><span class="card-title">Latest Updates</span></div>
         <div class="card-body">
-          ${updates.length === 0
-            ? `<div class="empty-state"><div class="empty-state-icon">📌</div><div class="empty-state-text">No updates yet.</div></div>`
-            : [...updates].sort((a,b)=>(_PRIO_ORDER[a.priority||'Medium']||1)-(_PRIO_ORDER[b.priority||'Medium']||1)).slice(0,3).map(_renderUpdateCard).join('')}
+          ${(()=>{const vu=[..._visibleUpdates()].sort((a,b)=>(_PRIO_ORDER[a.priority||'Medium']||1)-(_PRIO_ORDER[b.priority||'Medium']||1)).slice(0,3);return vu.length===0?`<div class="empty-state"><div class="empty-state-icon">📌</div><div class="empty-state-text">No updates yet.</div></div>`:vu.map(_renderUpdateCard).join('');})()}
         </div>
       </div>
     </div>
@@ -2501,8 +2499,13 @@ function _renderUpdateCard(u) {
 
   return `<div class="update-pin prio-${p.toLowerCase()}"><div class="update-dot-col"><div class="update-dot" style="${_prioDotStyle(p)}"></div></div><div style="flex:1"><div class="update-meta">${esc(u.date)} · <span class="update-tag">${esc(u.type)}</span> ${_prioBadge(p)}</div><div class="update-body">${esc(u.msg)}</div>${ackBar}</div></div>`;
 }
+function _visibleUpdates() {
+  const all = getUpdates();
+  if (currentUser === BOSS_USERNAME || managerAccessMode) return all;
+  return all.filter(u => u.notified);
+}
 function renderUpdates() {
-  const updates=[...getUpdates()].sort((a,b)=>(_PRIO_ORDER[a.priority||'Medium']||1)-(_PRIO_ORDER[b.priority||'Medium']||1));
+  const updates=[..._visibleUpdates()].sort((a,b)=>(_PRIO_ORDER[a.priority||'Medium']||1)-(_PRIO_ORDER[b.priority||'Medium']||1));
   const el=document.getElementById('updates-list');
   el.innerHTML=updates.length===0
     ?`<div class="empty-state"><div class="empty-state-icon">📭</div><div class="empty-state-text">No updates posted yet. Check back soon.</div></div>`
@@ -2568,13 +2571,13 @@ function saveAckNote(id) {
 
 function markUpdatesSeen() {
   userData=getUserData(currentUser);
-  userData.seenUpdates=getUpdates().length;
+  userData.seenUpdates=_visibleUpdates().length;
   setUserData(currentUser,userData);
   refreshUpdatesBadge();
 }
 function refreshUpdatesBadge() {
   userData=getUserData(currentUser);
-  const unseen=Math.max(0,getUpdates().length-(userData.seenUpdates||0));
+  const unseen=Math.max(0,_visibleUpdates().length-(userData.seenUpdates||0));
   const b=document.getElementById('updates-badge');
   if (unseen>0){ b.textContent=unseen; b.classList.remove('hidden'); } else { b.classList.add('hidden'); }
 }
