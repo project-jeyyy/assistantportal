@@ -650,6 +650,7 @@ select {
             <option value="In Process">In Process</option>
             <option value="Completed">Completed</option>
             <option value="Closed">Closed</option>
+            <option value="__owned__">Athan's Accounts</option>
           </select>
         </div>
 
@@ -2493,7 +2494,9 @@ function renderAccounts() {
   if (accountTab==='mine') clients=clients.filter(c=>c.owned);
   if (search) clients=clients.filter(c=>c.name.toLowerCase().includes(search));
 
-  if (filterProg) {
+  if (filterProg === '__owned__') {
+    clients=clients.filter(c=>c.owned);
+  } else if (filterProg) {
     clients=clients.filter(c=>{
       const cd=getClientData(clientUser,c.name);
       const s=cd.overallStatus||'Not Yet Started';
