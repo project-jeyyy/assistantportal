@@ -637,8 +637,8 @@ select {
         <!-- Toolbar -->
         <div class="accounts-toolbar">
           <div class="tab-pills" id="accounts-tab-pills">
-            <button class="tab-pill active" id="tab-mine" onclick="switchAccountTab('mine')">My Accounts <span style="color:var(--teal)">(13)</span></button>
-            <button class="tab-pill" id="tab-all"  onclick="switchAccountTab('all')">All Clients <span style="color:var(--text-muted)">(110)</span></button>
+            <button class="tab-pill active" id="tab-mine" onclick="switchAccountTab('mine')">Athan <span style="color:var(--teal)">(13)</span></button>
+            <button class="tab-pill" id="tab-all"  onclick="switchAccountTab('all')">All Clients <span style="color:var(--text-muted)">(108)</span></button>
           </div>
           <div class="search-wrap">
             <span class="search-icon">🔍</span>
@@ -837,21 +837,10 @@ select {
 // CLIENT MASTER LIST (from Excel)
 // ─────────────────────────────────────────────
 const MASTER_CLIENTS = [
-  { name:'Yudaman INC', owned:true },
-  { name:'US Jewelry', owned:true },
-  { name:'ABI P&O, Inc.', owned:true },
-  { name:'Versatile Surfaces, Inc.', owned:true },
-  { name:'ATB 3, LLC', owned:true },
-  { name:'Pesto Italian Craft Kitchen', owned:true },
-  { name:'Lourdes Mexican Food by the Sea, Inc.', owned:true },
-  { name:'Lourdes Mexican Food Cantina, Inc.', owned:true },
-  { name:'Lourdes Mexican Food Express Togo, Inc.', owned:true },
-  { name:'Lourdes Mexican Food San Elijo, Inc.', owned:true },
-  { name:'Lourdes Mexican Food, Inc.', owned:true },
-  { name:'Shawn Luke, Inc.', owned:true },
-  { name:'Elizabeth Lazarus', owned:true },
   { name:'5 Trades Inc.', owned:false },
+  { name:'ABI P&O, Inc.', owned:true },
   { name:'ASA Technologies, Inc.', owned:false },
+  { name:'ATB 3, LLC', owned:true },
   { name:'Babylon International Market, Inc.', owned:false },
   { name:'Backyard Investco I LLC', owned:false },
   { name:'Backyard Partners LLC', owned:false },
@@ -881,6 +870,7 @@ const MASTER_CLIENTS = [
   { name:'Derman, LLC', owned:false },
   { name:'Diamond Daughters, Inc.', owned:false },
   { name:'Diamonds by Avi, Inc.', owned:false },
+  { name:'Elizabeth Lazarus', owned:true },
   { name:'Empire Garage Door, Inc.', owned:false },
   { name:'Encinitas Karate, Inc.', owned:false },
   { name:'Entila Corp', owned:false },
@@ -901,26 +891,33 @@ const MASTER_CLIENTS = [
   { name:'La Jolla Florist, LLC', owned:false },
   { name:'Lamys, Inc (Crack Taco Encinitas)', owned:false },
   { name:'Law Office of Karl Kuenhold, LLC', owned:false },
+  { name:'Layvan, Inc.', owned:false },
   { name:'Ledge Ivy Properties, LLC', owned:false },
   { name:'Legallink, LLC', owned:false },
+  { name:'Lourdes Mexican Food by the Sea, Inc.', owned:true },
+  { name:'Lourdes Mexican Food Cantina, Inc.', owned:true },
+  { name:'Lourdes Mexican Food Express Togo, Inc.', owned:true },
+  { name:'Lourdes Mexican Food San Elijo, Inc.', owned:true },
+  { name:'Lourdes Mexican Food, Inc.', owned:true },
   { name:'Lucky Panda Kids, LLC', owned:false },
   { name:'Maisy Place', owned:false },
   { name:'Malek Law Group, APC', owned:false },
   { name:'Mexa Distributors, Inc.', owned:false },
   { name:'Michael Thomas Sommer', owned:false },
   { name:'Mike and George, Inc.', owned:false },
-  { name:'Layvan, Inc.', owned:false },
   { name:'Miller BDS, A Dental Corporation', owned:false },
   { name:'Miss Match Group, Inc.', owned:false },
   { name:'Momentra', owned:false },
   { name:'NetOps Africa, LLC', owned:false },
   { name:'PDDA Alliance', owned:false },
+  { name:'Pesto Italian Craft Kitchen', owned:true },
   { name:'Quality Diamonds of San Diego, Inc.', owned:false },
   { name:'Rancho Viejo Mex, Inc.', owned:false },
   { name:'Rua Michelle Realty LLC', owned:false },
   { name:'Schindler Brokerage, LLC', owned:false },
   { name:'SD Bay Rentals', owned:false },
   { name:'SDCA ACU, Inc.', owned:false },
+  { name:'Shawn Luke, Inc.', owned:true },
   { name:'Simplicity Enterprises', owned:false },
   { name:'Siselectron USA, Inc.', owned:false },
   { name:'Skim Steezy, LLC', owned:false },
@@ -929,25 +926,25 @@ const MASTER_CLIENTS = [
   { name:'Sphere Surveying & Mapping', owned:false },
   { name:'Taco Shop Restaurant group', owned:false },
   { name:'TGRH2, Inc.', owned:false },
+  { name:'TLC Medical Transport, LLC', owned:false },
   { name:'Torreblanca Wealth Management Corp', owned:false },
   { name:'Touma Group 2, LLC', owned:false },
-  { name:'TLC Medical Transport, LLC', owned:false },
   { name:'Truck & SUV Center', owned:false },
   { name:'Unicorn Jewelry & Fine Gifts, Inc.', owned:false },
-  { name:'United Design Group Inc', owned:false },
   { name:'Upas Realty LLC', owned:false },
-  { name:'US Jewelrybuyers, Inc.', owned:false },
+  { name:'US Jewelrybuyers, Inc.', owned:true },
   { name:'Vamos CRCS, Inc.', owned:false },
+  { name:'Versatile Surfaces, Inc.', owned:true },
   { name:'Victory Auto Supply, Inc.', owned:false },
   { name:'Vince Kattoula & Associates, LLC', owned:false },
   { name:'VMFS Group, Inc.', owned:false },
   { name:'Waheed & Sons, Inc.', owned:false },
-  { name:'Way of Wellness Healthcare Inc', owned:false },
+  { name:'Way of Wellness Helathcare Inc', owned:false },
   { name:'World Carpet & Tile, Inc.', owned:false },
   { name:'Yalcin Investment, LLC', owned:false },
+  { name:'Yudaman Inc', owned:true },
   { name:'Z1 Parts, Inc.', owned:false },
   { name:'Zanker Construction, Inc.', owned:false },
-  { name:'New Client', owned:false },
 ];
 
 const WORK_START = new Date('2026-07-27T00:00:00');
@@ -1996,7 +1993,7 @@ function _renderStaffOverview() {
     ${prestartBanner}
     <div class="grid-4" style="margin-bottom:1.2rem;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">
       <div class="stat-tile stat-teal">
-        <div class="stat-label">My Accounts</div>
+        <div class="stat-label">Athan's Accounts</div>
         <div class="stat-value v-teal">${owned.length}</div>
         <div class="stat-sub">Owned by me</div>
       </div>
@@ -2132,7 +2129,7 @@ function renderStaff() {
                 const color=t.progress==='Completed'?'var(--success)':'var(--warning)';
                 return `<div style="padding:0.45rem 1rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:0.5rem">
                   <div>
-                    <div style="font-size:0.8rem;font-weight:600">${esc(t.client)}${t.owned?` <span style="color:var(--teal);font-size:0.65rem">Mine</span>`:''}</div>
+                    <div style="font-size:0.8rem;font-weight:600">${esc(t.client)}${t.owned?` <span style="color:var(--teal);font-size:0.65rem">Athan</span>`:''}</div>
                     <div style="font-size:0.72rem;color:var(--text-muted)">${esc(t.task)}</div>
                   </div>
                   <span style="font-size:0.7rem;font-weight:700;color:${color};white-space:nowrap">${t.progress}</span>
@@ -2398,7 +2395,7 @@ function renderTaskLog() {
     if (!entries.length) return '';
     const rows = entries.map(e => {
       const badge = `<span style="font-size:0.72rem;font-weight:700;color:${PROGRESS_COLOR[e.progress]};background:${PROGRESS_BG[e.progress]};padding:0.15rem 0.55rem;border-radius:99px">${e.progress}</span>`;
-      const ownedTag = e.owned ? `<span style="font-size:0.65rem;color:var(--teal);font-weight:700;margin-left:0.4rem">Mine</span>` : '';
+      const ownedTag = e.owned ? `<span style="font-size:0.65rem;color:var(--teal);font-weight:700;margin-left:0.4rem">Athan</span>` : '';
       const note = (type==='Other'&&e.otherNote) ? `<span style="font-size:0.75rem;color:var(--text-muted);margin-left:0.5rem">— ${esc(e.otherNote)}</span>` : '';
       return `<tr>
         <td style="font-size:0.82rem;color:var(--text-primary)">${esc(e.clientName)}${ownedTag}${note}</td>
@@ -2522,7 +2519,7 @@ function renderAccounts() {
       <div class="client-header" onclick="toggleClient(${i})">
         <span class="client-toggle" id="toggle-${i}">▶</span>
         <span class="client-name">${esc(c.name)}</span>
-        ${c.owned?`<span class="client-owned-tag">Mine</span>`:''}
+        ${c.owned?`<span class="client-owned-tag">Athan</span>`:''}
         <span class="client-month">${esc(cd.month||'July')}</span>
         <div class="client-overall">
           <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:3px">
