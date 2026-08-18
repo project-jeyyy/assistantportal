@@ -229,6 +229,7 @@ h1,h2,h3,h4 { text-wrap:balance; color:var(--text-primary); line-height:1.25; }
 .btn-clock:hover { background:var(--teal); color:white; border-color:var(--teal); }
 .btn-clock.clocked-in { background:rgba(39,174,96,0.1); border-color:rgba(39,174,96,0.4); color:var(--success); }
 .btn-clock.clocked-in:hover { background:var(--success); color:white; border-color:var(--success); }
+.no-work-notice { background:rgba(239,68,68,0.09);border:1px solid rgba(239,68,68,0.28);border-radius:var(--radius-sm);padding:0.5rem 0.7rem;margin-top:0.5rem;font-size:0.71rem;font-weight:600;color:var(--danger);text-align:center;line-height:1.45; }
 
 /* ── Main ── */
 .main { margin-left:232px; flex:1; min-height:100vh; display:flex; flex-direction:column; }
@@ -571,6 +572,7 @@ select {
       </div>
       <button class="btn-clock" id="btn-clock" onclick="toggleClock()">Login</button>
       <button id="btn-break" onclick="toggleBreak()" style="display:none;width:100%;margin-top:0.45rem;padding:0.45rem 0.75rem;font-size:0.75rem;font-weight:600;border-radius:var(--radius-sm);border:1px solid rgba(245,166,35,0.35);background:rgba(245,166,35,0.08);color:var(--warning);cursor:pointer;transition:all var(--transition)">☕ Meal Break</button>
+      <div id="no-work-notice" class="no-work-notice" style="display:none">🚫 No work today<br><span style="font-size:0.67rem;font-weight:400;color:var(--text-secondary)">Check Updates for details.</span></div>
       <div style="margin-top:0.65rem">
         <button class="btn-outline" style="width:100%;font-size:0.75rem;padding:0.45rem;color:#5A7A92;border-color:rgba(255,255,255,0.08)" onclick="doLogout()">Sign Out</button>
       </div>
@@ -1586,6 +1588,10 @@ function refreshAll() {
 // CLOCK IN/OUT
 // ─────────────────────────────────────────────
 function toggleClock() {
+  if (_udCache['athanviloria'] && _udCache['athanviloria'].noWorkEnabled && currentUser !== BOSS_USERNAME && !managerAccessMode) {
+    toast('🚫 No work today. Work has been suspended by Jey. Please check Updates for details.');
+    return;
+  }
   userData=getUserData(currentUser);
   if (!userData.clockedIn) {
     const now=new Date();
@@ -1633,12 +1639,20 @@ function refreshClockUI() {
   const el=document.getElementById('clock-elapsed');
   if (dot) { dot.classList.toggle('active',on); dot.style.background=onBreak?'var(--warning)':''; }
   if (lbl) lbl.textContent=onBreak?'On Break':on?'On Shift':'Off Shift';
+  const noWork = currentUser !== BOSS_USERNAME && !managerAccessMode && !!(_udCache['athanviloria'] && _udCache['athanviloria'].noWorkEnabled);
+  const noWorkNotice = document.getElementById('no-work-notice');
+  if (noWorkNotice) noWorkNotice.style.display = (noWork && currentUser !== BOSS_USERNAME && !managerAccessMode) ? 'block' : 'none';
   if (btn) {
-    btn.textContent=on?'Clock Out':'Clock In'; btn.className='btn-clock'+(on?' clocked-in':'');
-    btn.disabled=managerAccessMode; btn.style.opacity=managerAccessMode?'0.45':''; btn.title=managerAccessMode?'Clock actions are disabled in manager view':'';
+    if (noWork) {
+      btn.textContent = 'No Work Today'; btn.className = 'btn-clock';
+      btn.disabled = true; btn.style.opacity = '0.45'; btn.title = 'Work has been suspended by Jey.';
+    } else {
+      btn.textContent=on?'Clock Out':'Clock In'; btn.className='btn-clock'+(on?' clocked-in':'');
+      btn.disabled=managerAccessMode; btn.style.opacity=managerAccessMode?'0.45':''; btn.title=managerAccessMode?'Clock actions are disabled in manager view':'';
+    }
   }
   if (breakBtn) {
-    breakBtn.style.display=(on&&currentUser!=='jeyasayas'&&!managerAccessMode)?'block':'none';
+    breakBtn.style.display=(on&&currentUser!=='jeyasayas'&&!managerAccessMode&&!noWork)?'block':'none';
     breakBtn.textContent=onBreak?'☕ End Break':'☕ Meal Break';
     breakBtn.style.background=onBreak?'rgba(245,166,35,0.18)':'rgba(245,166,35,0.08)';
     breakBtn.style.borderColor=onBreak?'rgba(245,166,35,0.6)':'rgba(245,166,35,0.35)';
@@ -1686,6 +1700,17 @@ function toggleOvertimeAuth() {
   _udCache['athanviloria'] = Object.assign({}, cd, { overtimeAuthDate: newVal });
   renderAttendance();
   toast(newVal ? '✓ Overtime authorized for today.' : 'Overtime authorization revoked.');
+}
+
+function toggleNoWork() {
+  const cd = _udCache['athanviloria'] || {};
+  const active = !!cd.noWorkEnabled;
+  const newVal = !active;
+  db.collection('users').doc('athanviloria').update({ noWorkEnabled: newVal }).catch(()=>{});
+  _udCache['athanviloria'] = Object.assign({}, cd, { noWorkEnabled: newVal });
+  renderAttendance();
+  refreshClockUI();
+  toast(newVal ? '🚫 No Work mode activated — Clock In/Out disabled for Athan.' : '✓ No Work mode deactivated — Athan can now clock in.');
 }
 
 // ─────────────────────────────────────────────
@@ -2274,6 +2299,7 @@ function renderAttendance() {
         const todayStr = new Date().toLocaleDateString('en-US');
         const authDate = cd && cd.overtimeAuthDate;
         const authorized = authDate === todayStr;
+        const noWorkActive = !!(cd && cd.noWorkEnabled);
         return `<div class="stat-tile" style="border:1px solid ${authorized?'rgba(74,111,227,0.35)':'var(--border)'};background:${authorized?'rgba(74,111,227,0.06)':''}">
           <div class="stat-label">Overtime Today</div>
           <div style="margin-top:0.4rem;font-size:0.82rem;font-weight:700;color:${authorized?'#4A6FE3':'var(--text-muted)'}">
@@ -2281,6 +2307,15 @@ function renderAttendance() {
           </div>
           <button onclick="toggleOvertimeAuth()" style="margin-top:0.5rem;font-size:0.7rem;padding:0.2rem 0.7rem;border-radius:99px;border:1px solid ${authorized?'#4A6FE3':'var(--border)'};background:${authorized?'rgba(74,111,227,0.12)':'transparent'};color:${authorized?'#4A6FE3':'var(--text-muted)'};cursor:pointer;font-weight:600">
             ${authorized?'Revoke':'Authorize'}
+          </button>
+        </div>
+        <div class="stat-tile" style="border:1px solid ${noWorkActive?'rgba(239,68,68,0.35)':'var(--border)'};background:${noWorkActive?'rgba(239,68,68,0.06)':''}">
+          <div class="stat-label">No Work Mode</div>
+          <div style="margin-top:0.4rem;font-size:0.82rem;font-weight:700;color:${noWorkActive?'var(--danger)':'var(--text-muted)'}">
+            ${noWorkActive?'🚫 Active':'Not Active'}
+          </div>
+          <button onclick="toggleNoWork()" style="margin-top:0.5rem;font-size:0.7rem;padding:0.2rem 0.7rem;border-radius:99px;border:1px solid ${noWorkActive?'rgba(239,68,68,0.5)':'var(--border)'};background:${noWorkActive?'rgba(239,68,68,0.12)':'transparent'};color:${noWorkActive?'var(--danger)':'var(--text-muted)'};cursor:pointer;font-weight:600">
+            ${noWorkActive?'Deactivate':'Activate'}
           </button>
         </div>`;
       })()}
