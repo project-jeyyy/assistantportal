@@ -769,8 +769,8 @@ select {
           <div class="card-body">
             <div style="background:rgba(31,184,195,0.07);border:1px solid rgba(31,184,195,0.2);border-radius:var(--radius-sm);padding:0.75rem 1rem;font-size:0.8rem;color:var(--text-secondary)">
               <strong style="color:var(--text-primary)">Minimum Wage Basis</strong> — Binangonan, Rizal, Philippines<br>
-              Daily minimum wage: <strong>₱550.00</strong> for a 5-hour workday ÷ 5 hrs = <strong style="color:var(--teal)">₱110.00 / hour</strong><br>
-              At 5 hours/day: <strong>₱550.00/day</strong>
+              Daily minimum wage: <strong>₱508.00</strong> for a 5-hour workday ÷ 5 hrs = <strong style="color:var(--teal)">₱110.00 / hour</strong><br>
+              At 5 hours/day: <strong>₱508.00/day</strong> (Wage Order No. IVA-22, effective April 1, 2026)
             </div>
           </div>
         </div>
@@ -1169,6 +1169,7 @@ let clockStart        = null;
 let _shiftNotif       = { warn: false, done: false, over: false };
 let managerAccessMode = false;
 const MAX_SHIFT_HRS = 5;
+const DAILY_MIN_WAGE = 508;
 const ACE_SYSTEM_PROMPT = `You are Ace, the AI Work Assistant for Jey Asayas at Hedgi AI, LLC. You are answering questions from Cyrel Athan A. Viloria, a Bookkeeping Associate on trial basis working remotely under Jey.
 
 ABOUT JEY ASAYAS (your principal):
@@ -1179,7 +1180,7 @@ ABOUT JEY ASAYAS (your principal):
 
 WORKPLACE RULES:
 - Working hours: 5 hours per day, Monday to Friday only (no weekend work)
-- Hourly rate: ₱110/hr · Daily rate: ₱550/day (capped at 5 hrs — no overtime pay unless Jey explicitly authorizes it)
+- Hourly rate: ₱110/hr · Daily rate: ₱508/day minimum wage cap (Region IV-A, Wage Order No. IVA-22, effective April 1, 2026) — once 5 hrs is reached, earnings are capped at ₱508 unless Jey explicitly authorizes overtime
 - Clock in via the portal when starting, clock out when done
 - 1-hour meal break is available — use the "Meal Break" button; break time is not counted in hours or pay
 - Daily reports must be submitted to project.jeyyy@gmail.com before 11:00 PM PH Time every working day
@@ -1616,7 +1617,9 @@ function toggleClock() {
     const workedMs=Math.max(0,totalMs-(userData.totalBreakSecs||0)*1000);
     const hrs=workedMs/3600000;
     const rate=userData.hourlyRate||0;
-    const earned=Math.min(hrs,MAX_SHIFT_HRS)*rate;
+    const todayStrCO = new Date().toLocaleDateString('en-US');
+    const otAuthCO = _udCache['athanviloria'] && _udCache['athanviloria'].overtimeAuthDate === todayStrCO;
+    const earned = (hrs >= MAX_SHIFT_HRS && !otAuthCO) ? DAILY_MIN_WAGE : hrs * rate;
     const breakMins=Math.round((userData.totalBreakSecs||0)/60);
     if (!userData.shifts) userData.shifts=[];
     userData.shifts.unshift({ date:inT.toLocaleDateString('en-US'), inTime:inT.toLocaleTimeString(), outTime:now.toLocaleTimeString(), hours:hrs, earned, breakMins, inISO:inT.toISOString(), outISO:now.toISOString(), device:userData.clockDevice||null });
@@ -1953,7 +1956,7 @@ function _renderStaffOverview() {
   }).length;
   const todayHrs = shifts.filter(s => s.date === todayKey).reduce((a,s) => a+(s.hours||0), 0);
   const monthHrs = shifts.filter(s => { const d = new Date(s.inISO||s.date); return `${d.getMonth()}-${d.getFullYear()}` === monthKey; }).reduce((a,s) => a+(s.hours||0), 0);
-  const monthEarnVal = shifts.filter(s => { const d = new Date(s.inISO||s.date); return `${d.getMonth()}-${d.getFullYear()}` === monthKey; }).reduce((a,s) => a+(s.earned!==undefined?s.earned:Math.min(s.hours||0,MAX_SHIFT_HRS)*rate), 0);
+  const monthEarnVal = shifts.filter(s => { const d = new Date(s.inISO||s.date); return `${d.getMonth()}-${d.getFullYear()}` === monthKey; }).reduce((a,s) => a+(s.earned!==undefined?s.earned:((s.hours||0)>=MAX_SHIFT_HRS?DAILY_MIN_WAGE:(s.hours||0)*rate)), 0);
   const monthEarn = '₱'+monthEarnVal.toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
 
   // Manager availability
@@ -2116,7 +2119,7 @@ function renderStaff() {
   const rate = cd.hourlyRate || 175;
   const shifts = (cd.shifts||[]).filter(s=>new Date(s.inISO||s.date)>=WORK_START);
   const totalHrs = shifts.reduce((a,s)=>a+(s.hours||0),0);
-  const totalEarned = shifts.reduce((a,s)=>a+(s.earned!==undefined?s.earned:Math.min(s.hours||0,MAX_SHIFT_HRS)*rate),0);
+  const totalEarned = shifts.reduce((a,s)=>a+(s.earned!==undefined?s.earned:((s.hours||0)>=MAX_SHIFT_HRS?DAILY_MIN_WAGE:(s.hours||0)*rate)),0);
   const now = new Date();
   const todayKey = now.toLocaleDateString('en-US');
   const todayHrs = shifts.filter(s=>s.date===todayKey).reduce((a,s)=>a+(s.hours||0),0);
@@ -2346,7 +2349,7 @@ function renderAttendance() {
                       <td style="padding:0.6rem 1.2rem;color:var(--success);font-weight:600;font-variant-numeric:tabular-nums">${esc(s.inTime)}</td>
                       <td style="padding:0.6rem 1.2rem;color:var(--danger);font-weight:600;font-variant-numeric:tabular-nums">${esc(s.outTime)}</td>
                       <td style="padding:0.6rem 1.2rem;font-weight:700;font-variant-numeric:tabular-nums">${(s.hours||0).toFixed(2)}</td>
-                      <td style="padding:0.6rem 1.2rem;color:var(--success);font-weight:700;font-variant-numeric:tabular-nums">₱${(s.earned!==undefined?s.earned:Math.min(s.hours||0,MAX_SHIFT_HRS)*rate).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+                      <td style="padding:0.6rem 1.2rem;color:var(--success);font-weight:700;font-variant-numeric:tabular-nums">₱${(s.earned!==undefined?s.earned:((s.hours||0)>=MAX_SHIFT_HRS?DAILY_MIN_WAGE:(s.hours||0)*rate)).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
                       <td style="padding:0.6rem 1.2rem">
                         ${s.markedBy === 'Ace'
                           ? `<span style="font-size:0.72rem;font-weight:700;color:#4A6FE3;background:rgba(74,111,227,0.1);border:1px solid rgba(74,111,227,0.25);padding:0.15rem 0.6rem;border-radius:99px;">✓ Ace</span>${s.note ? `<div style="font-size:0.68rem;color:var(--text-muted);margin-top:0.25rem">${esc(s.note)}</div>` : ''}`
@@ -2951,7 +2954,7 @@ function renderEarnings() {
   const weekStart=new Date(now); weekStart.setDate(now.getDate()-now.getDay()); weekStart.setHours(0,0,0,0);
   const monthKey=`${now.getMonth()}-${now.getFullYear()}`;
   const sumH=arr=>arr.reduce((a,s)=>a+(s.hours||0),0);
-  const sumE=arr=>arr.reduce((a,s)=>a+(s.earned!==undefined?s.earned:Math.min(s.hours||0,MAX_SHIFT_HRS)*rate),0);
+  const sumE=arr=>arr.reduce((a,s)=>a+(s.earned!==undefined?s.earned:((s.hours||0)>=MAX_SHIFT_HRS?DAILY_MIN_WAGE:(s.hours||0)*rate)),0);
   const fmt=v=>'₱'+v.toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
   const fmtH=h=>h.toFixed(2)+' hrs';
   const todayS=shifts.filter(s=>s.date===todayKey);
@@ -2973,7 +2976,7 @@ function renderShifts() {
   const el=document.getElementById('shift-log-body');
   if (shifts.length===0) { el.innerHTML=`<div class="empty-state"><div class="empty-state-icon">🕐</div><div class="empty-state-text">No shifts logged yet.</div></div>`; return; }
   el.innerHTML=`<div class="shift-row" style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-muted)"><span class="shift-date">Date</span><span class="shift-time">Clock In → Out</span><span class="shift-hours">Hours</span><span class="shift-earn">Earned</span></div>`
-    +shifts.map(s=>`<div class="shift-row"><span class="shift-date">${esc(s.date)}</span><span class="shift-time">${esc(s.inTime)} → ${esc(s.outTime)}</span><span class="shift-hours">${(s.hours||0).toFixed(2)}</span><span class="shift-earn">₱${(s.earned!==undefined?s.earned:Math.min(s.hours||0,MAX_SHIFT_HRS)*rate).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2})}</span></div>`).join('');
+    +shifts.map(s=>`<div class="shift-row"><span class="shift-date">${esc(s.date)}</span><span class="shift-time">${esc(s.inTime)} → ${esc(s.outTime)}</span><span class="shift-hours">${(s.hours||0).toFixed(2)}</span><span class="shift-earn">₱${(s.earned!==undefined?s.earned:((s.hours||0)>=MAX_SHIFT_HRS?DAILY_MIN_WAGE:(s.hours||0)*rate)).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2})}</span></div>`).join('');
 }
 
 // ─────────────────────────────────────────────
