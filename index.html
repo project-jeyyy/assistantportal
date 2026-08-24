@@ -472,6 +472,24 @@ select {
 }
 #toast.show { opacity:1; transform:translateY(0); }
 
+/* ── Inactivity Warning Modal ── */
+#inactivity-modal {
+  display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55);
+  z-index:10000; align-items:center; justify-content:center;
+}
+#inactivity-modal.show { display:flex; }
+.inactivity-box {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius); padding:2rem 2rem 1.5rem;
+  max-width:360px; width:90%; box-shadow:var(--shadow-lg); text-align:center;
+}
+.inactivity-box h3 { font-size:1rem; font-weight:700; color:var(--text-primary); margin:0 0 0.5rem; }
+.inactivity-box p  { font-size:0.82rem; color:var(--text-secondary); margin:0 0 1.2rem; line-height:1.5; }
+.inactivity-countdown { font-size:2.2rem; font-weight:800; color:var(--danger); margin:0.4rem 0 1.2rem; letter-spacing:0.04em; }
+.inactivity-stay { width:100%; padding:0.65rem; font-size:0.85rem; font-weight:700;
+  background:var(--teal); color:#fff; border:none; border-radius:var(--radius-sm); cursor:pointer; }
+.inactivity-stay:hover { opacity:0.88; }
+
 /* ── Misc ── */
 .divider { height:1px; background:var(--border); margin:1.2rem 0; }
 .empty-state { text-align:center; padding:2.5rem 1rem; color:var(--text-muted); }
@@ -854,6 +872,14 @@ select {
 </div><!-- /app-shell -->
 
 <div id="toast"></div>
+<div id="inactivity-modal">
+  <div class="inactivity-box">
+    <h3>⏱ Still there?</h3>
+    <p>You've been inactive for <strong>2 hours</strong>.<br>You'll be automatically logged out in:</p>
+    <div class="inactivity-countdown" id="inactivity-countdown">5:00</div>
+    <button class="inactivity-stay" onclick="dismissInactivityWarning()">Stay Logged In</button>
+  </div>
+</div>
 
 <script>
 // ─────────────────────────────────────────────
@@ -1453,6 +1479,7 @@ async function doManagerLogin() {
 }
 
 function doLogout() {
+  stopInactivityTracking();
   // Log portal sign-out before clearing — skip when manager is viewing (don't pollute staff activity)
   if (currentUser && currentUser !== BOSS_USERNAME && !managerAccessMode) {
     const ud = getUserData(currentUser);
@@ -1482,6 +1509,85 @@ function doLogout() {
 }
 
 function showErr(el,msg){ el.textContent=msg; el.classList.remove('hidden'); }
+
+// ─────────────────────────────────────────────
+// INACTIVITY AUTO-LOGOUT
+// ─────────────────────────────────────────────
+const INACTIVITY_MS  = 2 * 60 * 60 * 1000; // 2 hours
+const WARN_SECS_TOTAL = 5 * 60;             // 5-minute countdown
+
+let _inactivityTimer    = null;
+let _warnInterval       = null;
+let _warnSecsLeft       = WARN_SECS_TOTAL;
+let _inactivityTracking = false;
+
+const _inactivityEvents = ['mousemove','mousedown','keydown','touchstart','scroll','click'];
+
+function _resetInactivityTimer() {
+  if (!_inactivityTracking) return;
+  clearTimeout(_inactivityTimer);
+  _inactivityTimer = setTimeout(showInactivityWarning, INACTIVITY_MS);
+}
+
+function startInactivityTracking() {
+  if (_inactivityTracking) return;
+  _inactivityTracking = true;
+  _inactivityEvents.forEach(e => document.addEventListener(e, _resetInactivityTimer, { passive: true }));
+  _resetInactivityTimer();
+}
+
+function stopInactivityTracking() {
+  _inactivityTracking = false;
+  clearTimeout(_inactivityTimer); _inactivityTimer = null;
+  clearInterval(_warnInterval);   _warnInterval = null;
+  _inactivityEvents.forEach(e => document.removeEventListener(e, _resetInactivityTimer));
+  const modal = document.getElementById('inactivity-modal');
+  if (modal) modal.classList.remove('show');
+}
+
+function showInactivityWarning() {
+  _warnSecsLeft = WARN_SECS_TOTAL;
+  const modal = document.getElementById('inactivity-modal');
+  if (modal) modal.classList.add('show');
+  _updateWarnCountdown();
+  clearInterval(_warnInterval);
+  _warnInterval = setInterval(() => {
+    _warnSecsLeft--;
+    _updateWarnCountdown();
+    if (_warnSecsLeft <= 0) { clearInterval(_warnInterval); _doAutoLogout(); }
+  }, 1000);
+}
+
+function _updateWarnCountdown() {
+  const el = document.getElementById('inactivity-countdown');
+  if (!el) return;
+  const m = Math.floor(_warnSecsLeft / 60);
+  const s = _warnSecsLeft % 60;
+  el.textContent = `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+function dismissInactivityWarning() {
+  clearInterval(_warnInterval); _warnInterval = null;
+  const modal = document.getElementById('inactivity-modal');
+  if (modal) modal.classList.remove('show');
+  _resetInactivityTimer();
+}
+
+function _doAutoLogout() {
+  if (currentUser && currentUser !== BOSS_USERNAME && !managerAccessMode) {
+    const ud = getUserData(currentUser);
+    if (!ud.accessLog) ud.accessLog = [];
+    const dev = getDeviceInfo();
+    ud.accessLog.unshift({ type:'AutoLogout', time:new Date().toISOString(), device:dev });
+    if (ud.accessLog.length > 100) ud.accessLog.length = 100;
+    if (!ud.activity) ud.activity = [];
+    ud.activity.unshift({ msg:`Auto-logged out after 2 hrs inactivity (${dev.browser} · ${dev.os})`, time:new Date().toISOString() });
+    if (ud.activity.length > 20) ud.activity.length = 20;
+    setUserData(currentUser, ud);
+  }
+  stopInactivityTracking();
+  doLogout();
+}
 
 // ─────────────────────────────────────────────
 // ENTER APP
@@ -1527,6 +1633,7 @@ function enterApp() {
   managerAccessMode = getSession().managerAccess === true;
   const managerBanner = document.getElementById('manager-access-banner');
   if (managerBanner) managerBanner.style.display = managerAccessMode ? 'flex' : 'none';
+  startInactivityTracking();
 }
 
 function populateSidebar() {
@@ -2384,11 +2491,16 @@ function renderAttendance() {
                 <tbody>
                   ${accessLog.map(a => {
                     const dt = new Date(a.time);
-                    const isLogin = a.type === 'Login';
+                    const isLogin   = a.type === 'Login';
+                    const isAuto    = a.type === 'AutoLogout';
+                    const isManager = a.type === 'ManagerAccess';
+                    const badgeBg   = isLogin ? 'rgba(39,174,96,0.12)' : isAuto ? 'rgba(245,166,35,0.12)' : isManager ? 'rgba(74,111,227,0.12)' : 'rgba(231,76,60,0.1)';
+                    const badgeCol  = isLogin ? 'var(--success)' : isAuto ? 'var(--warning)' : isManager ? '#4A6FE3' : 'var(--danger)';
+                    const badgeLbl  = isLogin ? '▶ Sign In' : isAuto ? '⏱ Auto-Logout' : isManager ? '👁 Manager View' : '◼ Sign Out';
                     return `<tr style="border-bottom:1px solid var(--border)">
                       <td style="padding:0.6rem 1.2rem">
-                        <span style="font-size:0.75rem;font-weight:700;padding:0.15rem 0.6rem;border-radius:99px;background:${isLogin?'rgba(39,174,96,0.12)':'rgba(231,76,60,0.1)'};color:${isLogin?'var(--success)':'var(--danger)'}">
-                          ${isLogin?'▶ Sign In':'◼ Sign Out'}
+                        <span style="font-size:0.75rem;font-weight:700;padding:0.15rem 0.6rem;border-radius:99px;background:${badgeBg};color:${badgeCol}">
+                          ${badgeLbl}
                         </span>
                       </td>
                       <td style="padding:0.6rem 1.2rem;font-variant-numeric:tabular-nums">
