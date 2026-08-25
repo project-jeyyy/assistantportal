@@ -1724,13 +1724,19 @@ function toggleClock() {
     const workedMs=Math.max(0,totalMs-(userData.totalBreakSecs||0)*1000);
     const hrs=workedMs/3600000;
     const rate=userData.hourlyRate||0;
-    const todayStrCO = new Date().toLocaleDateString('en-US');
+    const todayStrCO = inT.toLocaleDateString('en-US');
     const otAuthCO = _udCache['athanviloria'] && _udCache['athanviloria'].overtimeAuthDate === todayStrCO;
-    const earned = hrs < MAX_SHIFT_HRS
-      ? hrs * rate
+    // Daily-total basis: sum all previous sessions today to determine cap correctly
+    const prevTodayShifts = (userData.shifts||[]).filter(s=>s.date===todayStrCO);
+    const prevHrs    = prevTodayShifts.reduce((a,s)=>a+(s.hours||0),0);
+    const prevEarned = prevTodayShifts.reduce((a,s)=>a+(s.earned||0),0);
+    const totalHrsDay = prevHrs + hrs;
+    const totalDayEarned = totalHrsDay < MAX_SHIFT_HRS
+      ? totalHrsDay * rate
       : otAuthCO
-        ? DAILY_MIN_WAGE + (hrs - MAX_SHIFT_HRS) * rate
+        ? DAILY_MIN_WAGE + (totalHrsDay - MAX_SHIFT_HRS) * rate
         : DAILY_MIN_WAGE;
+    const earned = Math.max(0, totalDayEarned - prevEarned);
     const breakMins=Math.round((userData.totalBreakSecs||0)/60);
     if (!userData.shifts) userData.shifts=[];
     userData.shifts.unshift({ date:inT.toLocaleDateString('en-US'), inTime:inT.toLocaleTimeString(), outTime:now.toLocaleTimeString(), hours:hrs, earned, overtime:otAuthCO, breakMins, inISO:inT.toISOString(), outISO:now.toISOString(), device:userData.clockDevice||null });
