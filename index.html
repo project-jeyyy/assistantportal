@@ -1513,7 +1513,7 @@ function showErr(el,msg){ el.textContent=msg; el.classList.remove('hidden'); }
 // ─────────────────────────────────────────────
 // INACTIVITY AUTO-LOGOUT
 // ─────────────────────────────────────────────
-const INACTIVITY_MS  = 2 * 60 * 60 * 1000; // 2 hours
+const INACTIVITY_MS  = 1 * 60 * 1000; // TEST: 1 minute (revert to 2 * 60 * 60 * 1000)
 const WARN_SECS_TOTAL = 5 * 60;             // 5-minute countdown
 
 let _inactivityTimer    = null;
