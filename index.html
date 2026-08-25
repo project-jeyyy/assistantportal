@@ -1273,7 +1273,18 @@ window.addEventListener('DOMContentLoaded', async () => {
   updateDateHeader();
   // Expire stale sessions: if last activity was >2 hrs ago, force re-login
   const _lastAct = parseInt(localStorage.getItem('aw_last_activity') || '0');
-  if (_lastAct && (Date.now() - _lastAct > INACTIVITY_MS)) {
+  const _expiredSession = getSession();
+  if (_lastAct && (Date.now() - _lastAct > INACTIVITY_MS) && _expiredSession && _expiredSession.username) {
+    // Log session expiry before clearing
+    await loadUserData(_expiredSession.username);
+    const _expUd = getUserData(_expiredSession.username);
+    if (_expUd && _expiredSession.username !== BOSS_USERNAME) {
+      const _expDev = getDeviceInfo();
+      if (!_expUd.accessLog) _expUd.accessLog = [];
+      _expUd.accessLog.unshift({ type:'SessionExpired', time:new Date().toISOString(), device:_expDev });
+      if (_expUd.accessLog.length > 100) _expUd.accessLog.length = 100;
+      setUserData(_expiredSession.username, _expUd);
+    }
     clearSession();
     localStorage.removeItem('aw_last_activity');
   }
@@ -1284,6 +1295,14 @@ window.addEventListener('DOMContentLoaded', async () => {
     currentUser = s.username;
     userData = getUserData(currentUser);
     if (userData.clockedIn && userData.clockIn) clockStart = new Date(userData.clockIn);
+    // Log session restore
+    if (currentUser !== BOSS_USERNAME) {
+      const _restoreDev = getDeviceInfo();
+      if (!userData.accessLog) userData.accessLog = [];
+      userData.accessLog.unshift({ type:'SessionRestore', time:new Date().toISOString(), device:_restoreDev });
+      if (userData.accessLog.length > 100) userData.accessLog.length = 100;
+      setUserData(currentUser, userData);
+    }
     showLoadingScreen(false);
     enterApp();
   }
@@ -2512,9 +2531,11 @@ function renderAttendance() {
                     const isLogin   = a.type === 'Login';
                     const isAuto    = a.type === 'AutoLogout';
                     const isManager = a.type === 'ManagerAccess';
-                    const badgeBg   = isLogin ? 'rgba(39,174,96,0.12)' : isAuto ? 'rgba(245,166,35,0.12)' : isManager ? 'rgba(74,111,227,0.12)' : 'rgba(231,76,60,0.1)';
-                    const badgeCol  = isLogin ? 'var(--success)' : isAuto ? 'var(--warning)' : isManager ? '#4A6FE3' : 'var(--danger)';
-                    const badgeLbl  = isLogin ? '▶ Sign In' : isAuto ? '⏱ Auto-Logout' : isManager ? '👁 Manager View' : '◼ Sign Out';
+                    const isRestore = a.type === 'SessionRestore';
+                    const isExpired = a.type === 'SessionExpired';
+                    const badgeBg   = isLogin ? 'rgba(39,174,96,0.12)' : isAuto||isExpired ? 'rgba(245,166,35,0.12)' : isManager ? 'rgba(74,111,227,0.12)' : isRestore ? 'rgba(31,184,195,0.12)' : 'rgba(231,76,60,0.1)';
+                    const badgeCol  = isLogin ? 'var(--success)' : isAuto||isExpired ? 'var(--warning)' : isManager ? '#4A6FE3' : isRestore ? 'var(--teal)' : 'var(--danger)';
+                    const badgeLbl  = isLogin ? '▶ Sign In' : isAuto ? '⏱ Auto-Logout' : isManager ? '👁 Manager View' : isRestore ? '↩ Session Restored' : isExpired ? '⏱ Session Expired' : '◼ Sign Out';
                     return `<tr style="border-bottom:1px solid var(--border)">
                       <td style="padding:0.6rem 1.2rem">
                         <span style="font-size:0.75rem;font-weight:700;padding:0.15rem 0.6rem;border-radius:99px;background:${badgeBg};color:${badgeCol}">
