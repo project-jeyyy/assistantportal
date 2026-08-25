@@ -1271,6 +1271,12 @@ function stopPresence() {
 window.addEventListener('DOMContentLoaded', async () => {
   startLiveClock();
   updateDateHeader();
+  // Expire stale sessions: if last activity was >2 hrs ago, force re-login
+  const _lastAct = parseInt(localStorage.getItem('aw_last_activity') || '0');
+  if (_lastAct && (Date.now() - _lastAct > INACTIVITY_MS)) {
+    clearSession();
+    localStorage.removeItem('aw_last_activity');
+  }
   const s = getSession();
   if (s && s.username) {
     showLoadingScreen(true);
@@ -1497,6 +1503,7 @@ function doLogout() {
   if (_staffUnsub)   { _staffUnsub();   _staffUnsub=null;   }
   if (_bossUnsub)    { _bossUnsub();    _bossUnsub=null;    }
   _udCache={}; _usersCache=null; _updatesCache=[];
+  localStorage.removeItem('aw_last_activity');
   clearSession(); currentUser=null; userData=null; clockStart=null; managerAccessMode=false;
   const managerBanner = document.getElementById('manager-access-banner');
   if (managerBanner) managerBanner.style.display='none';
@@ -1513,7 +1520,7 @@ function showErr(el,msg){ el.textContent=msg; el.classList.remove('hidden'); }
 // ─────────────────────────────────────────────
 // INACTIVITY AUTO-LOGOUT
 // ─────────────────────────────────────────────
-const INACTIVITY_MS  = 1 * 60 * 1000; // TEST: 1 minute (revert to 2 * 60 * 60 * 1000)
+const INACTIVITY_MS  = 2 * 60 * 60 * 1000; // 2 hours
 const WARN_SECS_TOTAL = 5 * 60;             // 5-minute countdown
 
 let _inactivityTimer    = null;
@@ -1526,6 +1533,7 @@ const _inactivityEvents = ['mousemove','mousedown','keydown','touchstart','scrol
 function _resetInactivityTimer() {
   if (!_inactivityTracking) return;
   clearTimeout(_inactivityTimer);
+  localStorage.setItem('aw_last_activity', Date.now());
   _inactivityTimer = setTimeout(showInactivityWarning, INACTIVITY_MS);
 }
 
