@@ -121,9 +121,9 @@ h1,h2,h3,h4 { text-wrap:balance; color:var(--text-primary); line-height:1.25; }
 .auth-logo { display:flex; align-items:center; gap:0.75rem; margin-bottom:2rem; }
 .auth-logo-mark {
   width:40px; height:40px;
-  background:linear-gradient(135deg,var(--teal),var(--teal-dim));
+  background:#1E293B;
   border-radius:10px; display:flex; align-items:center; justify-content:center;
-  font-size:1rem; font-weight:800; color:white;
+  flex-shrink:0;
 }
 .auth-logo-text { color:white; font-weight:700; font-size:1rem; line-height:1.2; }
 .auth-logo-sub  { color:var(--teal); font-size:0.68rem; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; }
@@ -167,9 +167,9 @@ h1,h2,h3,h4 { text-wrap:balance; color:var(--text-primary); line-height:1.25; }
 .sidebar-brand  { display:flex; align-items:center; gap:0.65rem; }
 .sidebar-mark {
   width:30px; height:30px;
-  background:linear-gradient(135deg,var(--teal),var(--teal-dim));
+  background:#1E293B;
   border-radius:7px; display:flex; align-items:center; justify-content:center;
-  font-size:0.8rem; font-weight:800; color:white; flex-shrink:0;
+  flex-shrink:0;
 }
 .sidebar-brand-name { color:white; font-size:0.88rem; font-weight:700; line-height:1.1; }
 .sidebar-brand-role { color:var(--teal); font-size:0.62rem; font-weight:600; letter-spacing:0.07em; text-transform:uppercase; }
@@ -506,7 +506,15 @@ select {
 <div id="auth-screen">
   <div class="auth-box">
     <div class="auth-logo">
-      <div class="auth-logo-mark">W</div>
+      <div class="auth-logo-mark">
+        <svg width="28" height="28" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="40,8 66,22 66,50 40,64 14,50 14,22" fill="#334155" stroke="#475569" stroke-width="1.5"/>
+          <polygon points="20,26 30,26 33,50" fill="#94A3B8"/>
+          <polygon points="30,26 40,26 40,38 33,50" fill="#CBD5E1"/>
+          <polygon points="40,26 50,26 47,50 40,38" fill="#CBD5E1"/>
+          <polygon points="50,26 60,26 47,50" fill="#F8FAFC"/>
+        </svg>
+      </div>
       <div>
         <div class="auth-logo-text">Workflow</div>
         <div class="auth-logo-sub">Assistant Portal</div>
@@ -549,7 +557,15 @@ select {
   <aside class="sidebar">
     <div class="sidebar-header">
       <div class="sidebar-brand">
-        <div class="sidebar-mark">W</div>
+        <div class="sidebar-mark">
+          <svg width="20" height="20" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <polygon points="40,8 66,22 66,50 40,64 14,50 14,22" fill="#334155" stroke="#475569" stroke-width="1.5"/>
+            <polygon points="20,26 30,26 33,50" fill="#94A3B8"/>
+            <polygon points="30,26 40,26 40,38 33,50" fill="#CBD5E1"/>
+            <polygon points="40,26 50,26 47,50 40,38" fill="#CBD5E1"/>
+            <polygon points="50,26 60,26 47,50" fill="#F8FAFC"/>
+          </svg>
+        </div>
         <div>
           <div class="sidebar-brand-name">Workflow</div>
           <div class="sidebar-brand-role">Assistant Portal</div>
