@@ -586,7 +586,7 @@ select {
       <div class="nav-section-label">Workspace</div>
       <div class="nav-item active" data-page="overview" onclick="navigate('overview')"><span class="nav-icon">⊞</span> Overview</div>
       <div class="nav-item" data-page="updates" onclick="navigate('updates')"><span class="nav-icon">📌</span> Updates <span class="nav-badge hidden" id="updates-badge"></span></div>
-      <div class="nav-item" data-page="accounts" onclick="navigate('accounts')"><span class="nav-icon">📖</span> Clients</div>
+      <div class="nav-item" id="nav-accounts" data-page="accounts" onclick="navigate('accounts')"><span class="nav-icon">📖</span> Clients</div>
       <div class="nav-item" id="nav-assigned" data-page="assigned" onclick="navigate('assigned')"><span class="nav-icon">📋</span> Assigned Tasks <span class="nav-badge hidden" id="assigned-badge"></span></div>
       <div class="nav-item" id="nav-tasklog" data-page="tasklog" onclick="navigate('tasklog')"><span class="nav-icon">✅</span> Task Log</div>
       <div class="nav-item" id="nav-issues" data-page="issues" onclick="navigate('issues')"><span class="nav-icon">💬</span> Issues &amp; Questions <span class="nav-badge hidden" id="issues-badge"></span></div>
@@ -1673,6 +1673,8 @@ function enterApp() {
   if (navEarnings) navEarnings.style.display = currentUser === BOSS_USERNAME ? 'none' : 'flex';
   const navShifts = document.getElementById('nav-shifts');
   if (navShifts) navShifts.style.display = currentUser === BOSS_USERNAME ? 'none' : 'flex';
+  const navAccounts = document.getElementById('nav-accounts');
+  if (navAccounts) navAccounts.style.display = currentUser === BOSS_USERNAME ? 'flex' : 'none';
   const navAssigned = document.getElementById('nav-assigned');
   if (navAssigned) navAssigned.style.display = 'flex';
   const navTasklog = document.getElementById('nav-tasklog');
@@ -1694,6 +1696,9 @@ function enterApp() {
   managerAccessMode = getSession().managerAccess === true;
   const managerBanner = document.getElementById('manager-access-banner');
   if (managerBanner) managerBanner.style.display = managerAccessMode ? 'flex' : 'none';
+  // Re-apply accounts visibility now that managerAccessMode is resolved
+  const _navAcc = document.getElementById('nav-accounts');
+  if (_navAcc) _navAcc.style.display = (currentUser === BOSS_USERNAME && !managerAccessMode) ? 'flex' : 'none';
   startInactivityTracking();
 }
 
