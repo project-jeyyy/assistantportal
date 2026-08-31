@@ -1674,7 +1674,7 @@ function enterApp() {
   const navShifts = document.getElementById('nav-shifts');
   if (navShifts) navShifts.style.display = currentUser === BOSS_USERNAME ? 'none' : 'flex';
   const navAccounts = document.getElementById('nav-accounts');
-  if (navAccounts) navAccounts.style.display = currentUser === BOSS_USERNAME ? 'flex' : 'none';
+  if (navAccounts) navAccounts.style.display = 'none';
   const navAssigned = document.getElementById('nav-assigned');
   if (navAssigned) navAssigned.style.display = 'flex';
   const navTasklog = document.getElementById('nav-tasklog');
@@ -1696,9 +1696,6 @@ function enterApp() {
   managerAccessMode = getSession().managerAccess === true;
   const managerBanner = document.getElementById('manager-access-banner');
   if (managerBanner) managerBanner.style.display = managerAccessMode ? 'flex' : 'none';
-  // Re-apply accounts visibility now that managerAccessMode is resolved
-  const _navAcc = document.getElementById('nav-accounts');
-  if (_navAcc) _navAcc.style.display = (currentUser === BOSS_USERNAME && !managerAccessMode) ? 'flex' : 'none';
   startInactivityTracking();
 }
 
