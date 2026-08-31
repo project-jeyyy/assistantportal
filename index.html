@@ -1184,7 +1184,7 @@ function subscribeStaff() {
       const def = { accounts:{}, issues:[], shifts:[], hourlyRate:175, fullName:'Cyrel Athan Viloria', seenUpdates:0, activity:[], clockedIn:false, clockIn:null };
       _udCache['athanviloria'] = Object.assign({}, def, snap.data());
     }
-    if (currentUser === BOSS_USERNAME) { renderStaff(); renderAttendance(); refreshOverview(); }
+    if (currentUser === BOSS_USERNAME || managerAccessMode) { renderStaff(); renderAttendance(); refreshOverview(); }
     _refreshAssignedBadge();
     const assignedPage = document.getElementById('page-assigned');
     if (assignedPage && !assignedPage.classList.contains('hidden')) renderAssigned();
@@ -1654,46 +1654,48 @@ function _doAutoLogout() {
 function enterApp() {
   document.getElementById('auth-screen').classList.add('hidden');
   document.getElementById('app-shell').classList.remove('hidden');
+  // Resolve manager access mode first so all nav checks below can use it
+  managerAccessMode = getSession().managerAccess === true;
+  const isBossView = currentUser === BOSS_USERNAME || managerAccessMode;
   populateSidebar();
   refreshClockUI();
   refreshAll();
   greetUser();
   subscribeUpdates();
-  // Boss-only: show Staff tab and subscribe to live staff data
+  // Boss/manager: show Staff View and Attendance tabs; subscribe to Cyrel's live data
   const staffNav = document.getElementById('nav-staff');
-  if (staffNav) staffNav.style.display = currentUser === BOSS_USERNAME ? 'flex' : 'none';
-  if (currentUser === BOSS_USERNAME) subscribeStaff();
+  if (staffNav) staffNav.style.display = isBossView ? 'flex' : 'none';
+  const navAttendance = document.getElementById('nav-attendance');
+  if (navAttendance) navAttendance.style.display = isBossView ? 'flex' : 'none';
+  if (isBossView) subscribeStaff();
   else subscribeBoss();
   startPresence();
   const postCard = document.getElementById('post-update-card');
   if (postCard) postCard.classList.toggle('hidden', currentUser !== BOSS_USERNAME);
-  const navAttendance = document.getElementById('nav-attendance');
-  if (navAttendance) navAttendance.style.display = currentUser === BOSS_USERNAME ? 'flex' : 'none';
   const navEarnings = document.getElementById('nav-earnings');
-  if (navEarnings) navEarnings.style.display = currentUser === BOSS_USERNAME ? 'none' : 'flex';
+  if (navEarnings) navEarnings.style.display = isBossView ? 'none' : 'flex';
   const navShifts = document.getElementById('nav-shifts');
-  if (navShifts) navShifts.style.display = currentUser === BOSS_USERNAME ? 'none' : 'flex';
+  if (navShifts) navShifts.style.display = isBossView ? 'none' : 'flex';
   const navAccounts = document.getElementById('nav-accounts');
   if (navAccounts) navAccounts.style.display = 'none';
   const navAssigned = document.getElementById('nav-assigned');
   if (navAssigned) navAssigned.style.display = 'flex';
   const navTasklog = document.getElementById('nav-tasklog');
-  if (navTasklog) navTasklog.style.display = currentUser === BOSS_USERNAME ? 'none' : 'flex';
+  if (navTasklog) navTasklog.style.display = isBossView ? 'none' : 'flex';
   const navIssues = document.getElementById('nav-issues');
-  if (navIssues) navIssues.style.display = currentUser === BOSS_USERNAME ? 'none' : 'flex';
+  if (navIssues) navIssues.style.display = isBossView ? 'none' : 'flex';
   const navRecords = document.getElementById('nav-section-records');
-  if (navRecords) navRecords.style.display = currentUser === BOSS_USERNAME ? 'none' : '';
+  if (navRecords) navRecords.style.display = isBossView ? 'none' : '';
   const tabPills = document.getElementById('accounts-tab-pills');
-  if (tabPills) tabPills.style.display = currentUser === BOSS_USERNAME ? 'none' : '';
-  if (currentUser === BOSS_USERNAME) { accountTab = 'all'; }
+  if (tabPills) tabPills.style.display = isBossView ? 'none' : '';
+  if (isBossView) { accountTab = 'all'; }
   // Guide button — staff only
   const guideBtn = document.getElementById('btn-guide');
   if (guideBtn) {
     const dismissed = !!localStorage.getItem('aw_intro_dismissed');
-    guideBtn.style.display = (currentUser !== BOSS_USERNAME && !managerAccessMode && dismissed) ? 'flex' : 'none';
+    guideBtn.style.display = (!isBossView && dismissed) ? 'flex' : 'none';
   }
   // Manager access banner
-  managerAccessMode = getSession().managerAccess === true;
   const managerBanner = document.getElementById('manager-access-banner');
   if (managerBanner) managerBanner.style.display = managerAccessMode ? 'flex' : 'none';
   startInactivityTracking();
