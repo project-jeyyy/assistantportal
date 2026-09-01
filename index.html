@@ -587,28 +587,33 @@ select {
       <div class="nav-item active" data-page="overview" onclick="navigate('overview')"><span class="nav-icon">⊞</span> Overview</div>
       <div class="nav-item" data-page="updates" onclick="navigate('updates')"><span class="nav-icon">📌</span> Updates <span class="nav-badge hidden" id="updates-badge"></span></div>
       <div class="nav-item" id="nav-assigned" data-page="assigned" onclick="navigate('assigned')" style="display:none"><span class="nav-icon">📋</span> Assigned Tasks <span class="nav-badge hidden" id="assigned-badge"></span></div>
-      <div class="nav-item" id="nav-accounts" data-page="accounts" onclick="navigate('accounts')"><span class="nav-icon">📖</span> Clients</div>
-      <div class="nav-item" id="nav-tasklog" data-page="tasklog" onclick="navigate('tasklog')"><span class="nav-icon">✅</span> Task Log</div>
+      <div class="nav-item" id="nav-accounts" data-page="accounts" onclick="navigate('accounts')" style="display:none"><span class="nav-icon">📖</span> Clients</div>
+      <div class="nav-item" id="nav-tasklog" data-page="tasklog" onclick="navigate('tasklog')" style="display:none"><span class="nav-icon">✅</span> Task Log</div>
       <div class="nav-item" id="nav-issues" data-page="issues" onclick="navigate('issues')"><span class="nav-icon">💬</span> Issues &amp; Questions <span class="nav-badge hidden" id="issues-badge"></span></div>
       <div class="nav-item" id="nav-staff" data-page="staff" onclick="navigate('staff')" style="display:none"><span class="nav-icon">👤</span> Staff View</div>
       <div class="nav-item" id="nav-attendance" data-page="attendance" onclick="navigate('attendance')" style="display:none"><span class="nav-icon">🕐</span> Attendance</div>
-      <div class="nav-section-label" id="nav-section-records">My Records</div>
-      <div class="nav-item" id="nav-earnings" data-page="earnings" onclick="navigate('earnings')"><span class="nav-icon">₱</span> Earnings</div>
-      <div class="nav-item" id="nav-shifts" data-page="shifts" onclick="navigate('shifts')"><span class="nav-icon">🕐</span> Shift Log</div>
+      <div class="nav-section-label" id="nav-section-records" style="display:none">My Records</div>
+      <div class="nav-item" id="nav-earnings" data-page="earnings" onclick="navigate('earnings')" style="display:none"><span class="nav-icon">₱</span> Earnings</div>
+      <div class="nav-item" id="nav-shifts" data-page="shifts" onclick="navigate('shifts')" style="display:none"><span class="nav-icon">🕐</span> Shift Log</div>
       <div class="nav-item" data-page="profile" onclick="navigate('profile')"><span class="nav-icon">👤</span> Profile</div>
     </nav>
     <div class="sidebar-footer">
-      <div class="clock-in-status">
-        <div class="flex items-center gap-2" style="margin-bottom:0.3rem">
-          <div class="clock-dot" id="clock-dot"></div>
-          <span class="clock-label" id="clock-status-label">Off Shift</span>
-          <span class="ml-auto text-muted" id="live-clock" style="font-variant-numeric:tabular-nums;font-size:0.72rem"></span>
+      <div id="clock-widget">
+        <div class="clock-in-status">
+          <div class="flex items-center gap-2" style="margin-bottom:0.3rem">
+            <div class="clock-dot" id="clock-dot"></div>
+            <span class="clock-label" id="clock-status-label">Off Shift</span>
+            <span class="ml-auto text-muted" id="live-clock" style="font-variant-numeric:tabular-nums;font-size:0.72rem"></span>
+          </div>
+          <div class="clock-time" id="clock-elapsed">—</div>
         </div>
-        <div class="clock-time" id="clock-elapsed">—</div>
+        <button class="btn-clock" id="btn-clock" onclick="toggleClock()">Clock In</button>
+        <button id="btn-break" onclick="toggleBreak()" style="display:none;width:100%;margin-top:0.45rem;padding:0.45rem 0.75rem;font-size:0.75rem;font-weight:600;border-radius:var(--radius-sm);border:1px solid rgba(245,166,35,0.35);background:rgba(245,166,35,0.08);color:var(--warning);cursor:pointer;transition:all var(--transition)">☕ Meal Break</button>
+        <div id="no-work-notice" class="no-work-notice" style="display:none">🚫 No work today<br><span style="font-size:0.67rem;font-weight:400;color:var(--text-secondary)">Check Updates for details.</span></div>
       </div>
-      <button class="btn-clock" id="btn-clock" onclick="toggleClock()">Login</button>
-      <button id="btn-break" onclick="toggleBreak()" style="display:none;width:100%;margin-top:0.45rem;padding:0.45rem 0.75rem;font-size:0.75rem;font-weight:600;border-radius:var(--radius-sm);border:1px solid rgba(245,166,35,0.35);background:rgba(245,166,35,0.08);color:var(--warning);cursor:pointer;transition:all var(--transition)">☕ Meal Break</button>
-      <div id="no-work-notice" class="no-work-notice" style="display:none">🚫 No work today<br><span style="font-size:0.67rem;font-weight:400;color:var(--text-secondary)">Check Updates for details.</span></div>
+      <div id="boss-online-indicator" style="display:none;background:rgba(31,184,195,0.08);border:1px solid rgba(31,184,195,0.2);border-radius:var(--radius-sm);padding:0.6rem 0.8rem;margin-bottom:0.7rem;font-size:0.75rem;color:var(--teal);font-weight:600">
+        🟢 You are online
+      </div>
       <div style="margin-top:0.65rem">
         <button class="btn-outline" style="width:100%;font-size:0.75rem;padding:0.45rem;color:#5A7A92;border-color:rgba(255,255,255,0.08)" onclick="doLogout()">Sign Out</button>
       </div>
@@ -1673,6 +1678,11 @@ function enterApp() {
   // Post-update form: boss only
   const postCard = document.getElementById('post-update-card');
   if (postCard) postCard.classList.toggle('hidden', !isBoss);
+  // Clock widget: staff only; boss gets simple online indicator
+  const clockWidget = document.getElementById('clock-widget');
+  const bossIndicator = document.getElementById('boss-online-indicator');
+  if (clockWidget) clockWidget.style.display = isBoss ? 'none' : '';
+  if (bossIndicator) bossIndicator.style.display = isBoss ? 'block' : 'none';
   // Nav visibility — boss vs staff
   const _nav = id => document.getElementById(id);
   if (_nav('nav-staff'))     _nav('nav-staff').style.display     = isBoss ? 'flex' : 'none';
