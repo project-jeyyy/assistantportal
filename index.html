@@ -1185,6 +1185,7 @@ function subscribeStaff() {
       _udCache['athanviloria'] = Object.assign({}, def, snap.data());
     }
     if (currentUser === BOSS_USERNAME || managerAccessMode) { renderStaff(); renderAttendance(); refreshOverview(); }
+    else refreshOverview();
     _refreshAssignedBadge();
     const assignedPage = document.getElementById('page-assigned');
     if (assignedPage && !assignedPage.classList.contains('hidden')) renderAssigned();
@@ -1667,7 +1668,7 @@ function enterApp() {
   if (staffNav) staffNav.style.display = isBossView ? 'flex' : 'none';
   const navAttendance = document.getElementById('nav-attendance');
   if (navAttendance) navAttendance.style.display = isBossView ? 'flex' : 'none';
-  if (isBossView) subscribeStaff();
+  subscribeStaff();
   if (!isBossView || managerAccessMode) subscribeBoss();
   startPresence();
   const postCard = document.getElementById('post-update-card');
