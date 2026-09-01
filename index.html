@@ -3226,15 +3226,14 @@ function renderAssigned() {
   if (!el) return;
   const cd = _udCache['athanviloria'];
   const tasks = cd ? (cd.assignedTasks || []) : [];
-  const isBoss = currentUser === BOSS_USERNAME;
-  const isManagerAccess = managerAccessMode; // Jey viewing Cyrel's workspace
+  const isBossOwn = currentUser === BOSS_USERNAME; // true only when Jey logs in as himself directly
 
   const order = { 'Urgent':0, 'High':1, 'Normal':2, 'Low':3 };
   const statusOrder = { 'Pending Review':0, 'In Progress':1, 'Not Started':2, 'Done':3 };
   const sorted = [...tasks].sort((a,b)=>(statusOrder[a.status]||3)-(statusOrder[b.status]||3)||(order[a.priority]||2)-(order[b.priority]||2));
 
-  if (isBoss || isManagerAccess) {
-    // Boss / manager-access view: add form + advance/remove controls
+  if (isBossOwn) {
+    // Jey's own portal: add form + advance/remove controls
     const addFormHtml = `
       <div class="card" style="margin-bottom:1.2rem">
         <div class="card-header"><span class="card-title">➕ Assign New Task</span></div>
@@ -3289,9 +3288,9 @@ function renderAssigned() {
     }).join('');
 
   } else {
-    // Staff (Cyrel) view: status dropdown per task, no add form, no remove button
+    // Cyrel's own login OR manager-access view: status dropdown per task
     if (tasks.length === 0) {
-      el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-text">No tasks assigned to you yet.</div></div>`;
+      el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-text">No tasks assigned yet.</div></div>`;
       return;
     }
 
