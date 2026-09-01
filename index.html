@@ -1673,24 +1673,27 @@ function enterApp() {
   startPresence();
   const postCard = document.getElementById('post-update-card');
   if (postCard) postCard.classList.toggle('hidden', currentUser !== BOSS_USERNAME);
+  // Cyrel's personal tabs — visible on his own portal AND when Jey views via manager access
+  // Only hidden on Jey's own dashboard (not manager access)
+  const onJeysDashboard = currentUser === BOSS_USERNAME && !managerAccessMode;
   const navEarnings = document.getElementById('nav-earnings');
-  if (navEarnings) navEarnings.style.display = isBossView ? 'none' : 'flex';
+  if (navEarnings) navEarnings.style.display = onJeysDashboard ? 'none' : 'flex';
   const navShifts = document.getElementById('nav-shifts');
-  if (navShifts) navShifts.style.display = isBossView ? 'none' : 'flex';
+  if (navShifts) navShifts.style.display = onJeysDashboard ? 'none' : 'flex';
   const navAccounts = document.getElementById('nav-accounts');
   if (navAccounts) navAccounts.style.display = 'none';
   const navAssigned = document.getElementById('nav-assigned');
   if (navAssigned) navAssigned.style.display = 'flex';
   const navTasklog = document.getElementById('nav-tasklog');
-  if (navTasklog) navTasklog.style.display = isBossView ? 'none' : 'flex';
+  if (navTasklog) navTasklog.style.display = onJeysDashboard ? 'none' : 'flex';
   const navIssues = document.getElementById('nav-issues');
-  if (navIssues) navIssues.style.display = isBossView ? 'none' : 'flex';
+  if (navIssues) navIssues.style.display = onJeysDashboard ? 'none' : 'flex';
   const navRecords = document.getElementById('nav-section-records');
-  if (navRecords) navRecords.style.display = isBossView ? 'none' : '';
+  if (navRecords) navRecords.style.display = onJeysDashboard ? 'none' : '';
   const tabPills = document.getElementById('accounts-tab-pills');
   if (tabPills) tabPills.style.display = isBossView ? 'none' : '';
   if (isBossView) { accountTab = 'all'; }
-  // Guide button — staff only
+  // Guide button — staff only, not in manager access
   const guideBtn = document.getElementById('btn-guide');
   if (guideBtn) {
     const dismissed = !!localStorage.getItem('aw_intro_dismissed');
