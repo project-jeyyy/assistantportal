@@ -586,7 +586,8 @@ select {
       <div class="nav-section-label">Workspace</div>
       <div class="nav-item active" data-page="overview" onclick="navigate('overview')"><span class="nav-icon">⊞</span> Overview</div>
       <div class="nav-item" data-page="updates" onclick="navigate('updates')"><span class="nav-icon">📌</span> Updates <span class="nav-badge hidden" id="updates-badge"></span></div>
-      <div class="nav-item" data-page="accounts" onclick="navigate('accounts')"><span class="nav-icon">📖</span> Clients</div>
+      <div class="nav-item" id="nav-assigned" data-page="assigned" onclick="navigate('assigned')" style="display:none"><span class="nav-icon">📋</span> Assigned Tasks <span class="nav-badge hidden" id="assigned-badge"></span></div>
+      <div class="nav-item" id="nav-accounts" data-page="accounts" onclick="navigate('accounts')"><span class="nav-icon">📖</span> Clients</div>
       <div class="nav-item" id="nav-tasklog" data-page="tasklog" onclick="navigate('tasklog')"><span class="nav-icon">✅</span> Task Log</div>
       <div class="nav-item" id="nav-issues" data-page="issues" onclick="navigate('issues')"><span class="nav-icon">💬</span> Issues &amp; Questions <span class="nav-badge hidden" id="issues-badge"></span></div>
       <div class="nav-item" id="nav-staff" data-page="staff" onclick="navigate('staff')" style="display:none"><span class="nav-icon">👤</span> Staff View</div>
@@ -728,10 +729,10 @@ select {
       <section id="page-issues" class="page-section">
         <div class="section-header">
           <div class="section-title">Issues &amp; Questions</div>
-          <div class="section-desc">Submit feedback, report issues, or raise questions.</div>
+          <div class="section-desc" id="issues-desc">Submit feedback, report issues, or raise questions.</div>
         </div>
-        <div class="grid-2" style="align-items:start">
-          <div class="card">
+        <div id="issues-layout" class="grid-2" style="align-items:start">
+          <div class="card" id="issues-submit-card">
             <div class="card-header"><span class="card-title">Submit New</span></div>
             <div class="card-body">
               <div class="form-field">
@@ -756,7 +757,7 @@ select {
             </div>
           </div>
           <div class="card">
-            <div class="card-header"><span class="card-title">Submitted</span></div>
+            <div class="card-header"><span class="card-title" id="issues-list-title">Submitted</span></div>
             <div class="card-body" id="issues-list" style="padding:0.75rem">
               <div class="empty-state"><div class="empty-state-icon">💬</div><div class="empty-state-text">Nothing submitted yet.</div></div>
             </div>
@@ -783,6 +784,17 @@ select {
         </div>
         <div id="tasklog-content">
           <div class="empty-state"><div class="empty-state-icon">✅</div><div class="empty-state-text">No tasks in progress yet.</div></div>
+        </div>
+      </section>
+
+      <!-- ── Assigned Tasks ── -->
+      <section id="page-assigned" class="page-section">
+        <div class="section-header">
+          <div class="section-title">Assigned Tasks</div>
+          <div class="section-desc">Tasks assigned to Cyrel — status updates reflect in real time.</div>
+        </div>
+        <div id="assigned-content">
+          <div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-text">Loading…</div></div>
         </div>
       </section>
 
@@ -1172,7 +1184,16 @@ function subscribeStaff() {
       const def = { accounts:{}, issues:[], shifts:[], hourlyRate:175, fullName:'Cyrel Athan Viloria', seenUpdates:0, activity:[], clockedIn:false, clockIn:null };
       _udCache['athanviloria'] = Object.assign({}, def, snap.data());
     }
-    if (currentUser === BOSS_USERNAME) { renderStaff(); renderAttendance(); refreshOverview(); }
+    if (currentUser === BOSS_USERNAME) {
+      refreshOverview();
+      refreshIssuesBadge();
+      refreshAssignedBadge();
+      const activePage = document.querySelector('.nav-item.active');
+      const pg = activePage ? activePage.getAttribute('data-page') : '';
+      if (pg==='staff') renderStaff();
+      if (pg==='issues') renderIssues();
+      if (pg==='assigned') renderAssigned();
+    }
   }, ()=>{});
 }
 
@@ -1644,29 +1665,29 @@ function enterApp() {
   refreshAll();
   greetUser();
   subscribeUpdates();
-  // Boss-only: show Staff tab and subscribe to live staff data
-  const staffNav = document.getElementById('nav-staff');
-  if (staffNav) staffNav.style.display = currentUser === BOSS_USERNAME ? 'flex' : 'none';
-  if (currentUser === BOSS_USERNAME) subscribeStaff();
+  const isBoss = currentUser === BOSS_USERNAME;
+  // Subscriptions
+  if (isBoss) subscribeStaff();
   else subscribeBoss();
   startPresence();
+  // Post-update form: boss only
   const postCard = document.getElementById('post-update-card');
-  if (postCard) postCard.classList.toggle('hidden', currentUser !== BOSS_USERNAME);
-  const navAttendance = document.getElementById('nav-attendance');
-  if (navAttendance) navAttendance.style.display = currentUser === BOSS_USERNAME ? 'flex' : 'none';
-  const navEarnings = document.getElementById('nav-earnings');
-  if (navEarnings) navEarnings.style.display = currentUser === BOSS_USERNAME ? 'none' : 'flex';
-  const navShifts = document.getElementById('nav-shifts');
-  if (navShifts) navShifts.style.display = currentUser === BOSS_USERNAME ? 'none' : 'flex';
-  const navTasklog = document.getElementById('nav-tasklog');
-  if (navTasklog) navTasklog.style.display = currentUser === BOSS_USERNAME ? 'none' : 'flex';
-  const navIssues = document.getElementById('nav-issues');
-  if (navIssues) navIssues.style.display = currentUser === BOSS_USERNAME ? 'none' : 'flex';
+  if (postCard) postCard.classList.toggle('hidden', !isBoss);
+  // Nav visibility — boss vs staff
+  const _nav = id => document.getElementById(id);
+  if (_nav('nav-staff'))     _nav('nav-staff').style.display     = isBoss ? 'flex' : 'none';
+  if (_nav('nav-assigned'))  _nav('nav-assigned').style.display  = isBoss ? 'flex' : 'none';
+  if (_nav('nav-issues'))    _nav('nav-issues').style.display    = 'flex'; // both see issues
+  if (_nav('nav-accounts'))  _nav('nav-accounts').style.display  = isBoss ? 'none' : 'flex';
+  if (_nav('nav-tasklog'))   _nav('nav-tasklog').style.display   = isBoss ? 'none' : 'flex';
+  if (_nav('nav-attendance'))_nav('nav-attendance').style.display= 'none'; // merged into Staff View
+  if (_nav('nav-earnings'))  _nav('nav-earnings').style.display  = isBoss ? 'none' : 'flex';
+  if (_nav('nav-shifts'))    _nav('nav-shifts').style.display    = isBoss ? 'none' : 'flex';
   const navRecords = document.getElementById('nav-section-records');
-  if (navRecords) navRecords.style.display = currentUser === BOSS_USERNAME ? 'none' : '';
+  if (navRecords) navRecords.style.display = isBoss ? 'none' : '';
   const tabPills = document.getElementById('accounts-tab-pills');
-  if (tabPills) tabPills.style.display = currentUser === BOSS_USERNAME ? 'none' : '';
-  if (currentUser === BOSS_USERNAME) { accountTab = 'all'; }
+  if (tabPills) tabPills.style.display = isBoss ? 'none' : '';
+  if (isBoss) { accountTab = 'all'; }
   // Guide button — staff only
   const guideBtn = document.getElementById('btn-guide');
   if (guideBtn) {
@@ -1708,10 +1729,10 @@ function greetUser() {
 // ─────────────────────────────────────────────
 // NAVIGATION
 // ─────────────────────────────────────────────
-const PAGE_TITLES = { overview:'Overview', updates:'Updates', accounts:'Clients', tasklog:'Task Log', staff:'Staff View', issues:'Issues & Questions', earnings:'Earnings', shifts:'Shift Log', attendance:'Attendance', profile:'Profile' };
+const PAGE_TITLES = { overview:'Overview', updates:'Updates', accounts:'Clients', tasklog:'Task Log', staff:'Staff View', assigned:'Assigned Tasks', issues:'Issues & Questions', earnings:'Earnings', shifts:'Shift Log', attendance:'Attendance', profile:'Profile' };
 
 function navigate(page) {
-  if ((page === 'earnings' || page === 'shifts' || page === 'tasklog' || page === 'issues') && currentUser === BOSS_USERNAME) page = 'overview';
+  if ((page === 'earnings' || page === 'shifts' || page === 'tasklog') && currentUser === BOSS_USERNAME) page = 'overview';
   document.querySelectorAll('.page-section').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   const sec=document.getElementById('page-'+page);
@@ -1724,6 +1745,7 @@ function navigate(page) {
   if (page==='tasklog')  renderTaskLog();
   if (page==='staff')      renderStaff();
   if (page==='attendance') renderAttendance();
+  if (page==='assigned') renderAssigned();
   if (page==='issues')   renderIssues();
   if (page==='earnings') renderEarnings();
   if (page==='shifts')   renderShifts();
@@ -1731,9 +1753,11 @@ function navigate(page) {
 }
 
 function refreshAll() {
-  refreshOverview(); renderUpdates(); renderAccounts();
-  renderIssues(); renderEarnings(); renderShifts();
+  refreshOverview(); renderUpdates();
+  if (currentUser === BOSS_USERNAME) { renderAssigned(); renderIssues(); }
+  else { renderAccounts(); renderIssues(); renderEarnings(); renderShifts(); }
   refreshUpdatesBadge(); refreshIssuesBadge();
+  if (currentUser === BOSS_USERNAME) refreshAssignedBadge();
 }
 
 // ─────────────────────────────────────────────
@@ -1905,11 +1929,11 @@ function _renderBossOverview() {
 
   // Athan's presence
   const pres = cd && cd.presence;
-  let presStatus = 'offline', presLastSeen = null;
+  let presStatus = 'offline';
   if (pres) {
     presStatus = pres.status || 'offline';
-    presLastSeen = pres.lastSeen ? new Date(pres.lastSeen) : null;
-    if (presLastSeen && (Date.now() - presLastSeen.getTime()) > 3 * 60 * 1000) presStatus = 'offline';
+    const ls = pres.lastSeen ? new Date(pres.lastSeen) : null;
+    if (ls && (Date.now() - ls.getTime()) > 3 * 60 * 1000) presStatus = 'offline';
   }
   const pMap = {
     active:  { dot:'🟢', label:'Online',  color:'var(--success)' },
@@ -1922,20 +1946,33 @@ function _renderBossOverview() {
     ? `<span style="color:var(--success);font-weight:700">● Clocked In</span> since ${new Date(cd.clockIn).toLocaleTimeString()}`
     : `<span style="color:var(--text-muted)">○ Off Shift</span>`;
 
-  // Client pipeline from Athan's Firestore data
-  const accts = cd ? (cd.accounts || {}) : {};
-  const owned = MASTER_CLIENTS.filter(c => c.owned);
-  const closedCount    = owned.filter(c => (accts[c.name]?.overallStatus||'') === 'Closed').length;
-  const completedCount = owned.filter(c => (accts[c.name]?.overallStatus||'') === 'Completed').length;
-  const inProcessCount = owned.filter(c => (accts[c.name]?.overallStatus||'') === 'In Process').length;
-  const notStartedCount = owned.length - closedCount - completedCount - inProcessCount;
+  // Assigned tasks summary
+  const assignedTasks = cd ? (cd.assignedTasks || []) : [];
+  const atTotal      = assignedTasks.length;
+  const atDone       = assignedTasks.filter(t => t.status === 'Done').length;
+  const atInProgress = assignedTasks.filter(t => t.status === 'In Progress').length;
+  const atPending    = assignedTasks.filter(t => t.status === 'Pending Review').length;
+  const atNotStarted = assignedTasks.filter(t => t.status === 'Not Started').length;
+
+  // Earnings summary from shifts
+  const rate = cd ? (cd.hourlyRate || 110) : 110;
+  const shifts = cd ? (cd.shifts || []).filter(s => new Date(s.inISO || s.date) >= WORK_START) : [];
+  const todayKey = now.toLocaleDateString('en-US');
+  const weekStart = new Date(now); weekStart.setDate(now.getDate() - now.getDay()); weekStart.setHours(0,0,0,0);
+  const monthKey = `${now.getMonth()}-${now.getFullYear()}`;
+  const calcE = s => s.earned !== undefined ? s.earned : ((s.hours||0) < MAX_SHIFT_HRS ? (s.hours||0)*rate : s.overtime ? DAILY_MIN_WAGE+(((s.hours||0)-MAX_SHIFT_HRS)*rate) : DAILY_MIN_WAGE);
+  const todayEarned = shifts.filter(s => s.date === todayKey).reduce((a,s) => a+calcE(s), 0);
+  const weekEarned  = shifts.filter(s => new Date(s.inISO||s.date) >= weekStart).reduce((a,s) => a+calcE(s), 0);
+  const monthEarned = shifts.filter(s => { const d=new Date(s.inISO||s.date); return `${d.getMonth()}-${d.getFullYear()}` === monthKey; }).reduce((a,s) => a+calcE(s), 0);
+  const allEarned   = shifts.reduce((a,s) => a+calcE(s), 0);
+  const fmt = v => '₱'+v.toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+  // Recent shifts (last 5)
+  const recentShifts = [...shifts].reverse().slice(0, 5);
 
   // Last verification stored in boss doc
   const bossUd = getUserData(BOSS_USERNAME);
   const lastRep = bossUd.lastReportVerification || null;
-
-  // Athan's recent activity
-  const activity = (cd ? (cd.activity || []) : []).slice(0, 8);
 
   const updBanner = updates.length > 0
     ? `<div class="updates-banner" onclick="navigate('updates')" style="cursor:pointer;margin-bottom:1rem">
@@ -1945,34 +1982,53 @@ function _renderBossOverview() {
 
   document.getElementById('overview-body').innerHTML = `
     ${updBanner}
+
+    <!-- Status + Assigned Tasks summary tiles -->
     <div class="grid-4" style="margin-bottom:1.2rem;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">
       <div class="stat-tile stat-teal">
         <div class="stat-label">Athan's Status</div>
         <div style="font-size:0.82rem;margin-top:0.5rem;color:${pi.color};font-weight:700">${pi.dot} ${pi.label}</div>
         <div style="margin-top:0.35rem;font-size:0.75rem">${clockStatus}</div>
       </div>
-      <div class="stat-tile" style="border-left:3px solid rgba(74,111,227,0.6)">
-        <div class="stat-label">Closed</div>
-        <div class="stat-value" style="color:#4A6FE3">${closedCount}</div>
-        <div class="stat-sub">clients this month</div>
-      </div>
-      <div class="stat-tile stat-gold" style="cursor:pointer" onclick="navigate('accounts')">
-        <div class="stat-label">Pending Review</div>
-        <div class="stat-value" style="color:var(--warning)">${completedCount}</div>
-        <div class="stat-sub">completed, not closed</div>
-      </div>
-      <div class="stat-tile stat-orange">
+      <div class="stat-tile" style="cursor:pointer;border-left:3px solid var(--teal)" onclick="navigate('assigned')">
         <div class="stat-label">In Progress</div>
-        <div class="stat-value">${inProcessCount}</div>
-        <div class="stat-sub">clients</div>
+        <div class="stat-value" style="color:var(--teal)">${atInProgress}</div>
+        <div class="stat-sub">${atTotal} task${atTotal!==1?'s':''} total</div>
       </div>
-      <div class="stat-tile">
-        <div class="stat-label">Not Started</div>
-        <div class="stat-value" style="color:var(--text-muted)">${notStartedCount}</div>
-        <div class="stat-sub">clients</div>
+      <div class="stat-tile stat-gold" style="cursor:pointer" onclick="navigate('assigned')">
+        <div class="stat-label">Pending Review</div>
+        <div class="stat-value" style="color:var(--warning)">${atPending}</div>
+        <div class="stat-sub">awaiting your review</div>
+      </div>
+      <div class="stat-tile" style="cursor:pointer" onclick="navigate('assigned')">
+        <div class="stat-label">Done</div>
+        <div class="stat-value" style="color:var(--success)">${atDone}</div>
+        <div class="stat-sub">${atNotStarted} not started</div>
       </div>
     </div>
 
+    <!-- Earnings tiles -->
+    <div class="grid-4" style="margin-bottom:1.2rem;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
+      <div class="stat-tile">
+        <div class="stat-label">Today's Earnings</div>
+        <div class="stat-value" style="color:var(--teal);font-size:1.1rem">${fmt(todayEarned)}</div>
+      </div>
+      <div class="stat-tile">
+        <div class="stat-label">This Week</div>
+        <div class="stat-value" style="font-size:1.1rem">${fmt(weekEarned)}</div>
+      </div>
+      <div class="stat-tile">
+        <div class="stat-label">This Month</div>
+        <div class="stat-value" style="font-size:1.1rem">${fmt(monthEarned)}</div>
+      </div>
+      <div class="stat-tile stat-gold">
+        <div class="stat-label">All Time</div>
+        <div class="stat-value" style="color:var(--warning);font-size:1.1rem">${fmt(allEarned)}</div>
+        <div class="stat-sub">${shifts.length} shift${shifts.length!==1?'s':''}</div>
+      </div>
+    </div>
+
+    <!-- Daily Report + Recent Shifts -->
     <div class="grid-2" style="align-items:start;margin-bottom:0.85rem">
       <div class="card">
         <div class="card-header"><span class="card-title">📋 Daily Report</span></div>
@@ -1991,18 +2047,20 @@ function _renderBossOverview() {
         </div>
       </div>
       <div class="card">
-        <div class="card-header"><span class="card-title">👤 Athan's Recent Activity</span></div>
-        <div class="card-body" style="padding:0.5rem 0;max-height:260px;overflow-y:auto">
-          ${activity.length === 0
-            ? `<div class="empty-state"><div class="empty-state-text">No activity yet.</div></div>`
-            : activity.map(a => {
-                const msg = typeof a === 'string' ? a : (a.msg || '');
-                const time = a.time ? new Date(a.time).toLocaleString() : '';
-                return `<div style="padding:0.45rem 1rem;border-bottom:1px solid var(--border)">
-                  ${time?`<div style="font-size:0.68rem;color:var(--text-muted)">${time}</div>`:''}
-                  <div style="font-size:0.8rem;color:var(--text-secondary);margin-top:0.1rem">${esc(msg)}</div>
-                </div>`;
-              }).join('')}
+        <div class="card-header"><span class="card-title">🕐 Recent Shifts</span><a onclick="navigate('staff')" style="font-size:0.75rem;color:var(--teal);cursor:pointer">View all →</a></div>
+        <div class="card-body" style="padding:0">
+          ${recentShifts.length === 0
+            ? `<div class="empty-state"><div class="empty-state-text">No shifts logged yet.</div></div>`
+            : recentShifts.map(s => `<div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem 1rem;border-bottom:1px solid var(--border)">
+                <div>
+                  <div style="font-size:0.8rem;font-weight:600">${esc(s.date)}</div>
+                  <div style="font-size:0.72rem;color:var(--text-muted)">${esc(s.inTime||'')} → ${esc(s.outTime||'')}</div>
+                </div>
+                <div style="text-align:right">
+                  <div style="font-size:0.8rem;font-weight:700;color:var(--success)">${fmt(calcE(s))}</div>
+                  <div style="font-size:0.72rem;color:var(--text-muted)">${(s.hours||0).toFixed(2)} hrs</div>
+                </div>
+               </div>`).join('')}
         </div>
       </div>
     </div>
@@ -2269,7 +2327,7 @@ function _renderStaffOverview() {
 }
 
 // ─────────────────────────────────────────────
-// STAFF VIEW (boss only)
+// STAFF VIEW (boss only) — combined with Attendance
 // ─────────────────────────────────────────────
 function renderStaff() {
   const el = document.getElementById('staff-content');
@@ -2277,119 +2335,170 @@ function renderStaff() {
   const cd = _udCache['athanviloria'];
   if (!cd) { el.innerHTML=`<div class="empty-state"><div class="empty-state-icon">👤</div><div class="empty-state-text">Cyrel hasn't logged in yet — no data available.</div></div>`; return; }
 
-  const rate = cd.hourlyRate || 175;
+  const rate = cd.hourlyRate || 110;
   const shifts = (cd.shifts||[]).filter(s=>new Date(s.inISO||s.date)>=WORK_START);
-  const totalHrs = shifts.reduce((a,s)=>a+(s.hours||0),0);
-  const totalEarned = shifts.reduce((a,s)=>a+(s.earned!==undefined?s.earned:((s.hours||0)<MAX_SHIFT_HRS?(s.hours||0)*rate:s.overtime?DAILY_MIN_WAGE+(((s.hours||0)-MAX_SHIFT_HRS)*rate):DAILY_MIN_WAGE)),0);
+  const accessLog = cd.accessLog || [];
   const now = new Date();
   const todayKey = now.toLocaleDateString('en-US');
-  const todayHrs = shifts.filter(s=>s.date===todayKey).reduce((a,s)=>a+(s.hours||0),0);
+  const calcE = s => s.earned !== undefined ? s.earned : ((s.hours||0)<MAX_SHIFT_HRS?(s.hours||0)*rate:s.overtime?DAILY_MIN_WAGE+(((s.hours||0)-MAX_SHIFT_HRS)*rate):DAILY_MIN_WAGE);
   const fmtP = v=>'₱'+v.toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+  // Payroll cutoff earnings
+  const cutoffEarnings = (function() {
+    const buckets = {};
+    shifts.forEach(s => {
+      const d = new Date(s.inISO || s.date);
+      const yr = d.getFullYear(), mo = d.getMonth()+1, day = d.getDate();
+      const period = day <= 15 ? `${yr}-${String(mo).padStart(2,'0')}-1st` : `${yr}-${String(mo).padStart(2,'0')}-2nd`;
+      const label  = day <= 15
+        ? `${d.toLocaleDateString('en-US',{month:'short',year:'numeric'})} · 1st–15th`
+        : `${d.toLocaleDateString('en-US',{month:'short',year:'numeric'})} · 16th–End`;
+      if (!buckets[period]) buckets[period] = { label, earned:0, hours:0, count:0 };
+      buckets[period].earned += calcE(s);
+      buckets[period].hours  += s.hours||0;
+      buckets[period].count++;
+    });
+    return Object.keys(buckets).sort().reverse().map(k=>buckets[k]);
+  })();
+
+  // Presence
+  const pres = cd.presence;
+  let presStatus = 'offline';
+  if (pres) {
+    presStatus = pres.status || 'offline';
+    const ls = pres.lastSeen ? new Date(pres.lastSeen) : null;
+    if (ls && (Date.now()-ls.getTime())>3*60*1000) presStatus = 'offline';
+  }
+  const pMap = { active:{dot:'🟢',label:'Online',color:'var(--success)'}, idle:{dot:'🟡',label:'Idle',color:'var(--warning)'}, away:{dot:'🟠',label:'Away',color:'#f97316'}, offline:{dot:'⚫',label:'Offline',color:'var(--text-muted)'} };
+  const pi = pMap[presStatus]||pMap.offline;
   const clockStatus = cd.clockedIn
     ? `<span style="color:var(--success);font-weight:700">● Clocked In</span> since ${new Date(cd.clockIn).toLocaleTimeString()}`
     : `<span style="color:var(--text-muted)">○ Off Shift</span>`;
 
-  // Client status summary
-  const owned = MASTER_CLIENTS.filter(c=>c.owned);
-  const accts = cd.accounts || {};
-  const completedClients = owned.filter(c=>(accts[c.name]?.overallStatus||'')==='Completed').length;
-  const inProcessClients = owned.filter(c=>(accts[c.name]?.overallStatus||'')==='In Process').length;
+  const totalHrs    = shifts.reduce((a,s)=>a+(s.hours||0),0);
+  const totalEarned = shifts.reduce((a,s)=>a+calcE(s),0);
+  const weekStart   = new Date(now); weekStart.setDate(now.getDate()-now.getDay()); weekStart.setHours(0,0,0,0);
+  const weekEarned  = shifts.filter(s=>new Date(s.inISO||s.date)>=weekStart).reduce((a,s)=>a+calcE(s),0);
+  const monthKey    = `${now.getMonth()}-${now.getFullYear()}`;
+  const monthEarned = shifts.filter(s=>{const d=new Date(s.inISO||s.date);return `${d.getMonth()}-${d.getFullYear()}`===monthKey;}).reduce((a,s)=>a+calcE(s),0);
+  const todayEarned = shifts.filter(s=>s.date===todayKey).reduce((a,s)=>a+calcE(s),0);
 
-  // Recent activity
-  const activity = (cd.activity||[]).slice(0,10);
-
-  // Task log across all clients
-  const touchedTasks = [];
-  MASTER_CLIENTS.forEach(c=>{
-    const cda=accts[c.name]; if(!cda||!cda.tasks) return;
-    cda.tasks.forEach(t=>{ if(t.progress&&t.progress!=='Not Yet Started') touchedTasks.push({client:c.name,task:t.type,progress:t.progress,owned:c.owned}); });
-  });
-
-  const openIssuesCount = (cd.issues||[]).filter(i=>i.status==='Open').length;
+  const todayStr = cd.overtimeAuthDate;
+  const otAuth = todayStr === todayKey;
+  const noWork = !!(cd.noWorkEnabled);
 
   el.innerHTML = `
+    <!-- Presence + clock tiles -->
     <div class="grid-4" style="margin-bottom:1.2rem;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">
-      <div class="stat-tile stat-teal"><div class="stat-label">Clock Status</div><div style="font-size:0.82rem;margin-top:0.4rem">${clockStatus}</div></div>
-      <div class="stat-tile stat-green"><div class="stat-label">Clients Done</div><div class="stat-value v-green">${completedClients}</div><div class="stat-sub">of ${owned.length} owned</div></div>
-      <div class="stat-tile stat-orange"><div class="stat-label">In Progress</div><div class="stat-value">${inProcessClients}</div><div class="stat-sub">clients</div></div>
-      <div class="stat-tile stat-gold"><div class="stat-label">Hours Logged</div><div class="stat-value v-teal">${totalHrs.toFixed(1)}</div><div class="stat-sub">${fmtP(totalEarned)} earned</div></div>
-      <div class="stat-tile ${openIssuesCount>0?'stat-orange':''}"><div class="stat-label">Open Issues</div><div class="stat-value" style="color:${openIssuesCount>0?'var(--danger)':'var(--text-muted)'}">${openIssuesCount}</div><div class="stat-sub">${openIssuesCount>0?'needs attention':'all clear'}</div></div>
-    </div>
-
-    <div class="grid-2" style="align-items:start">
-      <div class="card">
-        <div class="card-header"><span class="card-title">📋 Recent Activity</span></div>
-        <div class="card-body" style="padding:0.5rem 0">
-          ${activity.length===0
-            ? `<div class="empty-state"><div class="empty-state-text">No activity yet.</div></div>`
-            : activity.map(a=>`<div style="padding:0.5rem 1rem;border-bottom:1px solid var(--border)">
-                <div style="font-size:0.68rem;color:var(--text-muted)">${a.time ? new Date(a.time).toLocaleString() : ''}</div>
-                <div style="font-size:0.8rem;color:var(--text-secondary);margin-top:0.1rem">${esc(typeof a === 'string' ? a : (a.msg||''))}</div>
-              </div>`).join('')}
-        </div>
+      <div class="stat-tile stat-teal">
+        <div class="stat-label">Online Status</div>
+        <div style="font-size:0.82rem;margin-top:0.5rem;color:${pi.color};font-weight:700">${pi.dot} ${pi.label}</div>
+        <div style="margin-top:0.35rem;font-size:0.75rem">${clockStatus}</div>
       </div>
-      <div class="card">
-        <div class="card-header"><span class="card-title">✅ Tasks Worked</span><span style="font-size:0.72rem;color:var(--text-muted)">${touchedTasks.length} entries</span></div>
-        <div class="card-body" style="padding:0.5rem 0;max-height:320px;overflow-y:auto">
-          ${touchedTasks.length===0
-            ? `<div class="empty-state"><div class="empty-state-text">No tasks touched yet.</div></div>`
-            : touchedTasks.map(t=>{
-                const color=t.progress==='Completed'?'var(--success)':'var(--warning)';
-                return `<div style="padding:0.45rem 1rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:0.5rem">
-                  <div>
-                    <div style="font-size:0.8rem;font-weight:600">${esc(t.client)}${t.owned?` <span style="color:var(--teal);font-size:0.65rem">Athan</span>`:''}</div>
-                    <div style="font-size:0.72rem;color:var(--text-muted)">${esc(t.task)}</div>
-                  </div>
-                  <span style="font-size:0.7rem;font-weight:700;color:${color};white-space:nowrap">${t.progress}</span>
-                </div>`;
-              }).join('')}
-        </div>
+      <div class="stat-tile stat-green"><div class="stat-label">Total Shifts</div><div class="stat-value v-green">${shifts.length}</div><div class="stat-sub">Since Jul 27</div></div>
+      <div class="stat-tile stat-orange"><div class="stat-label">Total Hours</div><div class="stat-value">${totalHrs.toFixed(2)}</div><div class="stat-sub">hrs logged</div></div>
+      <div class="stat-tile stat-gold"><div class="stat-label">All Time Earned</div><div class="stat-value v-teal" style="font-size:1.1rem">${fmtP(totalEarned)}</div><div class="stat-sub">@ ₱${rate}/hr</div></div>
+      <div class="stat-tile" style="border:1px solid ${otAuth?'rgba(74,111,227,0.35)':'var(--border)'};background:${otAuth?'rgba(74,111,227,0.06)':''}">
+        <div class="stat-label">Overtime Today</div>
+        <div style="margin-top:0.4rem;font-size:0.82rem;font-weight:700;color:${otAuth?'#4A6FE3':'var(--text-muted)'}">${otAuth?'✓ Authorized':'Not Authorized'}</div>
+        <button onclick="toggleOvertimeAuth()" style="margin-top:0.5rem;font-size:0.7rem;padding:0.2rem 0.7rem;border-radius:99px;border:1px solid ${otAuth?'#4A6FE3':'var(--border)'};background:${otAuth?'rgba(74,111,227,0.12)':'transparent'};color:${otAuth?'#4A6FE3':'var(--text-muted)'};cursor:pointer;font-weight:600">${otAuth?'Revoke':'Authorize'}</button>
+      </div>
+      <div class="stat-tile" style="border:1px solid ${noWork?'rgba(239,68,68,0.35)':'var(--border)'};background:${noWork?'rgba(239,68,68,0.06)':''}">
+        <div class="stat-label">No Work Mode</div>
+        <div style="margin-top:0.4rem;font-size:0.82rem;font-weight:700;color:${noWork?'var(--danger)':'var(--text-muted)'}">${noWork?'🚫 Active':'Not Active'}</div>
+        <button onclick="toggleNoWork()" style="margin-top:0.5rem;font-size:0.7rem;padding:0.2rem 0.7rem;border-radius:99px;border:1px solid ${noWork?'rgba(239,68,68,0.5)':'var(--border)'};background:${noWork?'rgba(239,68,68,0.12)':'transparent'};color:${noWork?'var(--danger)':'var(--text-muted)'};cursor:pointer;font-weight:600">${noWork?'Deactivate':'Activate'}</button>
       </div>
     </div>
 
-    <div class="card" style="margin-top:0.85rem">
-      <div class="card-header"><span class="card-title">🕐 Shift Log</span></div>
-      <div class="card-body" style="padding:0.5rem 0;overflow-x:auto">
-        ${shifts.length===0
-          ? `<div class="empty-state"><div class="empty-state-text">No shifts recorded yet.</div></div>`
-          : `<table style="width:100%;border-collapse:collapse;font-size:0.8rem">
-              <thead><tr style="border-bottom:1px solid var(--border)">${['Date','Clock In','Clock Out','Hours','Earned'].map(h=>`<th style="text-align:left;padding:0.4rem 1rem;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted)">${h}</th>`).join('')}</tr></thead>
-              <tbody>${shifts.map(s=>`<tr style="border-bottom:1px solid var(--border)">
-                <td style="padding:0.5rem 1rem">${s.date}</td>
-                <td style="padding:0.5rem 1rem">${s.inTime}</td>
-                <td style="padding:0.5rem 1rem">${s.outTime}</td>
-                <td style="padding:0.5rem 1rem;font-weight:700;font-variant-numeric:tabular-nums">${(s.hours||0).toFixed(2)}</td>
-                <td style="padding:0.5rem 1rem;color:var(--success);font-weight:700">₱${((s.earned||0)).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
-              </tr>`).join('')}</tbody>
-            </table>`}
-      </div>
+    <!-- Earnings summary tiles -->
+    <div class="grid-4" style="margin-bottom:1.2rem;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
+      <div class="stat-tile"><div class="stat-label">Today's Earnings</div><div class="stat-value" style="color:var(--teal);font-size:1.1rem">${fmtP(todayEarned)}</div></div>
+      <div class="stat-tile"><div class="stat-label">This Week</div><div class="stat-value" style="font-size:1.1rem">${fmtP(weekEarned)}</div></div>
+      <div class="stat-tile"><div class="stat-label">This Month</div><div class="stat-value" style="font-size:1.1rem">${fmtP(monthEarned)}</div></div>
+      <div class="stat-tile stat-gold"><div class="stat-label">All Time</div><div class="stat-value" style="color:var(--warning);font-size:1.1rem">${fmtP(totalEarned)}</div></div>
     </div>
 
-    <div class="card" style="margin-top:0.85rem">
-      <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
-        <span class="card-title">💬 Issues &amp; Questions</span>
-        ${(cd.issues||[]).filter(i=>i.status==='Open').length > 0
-          ? `<span style="font-size:0.7rem;font-weight:700;padding:0.15rem 0.55rem;background:rgba(239,68,68,0.12);color:var(--danger);border-radius:4px">${(cd.issues||[]).filter(i=>i.status==='Open').length} Open</span>`
-          : `<span style="font-size:0.7rem;color:var(--text-muted)">All clear</span>`}
-      </div>
-      <div class="card-body" style="padding:${(cd.issues||[]).length===0?'1rem':'0.5rem 0'}">
-        ${(cd.issues||[]).length===0
-          ? `<div class="empty-state"><div class="empty-state-text">No issues submitted.</div></div>`
-          : (cd.issues||[]).map(i=>`
-            <div style="display:flex;gap:0.7rem;padding:0.65rem 1rem;border-bottom:1px solid var(--border);align-items:flex-start">
-              <div style="width:3px;flex-shrink:0;align-self:stretch;border-radius:2px;background:${i.priority==='Urgent'?'var(--danger)':i.priority==='High'?'var(--warning)':'var(--teal)'}"></div>
-              <div style="flex:1">
-                <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.2rem">
-                  <span style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted)">${ISSUE_LABEL[i.type]||i.type}</span>
-                  <span class="badge ${PRIORITY_BADGE[i.priority]||'badge-muted'}">${i.priority}</span>
-                  <span class="badge ${i.status==='Open'?'badge-warning':'badge-success'}">${i.status}</span>
-                </div>
-                <div style="font-weight:700;font-size:0.84rem;margin-bottom:0.12rem">${esc(i.subject)}</div>
-                <div style="font-size:0.78rem;color:var(--text-secondary);margin-bottom:0.3rem">${esc(i.body)}</div>
-                <div style="font-size:0.68rem;color:var(--text-muted)">${i.date} at ${i.time}</div>
+    <!-- Payroll cutoff earnings -->
+    <div class="card" style="margin-bottom:0.85rem">
+      <div class="card-header"><span class="card-title">₱ Earnings by Payroll Cutoff</span><span style="font-size:0.72rem;color:var(--text-muted)">${cutoffEarnings.length} period${cutoffEarnings.length!==1?'s':''}</span></div>
+      <div class="card-body" style="padding:0">
+        ${cutoffEarnings.length===0
+          ? `<div class="empty-state"><div class="empty-state-text">No payroll periods yet.</div></div>`
+          : cutoffEarnings.map(p=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:0.6rem 1.2rem;border-bottom:1px solid var(--border)">
+              <div>
+                <div style="font-size:0.83rem;font-weight:700">${esc(p.label)}</div>
+                <div style="font-size:0.72rem;color:var(--text-muted)">${p.count} shift${p.count!==1?'s':''} · ${p.hours.toFixed(2)} hrs</div>
               </div>
-              <button onclick="toggleIssueStatus('${i.id}')" style="flex-shrink:0;font-size:0.68rem;padding:0.25rem 0.6rem;border-radius:4px;border:1px solid var(--border);background:var(--surface-hover);color:var(--text-secondary);cursor:pointer;white-space:nowrap">${i.status==='Open'?'Mark Resolved':'Reopen'}</button>
-            </div>`).join('')}
+              <div style="font-size:0.95rem;font-weight:800;color:var(--success)">${fmtP(p.earned)}</div>
+             </div>`).join('')}
+      </div>
+    </div>
+
+    <!-- Shift Log -->
+    <div class="card" style="margin-bottom:0.85rem">
+      <div class="card-header"><span class="card-title">🕐 Shift Log</span><span style="font-size:0.72rem;color:var(--text-muted)">${shifts.length} session${shifts.length!==1?'s':''}</span></div>
+      <div class="card-body" style="padding:0">
+        ${shifts.length===0
+          ? `<div class="empty-state"><div class="empty-state-icon">🕐</div><div class="empty-state-text">No shifts logged yet.</div></div>`
+          : `<div style="overflow-x:auto">
+              <table style="width:100%;border-collapse:collapse;font-size:0.83rem">
+                <thead><tr style="border-bottom:1px solid var(--border)">
+                  ${['#','Date','Clock In','Clock Out','Hours','Earned','Device'].map(h=>`<th style="text-align:left;padding:0.6rem 1.2rem;font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-muted)">${h}</th>`).join('')}
+                </tr></thead>
+                <tbody>
+                  ${[...shifts].reverse().map((s,i)=>`<tr style="border-bottom:1px solid var(--border)">
+                    <td style="padding:0.6rem 1.2rem;color:var(--text-muted)">${shifts.length-i}</td>
+                    <td style="padding:0.6rem 1.2rem">${esc(s.date)}</td>
+                    <td style="padding:0.6rem 1.2rem;color:var(--success);font-weight:600">${esc(s.inTime)}</td>
+                    <td style="padding:0.6rem 1.2rem;color:var(--danger);font-weight:600">${esc(s.outTime)}</td>
+                    <td style="padding:0.6rem 1.2rem;font-weight:700">${(s.hours||0).toFixed(2)}</td>
+                    <td style="padding:0.6rem 1.2rem;color:var(--success);font-weight:700">${fmtP(calcE(s))}</td>
+                    <td style="padding:0.6rem 1.2rem">
+                      ${s.markedBy==='Ace'
+                        ? `<span style="font-size:0.72rem;font-weight:700;color:#4A6FE3;background:rgba(74,111,227,0.1);border:1px solid rgba(74,111,227,0.25);padding:0.15rem 0.6rem;border-radius:99px">✓ Ace</span>${s.note?`<div style="font-size:0.68rem;color:var(--text-muted);margin-top:0.2rem">${esc(s.note)}</div>`:''}`
+                        : s.device
+                          ? `<div style="font-size:0.78rem;font-weight:600">${esc(s.device.browser)} · ${esc(s.device.os)}</div><div style="font-size:0.7rem;color:var(--text-muted)">${esc(s.device.device)}</div>${s.breakMins?`<div style="font-size:0.68rem;color:var(--warning);margin-top:0.1rem">☕ ${s.breakMins} min break</div>`:''}`
+                          : `<span style="color:var(--text-muted);font-size:0.75rem">—</span>`}
+                    </td>
+                  </tr>`).join('')}
+                </tbody>
+              </table>
+             </div>`}
+      </div>
+    </div>
+
+    <!-- Portal Access Log -->
+    <div class="card">
+      <div class="card-header"><span class="card-title">🔐 Portal Access Log</span><span style="font-size:0.72rem;color:var(--text-muted)">${accessLog.length} event${accessLog.length!==1?'s':''}</span></div>
+      <div class="card-body" style="padding:0">
+        ${accessLog.length===0
+          ? `<div class="empty-state"><div class="empty-state-icon">🔐</div><div class="empty-state-text">No access events recorded yet.</div></div>`
+          : `<div style="overflow-x:auto">
+              <table style="width:100%;border-collapse:collapse;font-size:0.83rem">
+                <thead><tr style="border-bottom:1px solid var(--border)">
+                  ${['Type','Date & Time','Device'].map(h=>`<th style="text-align:left;padding:0.6rem 1.2rem;font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-muted)">${h}</th>`).join('')}
+                </tr></thead>
+                <tbody>
+                  ${[...accessLog].reverse().map(a=>{
+                    const dt=new Date(a.time);
+                    const isLogin=a.type==='Login', isAuto=a.type==='AutoLogout', isManager=a.type==='ManagerAccess', isRestore=a.type==='SessionRestore', isExpired=a.type==='SessionExpired';
+                    const bg=isLogin?'rgba(39,174,96,0.12)':isAuto||isExpired?'rgba(245,166,35,0.12)':isManager?'rgba(74,111,227,0.12)':isRestore?'rgba(31,184,195,0.12)':'rgba(231,76,60,0.1)';
+                    const col=isLogin?'var(--success)':isAuto||isExpired?'var(--warning)':isManager?'#4A6FE3':isRestore?'var(--teal)':'var(--danger)';
+                    const lbl=isLogin?'▶ Sign In':isAuto?'⏱ Auto-Logout':isManager?'👁 Manager View':isRestore?'↩ Session Restored':isExpired?'⏱ Session Expired':'◼ Sign Out';
+                    return `<tr style="border-bottom:1px solid var(--border)">
+                      <td style="padding:0.6rem 1.2rem"><span style="font-size:0.75rem;font-weight:700;padding:0.15rem 0.6rem;border-radius:99px;background:${bg};color:${col}">${lbl}</span></td>
+                      <td style="padding:0.6rem 1.2rem">
+                        <div style="font-weight:600">${dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>
+                        <div style="font-size:0.75rem;color:var(--text-muted)">${dt.toLocaleTimeString()}</div>
+                      </td>
+                      <td style="padding:0.6rem 1.2rem">
+                        ${a.device?`<div style="font-size:0.78rem;font-weight:600">${esc(a.device.browser)} · ${esc(a.device.os)}</div><div style="font-size:0.7rem;color:var(--text-muted)">${esc(a.device.device)}</div>`:`<span style="color:var(--text-muted);font-size:0.75rem">—</span>`}
+                      </td>
+                    </tr>`;
+                  }).join('')}
+                </tbody>
+              </table>
+             </div>`}
       </div>
     </div>`;
 }
@@ -2730,6 +2839,7 @@ function postUpdate() {
   setUpdates(updates);
   document.getElementById('update-msg').value = '';
   document.getElementById('update-priority').value = 'Medium';
+  renderUpdates();
   toast('✓ Update posted.');
 }
 
@@ -3064,42 +3174,218 @@ function toggleIssueStatus(id) {
   issues[idx].status = issues[idx].status === 'Open' ? 'Resolved' : 'Open';
   _udCache[target] = Object.assign({}, cd, { issues });
   db.collection('users').doc(target).update({ issues }).catch(()=>{});
-  if (currentUser === BOSS_USERNAME) renderStaff();
+  if (currentUser === BOSS_USERNAME) renderIssues();
   else { renderIssues(); refreshIssuesBadge(); }
   toast(issues[idx].status === 'Resolved' ? '✓ Marked as resolved.' : '↺ Reopened.');
 }
 
 function refreshIssuesBadge() {
-  userData=getUserData(currentUser);
-  const open=(userData.issues||[]).filter(i=>i.status==='Open').length;
+  const src = currentUser === BOSS_USERNAME ? (_udCache['athanviloria'] || getUserData('athanviloria')) : getUserData(currentUser);
+  const open=(src.issues||[]).filter(i=>i.status==='Open').length;
   const b=document.getElementById('issues-badge');
+  if (!b) return;
   if (open>0){ b.textContent=open; b.classList.remove('hidden'); } else { b.classList.add('hidden'); }
 }
 
 const ISSUE_LABEL={ question:'❓ Question', issue:'🚨 Issue', feedback:'💡 Feedback' };
 const PRIORITY_BADGE={ Normal:'badge-muted', High:'badge-warning', Urgent:'badge-danger' };
+const AT_STATUS_COLOR={ 'Not Started':'var(--text-muted)', 'In Progress':'var(--teal)', 'Pending Review':'#f97316', 'Done':'var(--success)' };
+const AT_STATUS_BG   ={ 'Not Started':'rgba(128,128,128,0.1)', 'In Progress':'rgba(31,184,195,0.12)', 'Pending Review':'rgba(249,115,22,0.12)', 'Done':'rgba(39,174,96,0.12)' };
+const AT_PRIO_COLOR  ={ 'Low':'var(--success)', 'Normal':'var(--text-muted)', 'High':'var(--warning)', 'Urgent':'var(--danger)' };
+const AT_STATUS_NEXT = { 'Not Started':'In Progress', 'In Progress':'Pending Review', 'Pending Review':'Done', 'Done':'Done' };
 
-function renderIssues() {
-  userData=getUserData(currentUser);
-  const issues=userData.issues||[];
-  const el=document.getElementById('issues-list');
-  el.innerHTML=issues.length===0
-    ?`<div class="empty-state"><div class="empty-state-icon">💬</div><div class="empty-state-text">Nothing submitted yet.</div></div>`
-    :issues.map(i=>`<div class="issue-card">
-        <div class="flex" style="gap:0.7rem">
-          <div class="issue-bar issue-bar-${i.type}"></div>
-          <div style="flex:1">
-            <div class="flex items-center gap-2" style="flex-wrap:wrap;margin-bottom:0.25rem">
-              <span style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted)">${ISSUE_LABEL[i.type]||i.type}</span>
-              <span class="badge ${PRIORITY_BADGE[i.priority]||'badge-muted'}">${i.priority}</span>
-              <span class="badge ${i.status==='Open'?'badge-warning':'badge-success'}">${i.status}</span>
+// ─────────────────────────────────────────────
+// ASSIGNED TASKS (boss only)
+// ─────────────────────────────────────────────
+function refreshAssignedBadge() {
+  const cd = _udCache['athanviloria'];
+  const pending = (cd ? (cd.assignedTasks||[]) : []).filter(t=>t.status==='Pending Review').length;
+  const b = document.getElementById('assigned-badge');
+  if (!b) return;
+  if (pending>0){ b.textContent=pending; b.classList.remove('hidden'); } else { b.classList.add('hidden'); }
+}
+
+function renderAssigned() {
+  const el = document.getElementById('assigned-content');
+  if (!el) return;
+  const cd = _udCache['athanviloria'];
+  const tasks = cd ? (cd.assignedTasks || []) : [];
+
+  const addFormHtml = `
+    <div class="card" style="margin-bottom:1.2rem">
+      <div class="card-header"><span class="card-title">➕ Assign New Task</span></div>
+      <div class="card-body" style="display:flex;flex-direction:column;gap:0.65rem">
+        <input id="at-name" type="text" placeholder="Task name *" style="font-size:0.83rem;padding:0.45rem 0.7rem;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface);color:var(--text-primary);outline:none;width:100%;box-sizing:border-box">
+        <textarea id="at-desc" rows="2" placeholder="Description (optional)" style="font-size:0.83rem;padding:0.45rem 0.7rem;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface);color:var(--text-primary);outline:none;resize:none;width:100%;box-sizing:border-box"></textarea>
+        <div style="display:flex;gap:0.65rem;flex-wrap:wrap">
+          <input id="at-due" type="date" style="font-size:0.83rem;padding:0.45rem 0.7rem;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface);color:var(--text-primary);outline:none;flex:1;min-width:130px">
+          <select id="at-priority" style="font-size:0.83rem;padding:0.45rem 0.7rem;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface);color:var(--text-primary);outline:none;flex:1;min-width:120px">
+            <option value="Normal">Normal Priority</option>
+            <option value="Low">Low</option>
+            <option value="High">High</option>
+            <option value="Urgent">Urgent</option>
+          </select>
+          <button onclick="addAssignedTask()" style="padding:0.45rem 1.1rem;font-size:0.83rem;font-weight:700;border-radius:var(--radius-sm);background:var(--teal);color:white;border:none;cursor:pointer;white-space:nowrap">Assign Task</button>
+        </div>
+      </div>
+    </div>`;
+
+  if (tasks.length === 0) {
+    el.innerHTML = addFormHtml + `<div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-text">No tasks assigned yet. Use the form above to assign the first task.</div></div>`;
+    return;
+  }
+
+  const order = { 'Urgent':0, 'High':1, 'Normal':2, 'Low':3 };
+  const statusOrder = { 'Pending Review':0, 'In Progress':1, 'Not Started':2, 'Done':3 };
+  const sorted = [...tasks].sort((a,b)=>(statusOrder[a.status]||3)-(statusOrder[b.status]||3)||(order[a.priority]||2)-(order[b.priority]||2));
+
+  el.innerHTML = addFormHtml + sorted.map(t => {
+    const sc = AT_STATUS_COLOR[t.status]||'var(--text-muted)';
+    const sb = AT_STATUS_BG[t.status]||'transparent';
+    const pc = AT_PRIO_COLOR[t.priority]||'var(--text-muted)';
+    const dueStr = t.dueDate ? `Due ${new Date(t.dueDate+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})}` : '';
+    const nextStatus = AT_STATUS_NEXT[t.status];
+    const canAdvance = t.status !== 'Done';
+    return `<div class="card" style="margin-bottom:0.65rem">
+      <div class="card-body">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.75rem;flex-wrap:wrap">
+          <div style="flex:1;min-width:200px">
+            <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.35rem">
+              <span style="font-size:0.72rem;font-weight:700;padding:0.12rem 0.55rem;border-radius:99px;background:${sb};color:${sc}">${t.status}</span>
+              <span style="font-size:0.7rem;font-weight:600;color:${pc}">${t.priority}</span>
+              ${dueStr?`<span style="font-size:0.7rem;color:var(--text-muted)">${esc(dueStr)}</span>`:''}
             </div>
-            <div style="font-weight:700;font-size:0.85rem;margin-bottom:0.15rem">${esc(i.subject)}</div>
-            <div style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:0.4rem">${esc(i.body)}</div>
-            <div class="text-muted">${i.date} at ${i.time}</div>
+            <div style="font-weight:700;font-size:0.88rem;margin-bottom:0.2rem">${esc(t.taskName)}</div>
+            ${t.description?`<div style="font-size:0.78rem;color:var(--text-secondary);margin-bottom:0.25rem">${esc(t.description)}</div>`:''}
+            <div style="font-size:0.68rem;color:var(--text-muted)">Assigned ${esc(new Date(t.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}))}</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:0.3rem;flex-shrink:0;align-items:flex-end">
+            ${canAdvance?`<button onclick="advanceTaskStatus('${t.id}')" style="font-size:0.72rem;padding:0.3rem 0.75rem;border-radius:var(--radius-sm);background:var(--teal);color:white;border:none;cursor:pointer;font-weight:700;white-space:nowrap">→ ${nextStatus}</button>`:''}
+            <button onclick="deleteAssignedTask('${t.id}')" style="font-size:0.68rem;padding:0.25rem 0.65rem;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface-hover);color:var(--danger);cursor:pointer;white-space:nowrap">Remove</button>
           </div>
         </div>
-      </div>`).join('');
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function addAssignedTask() {
+  const taskName = (document.getElementById('at-name')||{}).value?.trim();
+  const description = (document.getElementById('at-desc')||{}).value?.trim() || '';
+  const dueDate = (document.getElementById('at-due')||{}).value || '';
+  const priority = (document.getElementById('at-priority')||{}).value || 'Normal';
+  if (!taskName) { toast('⚠ Task name is required.'); return; }
+  const target = 'athanviloria';
+  const cd = _udCache[target] || getUserData(target);
+  const tasks = (cd.assignedTasks || []).slice();
+  tasks.push({ id:'at-'+Date.now(), taskName, description, dueDate, priority, status:'Not Started', createdAt:new Date().toISOString() });
+  _udCache[target] = Object.assign({}, cd, { assignedTasks: tasks });
+  db.collection('users').doc(target).update({ assignedTasks: tasks }).catch(()=>{});
+  renderAssigned(); refreshAssignedBadge();
+  toast('✓ Task assigned to Cyrel.');
+}
+
+function advanceTaskStatus(id) {
+  const target = 'athanviloria';
+  const cd = _udCache[target] || getUserData(target);
+  const tasks = (cd.assignedTasks || []).slice();
+  const idx = tasks.findIndex(t => String(t.id) === String(id));
+  if (idx === -1) return;
+  tasks[idx] = { ...tasks[idx], status: AT_STATUS_NEXT[tasks[idx].status] || tasks[idx].status };
+  _udCache[target] = Object.assign({}, cd, { assignedTasks: tasks });
+  db.collection('users').doc(target).update({ assignedTasks: tasks }).catch(()=>{});
+  renderAssigned(); refreshAssignedBadge();
+  toast(`✓ Task moved to: ${tasks[idx].status}`);
+}
+
+function deleteAssignedTask(id) {
+  if (!confirm('Remove this task?')) return;
+  const target = 'athanviloria';
+  const cd = _udCache[target] || getUserData(target);
+  const tasks = (cd.assignedTasks || []).filter(t => String(t.id) !== String(id));
+  _udCache[target] = Object.assign({}, cd, { assignedTasks: tasks });
+  db.collection('users').doc(target).update({ assignedTasks: tasks }).catch(()=>{});
+  renderAssigned(); refreshAssignedBadge();
+  toast('Task removed.');
+}
+
+function renderIssues() {
+  const isBoss = currentUser === BOSS_USERNAME;
+  const srcData = isBoss ? (_udCache['athanviloria'] || getUserData('athanviloria')) : getUserData(currentUser);
+  const issues = (srcData.issues || []).slice().reverse();
+  const el = document.getElementById('issues-list');
+  if (!el) return;
+
+  // Adjust layout for boss: hide submit form, show full-width list
+  const submitCard = document.getElementById('issues-submit-card');
+  const layout = document.getElementById('issues-layout');
+  const listTitle = document.getElementById('issues-list-title');
+  const desc = document.getElementById('issues-desc');
+  if (submitCard) submitCard.style.display = isBoss ? 'none' : '';
+  if (layout) layout.style.gridTemplateColumns = isBoss ? '1fr' : '';
+  if (listTitle) listTitle.textContent = isBoss ? "Cyrel's Submissions" : 'Submitted';
+  if (desc) desc.textContent = isBoss ? "All issues and questions submitted by Cyrel — respond below." : "Submit feedback, report issues, or raise questions.";
+
+  if (issues.length === 0) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">💬</div><div class="empty-state-text">${isBoss ? 'Cyrel has not submitted any issues yet.' : 'Nothing submitted yet.'}</div></div>`;
+    return;
+  }
+
+  el.innerHTML = issues.map(i => {
+    const barColor = i.priority==='Urgent'?'var(--danger)':i.priority==='High'?'var(--warning)':'var(--teal)';
+    const replyHtml = isBoss ? `
+      <div style="margin-top:0.7rem;border-top:1px solid var(--border);padding-top:0.7rem">
+        ${i.reply ? `<div style="background:rgba(31,184,195,0.08);border:1px solid rgba(31,184,195,0.2);border-radius:var(--radius-sm);padding:0.5rem 0.75rem;margin-bottom:0.5rem">
+          <div style="font-size:0.68rem;font-weight:700;color:var(--teal);margin-bottom:0.2rem">Jey's Response · ${esc(i.replyDate||'')}</div>
+          <div style="font-size:0.8rem;color:var(--text-primary)">${esc(i.reply)}</div>
+        </div>` : ''}
+        <div style="display:flex;gap:0.5rem;align-items:flex-end">
+          <textarea id="reply-${i.id}" rows="2" placeholder="${i.reply?'Update response…':'Write a response…'}" style="flex:1;font-size:0.8rem;padding:0.4rem 0.6rem;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface);color:var(--text-primary);resize:none;outline:none">${esc(i.reply||'')}</textarea>
+          <div style="display:flex;flex-direction:column;gap:0.3rem">
+            <button onclick="respondToIssue('${i.id}')" style="font-size:0.72rem;padding:0.3rem 0.7rem;border-radius:var(--radius-sm);background:var(--teal);color:white;border:none;cursor:pointer;font-weight:700;white-space:nowrap">${i.reply?'Update':'Send'}</button>
+            <button onclick="toggleIssueStatus('${i.id}')" style="font-size:0.68rem;padding:0.25rem 0.6rem;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface-hover);color:var(--text-secondary);cursor:pointer;white-space:nowrap">${i.status==='Open'?'Resolve':'Reopen'}</button>
+          </div>
+        </div>
+      </div>` : `
+      <div style="margin-top:0.6rem;display:flex;justify-content:space-between;align-items:center">
+        ${i.reply ? `<div style="font-size:0.78rem;color:var(--teal);font-style:italic">Jey replied · ${esc(i.replyDate||'')}</div>` : `<div></div>`}
+        <button onclick="toggleIssueStatus('${i.id}')" style="font-size:0.68rem;padding:0.25rem 0.6rem;border-radius:4px;border:1px solid var(--border);background:var(--surface-hover);color:var(--text-secondary);cursor:pointer">${i.status==='Open'?'Mark Resolved':'Reopen'}</button>
+      </div>`;
+    return `<div class="issue-card">
+      <div class="flex" style="gap:0.7rem">
+        <div style="width:3px;flex-shrink:0;align-self:stretch;border-radius:2px;background:${barColor}"></div>
+        <div style="flex:1">
+          <div class="flex items-center gap-2" style="flex-wrap:wrap;margin-bottom:0.25rem">
+            <span style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted)">${ISSUE_LABEL[i.type]||i.type}</span>
+            <span class="badge ${PRIORITY_BADGE[i.priority]||'badge-muted'}">${i.priority}</span>
+            <span class="badge ${i.status==='Open'?'badge-warning':'badge-success'}">${i.status}</span>
+          </div>
+          <div style="font-weight:700;font-size:0.85rem;margin-bottom:0.15rem">${esc(i.subject)}</div>
+          <div style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:0.4rem">${esc(i.body)}</div>
+          <div class="text-muted">${i.date} at ${i.time}</div>
+          ${replyHtml}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function respondToIssue(id) {
+  const target = 'athanviloria';
+  const cd = _udCache[target] || getUserData(target);
+  const issues = (cd.issues || []).slice();
+  const idx = issues.findIndex(i => String(i.id) === String(id));
+  if (idx === -1) return;
+  const ta = document.getElementById('reply-'+id);
+  if (!ta) return;
+  const reply = ta.value.trim();
+  if (!reply) { toast('⚠ Response cannot be empty.'); return; }
+  const now = new Date();
+  issues[idx] = { ...issues[idx], reply, replyDate: now.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+' at '+now.toLocaleTimeString() };
+  _udCache[target] = Object.assign({}, cd, { issues });
+  db.collection('users').doc(target).update({ issues }).catch(()=>{});
+  renderIssues();
+  toast('✓ Response saved.');
 }
 
 // ─────────────────────────────────────────────
