@@ -1198,6 +1198,13 @@ function subscribeStaff() {
       if (pg==='staff') renderStaff();
       if (pg==='issues') renderIssues();
       if (pg==='assigned') renderAssigned();
+    } else if (currentUser === 'athanviloria') {
+      // Live task updates for Cyrel's own session
+      refreshOverview();
+      const activePage = document.querySelector('.nav-item.active');
+      const pg = activePage ? activePage.getAttribute('data-page') : '';
+      if (pg==='assigned') renderAssigned();
+      if (pg==='issues') { renderIssues(); refreshIssuesBadge(); }
     }
   }, ()=>{});
 }
@@ -1686,7 +1693,7 @@ function enterApp() {
   // Nav visibility — boss vs staff
   const _nav = id => document.getElementById(id);
   if (_nav('nav-staff'))     _nav('nav-staff').style.display     = isBoss ? 'flex' : 'none';
-  if (_nav('nav-assigned'))  _nav('nav-assigned').style.display  = isBoss ? 'flex' : 'none';
+  if (_nav('nav-assigned'))  _nav('nav-assigned').style.display  = 'flex'; // both boss and staff see assigned tasks
   if (_nav('nav-issues'))    _nav('nav-issues').style.display    = 'flex'; // both see issues
   if (_nav('nav-accounts'))  _nav('nav-accounts').style.display  = isBoss ? 'none' : 'flex';
   if (_nav('nav-tasklog'))   _nav('nav-tasklog').style.display   = isBoss ? 'none' : 'flex';
@@ -1765,9 +1772,8 @@ function navigate(page) {
 function refreshAll() {
   refreshOverview(); renderUpdates();
   if (currentUser === BOSS_USERNAME) { renderAssigned(); renderIssues(); }
-  else { renderAccounts(); renderIssues(); renderEarnings(); renderShifts(); }
-  refreshUpdatesBadge(); refreshIssuesBadge();
-  if (currentUser === BOSS_USERNAME) refreshAssignedBadge();
+  else { renderAccounts(); renderAssigned(); renderIssues(); renderEarnings(); renderShifts(); }
+  refreshUpdatesBadge(); refreshIssuesBadge(); refreshAssignedBadge();
 }
 
 // ─────────────────────────────────────────────
@@ -3220,63 +3226,119 @@ function renderAssigned() {
   if (!el) return;
   const cd = _udCache['athanviloria'];
   const tasks = cd ? (cd.assignedTasks || []) : [];
-
-  const addFormHtml = `
-    <div class="card" style="margin-bottom:1.2rem">
-      <div class="card-header"><span class="card-title">➕ Assign New Task</span></div>
-      <div class="card-body" style="display:flex;flex-direction:column;gap:0.65rem">
-        <input id="at-name" type="text" placeholder="Task name *" style="font-size:0.83rem;padding:0.45rem 0.7rem;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface);color:var(--text-primary);outline:none;width:100%;box-sizing:border-box">
-        <textarea id="at-desc" rows="2" placeholder="Description (optional)" style="font-size:0.83rem;padding:0.45rem 0.7rem;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface);color:var(--text-primary);outline:none;resize:none;width:100%;box-sizing:border-box"></textarea>
-        <div style="display:flex;gap:0.65rem;flex-wrap:wrap">
-          <input id="at-due" type="date" style="font-size:0.83rem;padding:0.45rem 0.7rem;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface);color:var(--text-primary);outline:none;flex:1;min-width:130px">
-          <select id="at-priority" style="font-size:0.83rem;padding:0.45rem 0.7rem;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface);color:var(--text-primary);outline:none;flex:1;min-width:120px">
-            <option value="Normal">Normal Priority</option>
-            <option value="Low">Low</option>
-            <option value="High">High</option>
-            <option value="Urgent">Urgent</option>
-          </select>
-          <button onclick="addAssignedTask()" style="padding:0.45rem 1.1rem;font-size:0.83rem;font-weight:700;border-radius:var(--radius-sm);background:var(--teal);color:white;border:none;cursor:pointer;white-space:nowrap">Assign Task</button>
-        </div>
-      </div>
-    </div>`;
-
-  if (tasks.length === 0) {
-    el.innerHTML = addFormHtml + `<div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-text">No tasks assigned yet. Use the form above to assign the first task.</div></div>`;
-    return;
-  }
+  const isBoss = currentUser === BOSS_USERNAME;
+  const isManagerAccess = managerAccessMode; // Jey viewing Cyrel's workspace
 
   const order = { 'Urgent':0, 'High':1, 'Normal':2, 'Low':3 };
   const statusOrder = { 'Pending Review':0, 'In Progress':1, 'Not Started':2, 'Done':3 };
   const sorted = [...tasks].sort((a,b)=>(statusOrder[a.status]||3)-(statusOrder[b.status]||3)||(order[a.priority]||2)-(order[b.priority]||2));
 
-  el.innerHTML = addFormHtml + sorted.map(t => {
-    const sc = AT_STATUS_COLOR[t.status]||'var(--text-muted)';
-    const sb = AT_STATUS_BG[t.status]||'transparent';
-    const pc = AT_PRIO_COLOR[t.priority]||'var(--text-muted)';
-    const dueStr = t.dueDate ? `Due ${new Date(t.dueDate+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})}` : '';
-    const nextStatus = AT_STATUS_NEXT[t.status];
-    const canAdvance = t.status !== 'Done';
-    return `<div class="card" style="margin-bottom:0.65rem">
-      <div class="card-body">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.75rem;flex-wrap:wrap">
-          <div style="flex:1;min-width:200px">
-            <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.35rem">
-              <span style="font-size:0.72rem;font-weight:700;padding:0.12rem 0.55rem;border-radius:99px;background:${sb};color:${sc}">${t.status}</span>
-              <span style="font-size:0.7rem;font-weight:600;color:${pc}">${t.priority}</span>
-              ${dueStr?`<span style="font-size:0.7rem;color:var(--text-muted)">${esc(dueStr)}</span>`:''}
-            </div>
-            <div style="font-weight:700;font-size:0.88rem;margin-bottom:0.2rem">${esc(t.taskName)}</div>
-            ${t.description?`<div style="font-size:0.78rem;color:var(--text-secondary);margin-bottom:0.25rem">${esc(t.description)}</div>`:''}
-            <div style="font-size:0.68rem;color:var(--text-muted)">Assigned ${esc(new Date(t.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}))}</div>
-          </div>
-          <div style="display:flex;flex-direction:column;gap:0.3rem;flex-shrink:0;align-items:flex-end">
-            ${canAdvance?`<button onclick="advanceTaskStatus('${t.id}')" style="font-size:0.72rem;padding:0.3rem 0.75rem;border-radius:var(--radius-sm);background:var(--teal);color:white;border:none;cursor:pointer;font-weight:700;white-space:nowrap">→ ${nextStatus}</button>`:''}
-            <button onclick="deleteAssignedTask('${t.id}')" style="font-size:0.68rem;padding:0.25rem 0.65rem;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface-hover);color:var(--danger);cursor:pointer;white-space:nowrap">Remove</button>
+  if (isBoss || isManagerAccess) {
+    // Boss / manager-access view: add form + advance/remove controls
+    const addFormHtml = `
+      <div class="card" style="margin-bottom:1.2rem">
+        <div class="card-header"><span class="card-title">➕ Assign New Task</span></div>
+        <div class="card-body" style="display:flex;flex-direction:column;gap:0.65rem">
+          <input id="at-name" type="text" placeholder="Task name *" style="font-size:0.83rem;padding:0.45rem 0.7rem;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface);color:var(--text-primary);outline:none;width:100%;box-sizing:border-box">
+          <textarea id="at-desc" rows="2" placeholder="Description (optional)" style="font-size:0.83rem;padding:0.45rem 0.7rem;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface);color:var(--text-primary);outline:none;resize:none;width:100%;box-sizing:border-box"></textarea>
+          <div style="display:flex;gap:0.65rem;flex-wrap:wrap">
+            <input id="at-due" type="date" style="font-size:0.83rem;padding:0.45rem 0.7rem;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface);color:var(--text-primary);outline:none;flex:1;min-width:130px">
+            <select id="at-priority" style="font-size:0.83rem;padding:0.45rem 0.7rem;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface);color:var(--text-primary);outline:none;flex:1;min-width:120px">
+              <option value="Normal">Normal Priority</option>
+              <option value="Low">Low</option>
+              <option value="High">High</option>
+              <option value="Urgent">Urgent</option>
+            </select>
+            <button onclick="addAssignedTask()" style="padding:0.45rem 1.1rem;font-size:0.83rem;font-weight:700;border-radius:var(--radius-sm);background:var(--teal);color:white;border:none;cursor:pointer;white-space:nowrap">Assign Task</button>
           </div>
         </div>
-      </div>
-    </div>`;
-  }).join('');
+      </div>`;
+
+    if (tasks.length === 0) {
+      el.innerHTML = addFormHtml + `<div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-text">No tasks assigned yet. Use the form above to assign the first task.</div></div>`;
+      return;
+    }
+
+    el.innerHTML = addFormHtml + sorted.map(t => {
+      const sc = AT_STATUS_COLOR[t.status]||'var(--text-muted)';
+      const sb = AT_STATUS_BG[t.status]||'transparent';
+      const pc = AT_PRIO_COLOR[t.priority]||'var(--text-muted)';
+      const dueStr = t.dueDate ? `Due ${new Date(t.dueDate+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})}` : '';
+      const nextStatus = AT_STATUS_NEXT[t.status];
+      const canAdvance = t.status !== 'Done';
+      return `<div class="card" style="margin-bottom:0.65rem">
+        <div class="card-body">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.75rem;flex-wrap:wrap">
+            <div style="flex:1;min-width:200px">
+              <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.35rem">
+                <span style="font-size:0.72rem;font-weight:700;padding:0.12rem 0.55rem;border-radius:99px;background:${sb};color:${sc}">${t.status}</span>
+                <span style="font-size:0.7rem;font-weight:600;color:${pc}">${t.priority}</span>
+                ${dueStr?`<span style="font-size:0.7rem;color:var(--text-muted)">${esc(dueStr)}</span>`:''}
+              </div>
+              <div style="font-weight:700;font-size:0.88rem;margin-bottom:0.2rem">${esc(t.taskName)}</div>
+              ${t.description?`<div style="font-size:0.78rem;color:var(--text-secondary);margin-bottom:0.25rem">${esc(t.description)}</div>`:''}
+              <div style="font-size:0.68rem;color:var(--text-muted)">Assigned ${esc(new Date(t.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}))}</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:0.3rem;flex-shrink:0;align-items:flex-end">
+              ${canAdvance?`<button onclick="advanceTaskStatus('${t.id}')" style="font-size:0.72rem;padding:0.3rem 0.75rem;border-radius:var(--radius-sm);background:var(--teal);color:white;border:none;cursor:pointer;font-weight:700;white-space:nowrap">→ ${nextStatus}</button>`:''}
+              <button onclick="deleteAssignedTask('${t.id}')" style="font-size:0.68rem;padding:0.25rem 0.65rem;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface-hover);color:var(--danger);cursor:pointer;white-space:nowrap">Remove</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+
+  } else {
+    // Staff (Cyrel) view: status dropdown per task, no add form, no remove button
+    if (tasks.length === 0) {
+      el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-text">No tasks assigned to you yet.</div></div>`;
+      return;
+    }
+
+    const statusOptions = ['Not Started','In Progress','Pending Review','Done'];
+    el.innerHTML = sorted.map(t => {
+      const sc = AT_STATUS_COLOR[t.status]||'var(--text-muted)';
+      const sb = AT_STATUS_BG[t.status]||'transparent';
+      const pc = AT_PRIO_COLOR[t.priority]||'var(--text-muted)';
+      const dueStr = t.dueDate ? `Due ${new Date(t.dueDate+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})}` : '';
+      const opts = statusOptions.map(s=>`<option value="${s}"${s===t.status?' selected':''}>${s}</option>`).join('');
+      return `<div class="card" style="margin-bottom:0.65rem">
+        <div class="card-body">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.75rem;flex-wrap:wrap">
+            <div style="flex:1;min-width:200px">
+              <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.35rem">
+                <span style="font-size:0.72rem;font-weight:700;padding:0.12rem 0.55rem;border-radius:99px;background:${sb};color:${sc}">${t.status}</span>
+                <span style="font-size:0.7rem;font-weight:600;color:${pc}">${t.priority}</span>
+                ${dueStr?`<span style="font-size:0.7rem;color:var(--text-muted)">${esc(dueStr)}</span>`:''}
+              </div>
+              <div style="font-weight:700;font-size:0.88rem;margin-bottom:0.2rem">${esc(t.taskName)}</div>
+              ${t.description?`<div style="font-size:0.78rem;color:var(--text-secondary);margin-bottom:0.25rem">${esc(t.description)}</div>`:''}
+              <div style="font-size:0.68rem;color:var(--text-muted)">Assigned ${esc(new Date(t.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}))}</div>
+            </div>
+            <div style="flex-shrink:0">
+              <select onchange="updateTaskStatus('${t.id}',this.value)" style="font-size:0.78rem;padding:0.35rem 0.6rem;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface);color:var(--text-primary);outline:none;cursor:pointer;min-width:140px">
+                ${opts}
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+}
+
+function updateTaskStatus(id, newStatus) {
+  const target = 'athanviloria';
+  const cd = _udCache[target] || getUserData(target);
+  const tasks = (cd.assignedTasks || []).slice();
+  const idx = tasks.findIndex(t => String(t.id) === String(id));
+  if (idx === -1) return;
+  tasks[idx] = { ...tasks[idx], status: newStatus };
+  _udCache[target] = Object.assign({}, cd, { assignedTasks: tasks });
+  db.collection('users').doc(target).update({ assignedTasks: tasks }).catch(()=>{});
+  renderAssigned();
+  refreshAssignedBadge();
+  toast(`✓ Status updated: ${newStatus}`);
 }
 
 function addAssignedTask() {
