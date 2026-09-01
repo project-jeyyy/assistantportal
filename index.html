@@ -1325,6 +1325,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   if (s && s.username) {
     showLoadingScreen(true);
     await loadUserData(s.username);
+    if (s.username === BOSS_USERNAME) await loadUserData('athanviloria');
     currentUser = s.username;
     userData = getUserData(currentUser);
     if (userData.clockedIn && userData.clockIn) clockStart = new Date(userData.clockIn);
@@ -1487,6 +1488,7 @@ async function doLogin() {
       btn.disabled=false; btn.textContent='Sign In'; return;
     }
     await loadUserData(uname);
+    if (uname === BOSS_USERNAME) await loadUserData('athanviloria');
     currentUser=uname; setSession({username:uname});
     userData=getUserData(currentUser);
     if (userData.clockedIn&&userData.clockIn) clockStart=new Date(userData.clockIn);
@@ -1669,6 +1671,8 @@ function enterApp() {
   const navAttendance = document.getElementById('nav-attendance');
   if (navAttendance) navAttendance.style.display = isBossView ? 'flex' : 'none';
   subscribeStaff();
+  // Render immediately with pre-loaded data so Staff View / Attendance don't stay blank
+  if (isBossView) { renderStaff(); renderAttendance(); }
   if (!isBossView || managerAccessMode) subscribeBoss();
   startPresence();
   const postCard = document.getElementById('post-update-card');
