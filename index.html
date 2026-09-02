@@ -975,13 +975,12 @@ const WORK_START = new Date('2026-07-27T00:00:00');
 const LAST_PAYDAY = new Date('2026-08-20T00:00:00');
 const PAY_CYCLE_DAYS = 14;
 function getPayPeriod() {
-  const now = new Date(); now.setHours(23,59,59,999);
-  const ms = now - LAST_PAYDAY;
-  const cycles = Math.floor(ms / (PAY_CYCLE_DAYS * 86400000));
+  const today = new Date(); today.setHours(0,0,0,0);
+  const daysSince = Math.round((today - LAST_PAYDAY) / 86400000);
+  const cycles = Math.max(0, Math.floor((daysSince - 1) / PAY_CYCLE_DAYS));
   const start = new Date(LAST_PAYDAY.getTime() + cycles * PAY_CYCLE_DAYS * 86400000);
   start.setDate(start.getDate() + 1); start.setHours(0,0,0,0);
   const end = new Date(start.getTime() + (PAY_CYCLE_DAYS - 1) * 86400000); end.setHours(23,59,59,999);
-  const today = new Date(); today.setHours(0,0,0,0);
   const endDay = new Date(end); endDay.setHours(0,0,0,0);
   const diffDays = Math.round((endDay - today) / 86400000);
   const dueLabel = diffDays === 0 ? 'Due Today' : diffDays === 1 ? 'Due Tomorrow' : 'Due '+end.toLocaleDateString('en-US',{month:'short',day:'numeric'});
