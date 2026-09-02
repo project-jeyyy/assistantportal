@@ -1045,7 +1045,7 @@ const SEED_ACCOUNTS = [
   { username:'athanviloria', passwordHash:btoa('AssistantAthan2024!'), fullName:'Cyrel Athan Viloria' }
 ];
 const SEED_TASKS = [
-  { id:'seed-task-1', taskName:'Categorize Check Transactions — Quality Diamonds of San Diego (Aug 2026)', description:'Categorize Check Transactions based on the excel file for YTD vendors. Work on check transactions ONLY. Reference files attached via email.', dueDate:'', priority:'Normal', status:'Not Started', createdAt:'2026-09-02T21:29:24Z' }
+  { id:'seed-task-1', taskName:'Categorize Check Transactions — Quality Diamonds of San Diego (Aug 2026)', description:'Categorize Check Transactions based on the excel file for YTD vendors. Work on check transactions ONLY. Reference files attached via email.', dueDate:'', priority:'Normal', status:'Not Yet Started', createdAt:'2026-09-02T21:29:24Z' }
 ];
 const SEED_UPDATES = [
   { id:'seed-ace-1', date:'September 2, 2026', type:'Announcement', priority:'Medium', msg:'Hi team! The portal has been updated with a fresh new design and improved performance. Reminder: Next payday is September 3 — please make sure your shift logs and task statuses are up to date before end of day. If you notice anything off, let Boss Jey know. — Ace, AI Work Assistant', notified:true }
@@ -1825,7 +1825,7 @@ function _renderBossOverview() {
   const atDone = assignedTasks.filter(t => t.status === 'Done').length;
   const atInProgress = assignedTasks.filter(t => t.status === 'In Progress').length;
   const atPending = assignedTasks.filter(t => t.status === 'Pending Review').length;
-  const atNotStarted = assignedTasks.filter(t => t.status === 'Not Started').length;
+  const atNotStarted = assignedTasks.filter(t => t.status === 'Not Yet Started').length;
 
   const rate = cd ? (cd.hourlyRate || 110) : 110;
   const rawShifts = Array.isArray(cd && cd.shifts) ? cd.shifts : [];
@@ -2322,10 +2322,10 @@ function refreshIssuesBadge() {
 
 const ISSUE_LABEL = { question:'Question', issue:'Issue', feedback:'Feedback' };
 const PRIORITY_BADGE = { Normal:'badge-muted', High:'badge-warning', Urgent:'badge-danger' };
-const AT_STATUS_COLOR = { 'Not Started':'var(--text-muted)', 'In Progress':'var(--teal)', 'Pending Review':'#f97316', 'Done':'var(--success)' };
-const AT_STATUS_BG = { 'Not Started':'rgba(128,128,128,0.08)', 'In Progress':'rgba(31,184,195,0.1)', 'Pending Review':'rgba(249,115,22,0.1)', 'Done':'rgba(34,197,94,0.1)' };
+const AT_STATUS_COLOR = { 'Not Yet Started':'var(--text-muted)', 'In Progress':'var(--teal)', 'Pending Review':'#f97316', 'Done':'var(--success)' };
+const AT_STATUS_BG = { 'Not Yet Started':'rgba(128,128,128,0.08)', 'In Progress':'rgba(31,184,195,0.1)', 'Pending Review':'rgba(249,115,22,0.1)', 'Done':'rgba(34,197,94,0.1)' };
 const AT_PRIO_COLOR = { 'Low':'var(--success)', 'Normal':'var(--text-muted)', 'High':'var(--warning)', 'Urgent':'var(--danger)' };
-const AT_STATUS_NEXT = { 'Not Started':'In Progress', 'In Progress':'Pending Review', 'Pending Review':'Done', 'Done':'Done' };
+const AT_STATUS_NEXT = { 'Not Yet Started':'In Progress', 'In Progress':'Pending Review', 'Pending Review':'Done', 'Done':'Done' };
 
 function renderIssues() {
   const isBoss = currentUser === BOSS_USERNAME;
@@ -2387,7 +2387,7 @@ function renderAssigned() {
   const tasks = cd ? (cd.assignedTasks || []) : [];
   const isBossOwn = currentUser === BOSS_USERNAME;
   const order = { 'Urgent':0, 'High':1, 'Normal':2, 'Low':3 };
-  const statusOrder = { 'Pending Review':0, 'In Progress':1, 'Not Started':2, 'Done':3 };
+  const statusOrder = { 'Pending Review':0, 'In Progress':1, 'Not Yet Started':2, 'Done':3 };
   const sorted = [...tasks].sort((a,b)=>(statusOrder[a.status]||3)-(statusOrder[b.status]||3)||(order[a.priority]||2)-(order[b.priority]||2));
 
   if (isBossOwn) {
@@ -2404,7 +2404,7 @@ function renderAssigned() {
     }).join('');
   } else {
     if (tasks.length === 0) { el.innerHTML = '<div class="empty-state"><div class="empty-state-text">No tasks assigned yet.</div></div>'; return; }
-    const statusOptions = ['Not Started','In Progress','Pending Review','Done'];
+    const statusOptions = ['Not Yet Started','In Progress','Pending Review','Done'];
     el.innerHTML = sorted.map(t => {
       const sc = AT_STATUS_COLOR[t.status]||'var(--text-muted)';
       const sb = AT_STATUS_BG[t.status]||'transparent';
@@ -2438,7 +2438,7 @@ function addAssignedTask() {
   const target = 'athanviloria';
   const cd = _udCache[target] || getUserData(target);
   const tasks = (cd.assignedTasks || []).slice();
-  tasks.push({ id:'at-'+Date.now(), taskName, description, dueDate, priority, status:'Not Started', createdAt:new Date().toISOString() });
+  tasks.push({ id:'at-'+Date.now(), taskName, description, dueDate, priority, status:'Not Yet Started', createdAt:new Date().toISOString() });
   _udCache[target] = Object.assign({}, cd, { assignedTasks: tasks });
   db.collection('users').doc(target).update({ assignedTasks: tasks }).catch(()=>{});
   renderAssigned(); refreshAssignedBadge();
