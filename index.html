@@ -1764,6 +1764,8 @@ function refreshOverview() {
 }
 
 function _renderBossOverview() {
+  const el = document.getElementById('overview-body');
+  try {
   const cd = _udCache['athanviloria'];
   const updates = getUpdates();
   const now = new Date();
@@ -1779,7 +1781,7 @@ function _renderBossOverview() {
   const pi = pMap[presStatus] || pMap.offline;
   const clockStatus = cd && cd.clockedIn ? '<span style="color:var(--success);font-weight:700">● Clocked In</span> since '+new Date(cd.clockIn).toLocaleTimeString() : '<span style="color:var(--text-muted)">○ Off Shift</span>';
 
-  const assignedTasks = cd ? (cd.assignedTasks || []) : [];
+  const assignedTasks = Array.isArray(cd && cd.assignedTasks) ? cd.assignedTasks : [];
   const atTotal = assignedTasks.length;
   const atDone = assignedTasks.filter(t => t.status === 'Done').length;
   const atInProgress = assignedTasks.filter(t => t.status === 'In Progress').length;
@@ -1787,7 +1789,8 @@ function _renderBossOverview() {
   const atNotStarted = assignedTasks.filter(t => t.status === 'Not Started').length;
 
   const rate = cd ? (cd.hourlyRate || 110) : 110;
-  const shifts = cd ? (cd.shifts || []).filter(s => new Date(s.inISO || s.date) >= WORK_START) : [];
+  const rawShifts = Array.isArray(cd && cd.shifts) ? cd.shifts : [];
+  const shifts = rawShifts.filter(s => new Date(s.inISO || s.date) >= WORK_START);
   const todayKey = now.toLocaleDateString('en-US');
   const weekStart = new Date(now); weekStart.setDate(now.getDate() - now.getDay()); weekStart.setHours(0,0,0,0);
   const monthKey = now.getMonth()+'-'+now.getFullYear();
@@ -1805,7 +1808,7 @@ function _renderBossOverview() {
   const updBanner = updates.length > 0
     ? '<div class="updates-banner" onclick="navigate(\'updates\')" style="cursor:pointer"><div class="updates-banner-icon">📌</div><div class="updates-banner-text"><strong>'+esc((updates[0].msg||'').slice(0,70))+((updates[0].msg||'').length>70?'…':'')+'</strong> — <span style="color:var(--copper)">View all →</span></div></div>' : '';
 
-  document.getElementById('overview-body').innerHTML =
+  el.innerHTML =
     updBanner+
     '<div class="grid-4" style="margin-bottom:1.25rem;grid-template-columns:repeat(auto-fit,minmax(145px,1fr))">'+
       '<div class="stat-tile stat-copper"><div class="stat-label">Athan\'s Status</div><div style="font-size:0.82rem;margin-top:0.5rem;color:'+pi.color+';font-weight:700">'+pi.dot+' '+pi.label+'</div><div style="margin-top:0.35rem;font-size:0.75rem">'+clockStatus+'</div></div>'+
@@ -1823,7 +1826,7 @@ function _renderBossOverview() {
       '<div class="card"><div class="card-header"><span class="card-title">Daily Report</span></div><div class="card-body">'+
         '<div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:0.75rem">Expected by 11:00 PM PH Time</div>'+
         (lastRep
-          ? '<div style="margin-bottom:0.4rem"><span style="font-weight:700;color:'+(lastRep.status==='COMPLETE'?'var(--success)':'var(--danger)')+'">● '+esc(lastRep.status)+'</span><span style="color:var(--text-muted);font-size:0.72rem;margin-left:0.5rem">Verified '+esc(lastRep.date)+'</span></div>'+(lastRep.issues&&lastRep.issues.length ? lastRep.issues.map(i=>'<div style="font-size:0.78rem;color:var(--danger);margin-top:0.2rem">• '+esc(i)+'</div>').join('') : '<div style="font-size:0.78rem;color:var(--text-muted)">No issues found.</div>')
+          ? '<div style="margin-bottom:0.4rem"><span style="font-weight:700;color:'+(lastRep.status==='COMPLETE'?'var(--success)':'var(--danger)')+'">● '+esc(lastRep.status)+'</span><span style="color:var(--text-muted);font-size:0.72rem;margin-left:0.5rem">Verified '+esc(lastRep.date)+'</span></div>'+(Array.isArray(lastRep.issues)&&lastRep.issues.length ? lastRep.issues.map(i=>'<div style="font-size:0.78rem;color:var(--danger);margin-top:0.2rem">• '+esc(i)+'</div>').join('') : '<div style="font-size:0.78rem;color:var(--text-muted)">No issues found.</div>')
           : '<div style="color:var(--text-muted);font-size:0.83rem">Not yet verified today.</div>')+
       '</div></div>'+
       '<div class="card"><div class="card-header"><span class="card-title">Recent Shifts</span><a onclick="navigate(\'staff\')" style="font-size:0.75rem;color:var(--copper);cursor:pointer">View all →</a></div><div class="card-body" style="padding:0">'+
@@ -1831,6 +1834,9 @@ function _renderBossOverview() {
           recentShifts.map(s => '<div style="display:flex;justify-content:space-between;align-items:center;padding:0.55rem 1.1rem;border-bottom:1px solid var(--border)"><div><div style="font-size:0.8rem;font-weight:600">'+esc(s.date)+'</div><div style="font-size:0.72rem;color:var(--text-muted)">'+esc(s.inTime||'')+' → '+esc(s.outTime||'')+'</div></div><div style="text-align:right"><div style="font-size:0.8rem;font-weight:700;color:var(--success)">'+fmt(calcE(s))+'</div><div style="font-size:0.72rem;color:var(--text-muted)">'+(s.hours||0).toFixed(2)+' hrs</div></div></div>').join(''))+
       '</div></div>'+
     '</div>';
+  } catch(e) {
+    el.innerHTML = '<div class="card" style="margin-top:1rem"><div class="card-body" style="color:var(--danger);font-size:0.82rem"><strong>Dashboard error:</strong> '+esc(String(e.message || e))+'</div></div>';
+  }
 }
 
 function _renderStaffOverview() {
