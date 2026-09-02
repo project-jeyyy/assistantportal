@@ -1029,7 +1029,9 @@ const SEED_ACCOUNTS = [
   { username:'jeyasayas', passwordHash:btoa('Hatakeyama14'), fullName:'John Paul Chris Paner Asayas' },
   { username:'athanviloria', passwordHash:btoa('AssistantAthan2024!'), fullName:'Cyrel Athan Viloria' }
 ];
-const SEED_UPDATES = [];
+const SEED_UPDATES = [
+  { id:'seed-ace-1', date:'September 2, 2026', type:'Announcement', priority:'Medium', msg:'Hi team! The portal has been updated with a fresh new design and improved performance. Reminder: Next payday is September 3 — please make sure your shift logs and task statuses are up to date before end of day. If you notice anything off, let Boss Jey know. — Ace, AI Work Assistant', notified:true }
+];
 
 function getSession()  { try { return JSON.parse(localStorage.getItem('aw_session')||'null'); } catch { return null; } }
 function setSession(s) { localStorage.setItem('aw_session', JSON.stringify(s)); }
@@ -1048,9 +1050,9 @@ async function saveUsers(u) { _usersCache = u; await db.collection('app').doc('u
 
 function _normalizeUserData(d) {
   if (Array.isArray(d.shifts)) d.shifts = d.shifts.map(s => {
-    if (s.hours !== undefined) s.hours = Number(s.hours) || 0;
-    if (s.earned !== undefined) s.earned = Number(s.earned) || 0;
-    if (s.breakMins !== undefined) s.breakMins = Number(s.breakMins) || 0;
+    if (s.hours !== undefined) s.hours = Math.round((Number(s.hours) || 0) * 100) / 100;
+    if (s.earned !== undefined) s.earned = Math.round((Number(s.earned) || 0) * 100) / 100;
+    if (s.breakMins !== undefined) s.breakMins = Math.round(Number(s.breakMins) || 0);
     return s;
   });
   if (d.hourlyRate !== undefined) d.hourlyRate = Number(d.hourlyRate) || 0;
@@ -1673,10 +1675,11 @@ function toggleClock() {
     const prevEarned = prevTodayShifts.reduce((a,s)=>a+(s.earned||0),0);
     const totalHrsDay = prevHrs + hrs;
     const totalDayEarned = totalHrsDay < MAX_SHIFT_HRS ? totalHrsDay * rate : otAuthCO ? DAILY_MIN_WAGE + (totalHrsDay - MAX_SHIFT_HRS) * rate : DAILY_MIN_WAGE;
-    const earned = Math.max(0, totalDayEarned - prevEarned);
+    const earned = Math.round(Math.max(0, totalDayEarned - prevEarned) * 100) / 100;
+    const hrsRounded = Math.round(hrs * 100) / 100;
     const breakMins=Math.round((userData.totalBreakSecs||0)/60);
     if (!userData.shifts) userData.shifts=[];
-    userData.shifts.unshift({ date:inT.toLocaleDateString('en-US'), inTime:inT.toLocaleTimeString(), outTime:now.toLocaleTimeString(), hours:hrs, earned, overtime:otAuthCO, breakMins, inISO:inT.toISOString(), outISO:now.toISOString(), device:userData.clockDevice||null });
+    userData.shifts.unshift({ date:inT.toLocaleDateString('en-US'), inTime:inT.toLocaleTimeString(), outTime:now.toLocaleTimeString(), hours:hrsRounded, earned, overtime:otAuthCO, breakMins, inISO:inT.toISOString(), outISO:now.toISOString(), device:userData.clockDevice||null });
     userData.clockedIn=false; userData.clockIn=null; clockStart=null; userData.totalBreakSecs=0;
     setUserData(currentUser,userData);
     addActivity('Clocked out at '+now.toLocaleTimeString()+' — '+hrs.toFixed(2)+' hrs worked'+(breakMins>0?' ('+breakMins+' min break)':''));
@@ -1805,7 +1808,7 @@ function _renderBossOverview() {
   const todayKey = now.toLocaleDateString('en-US');
   const weekStart = new Date(now); weekStart.setDate(now.getDate() - now.getDay()); weekStart.setHours(0,0,0,0);
   const monthKey = now.getMonth()+'-'+now.getFullYear();
-  const calcE = s => s.earned !== undefined ? s.earned : ((s.hours||0) < MAX_SHIFT_HRS ? (s.hours||0)*rate : s.overtime ? DAILY_MIN_WAGE+(((s.hours||0)-MAX_SHIFT_HRS)*rate) : DAILY_MIN_WAGE);
+  const calcE = s => { const v = s.earned !== undefined ? s.earned : ((s.hours||0) < MAX_SHIFT_HRS ? (s.hours||0)*rate : s.overtime ? DAILY_MIN_WAGE+(((s.hours||0)-MAX_SHIFT_HRS)*rate) : DAILY_MIN_WAGE); return Math.round(v*100)/100; };
   const todayEarned = shifts.filter(s => s.date === todayKey).reduce((a,s) => a+calcE(s), 0);
   const weekEarned  = shifts.filter(s => new Date(s.inISO||s.date) >= weekStart).reduce((a,s) => a+calcE(s), 0);
   const monthEarned = shifts.filter(s => { const d=new Date(s.inISO||s.date); return d.getMonth()+'-'+d.getFullYear() === monthKey; }).reduce((a,s) => a+calcE(s), 0);
@@ -1865,7 +1868,8 @@ function _renderStaffOverview() {
   const accts = userData.accounts || {};
   const tasksTouched = MASTER_CLIENTS.filter(c => { const cd = accts[c.name]; return cd && cd.tasks && cd.tasks.some(t => t.progress && t.progress !== 'Not Yet Started'); }).length;
   const todayHrs = shifts.filter(s => s.date === todayKey).reduce((a,s) => a+(s.hours||0), 0);
-  const monthEarnVal = shifts.filter(s => { const d = new Date(s.inISO||s.date); return d.getMonth()+'-'+d.getFullYear() === monthKey; }).reduce((a,s) => a+(s.earned!==undefined?s.earned:((s.hours||0)<MAX_SHIFT_HRS?(s.hours||0)*rate:s.overtime?DAILY_MIN_WAGE+(((s.hours||0)-MAX_SHIFT_HRS)*rate):DAILY_MIN_WAGE)), 0);
+  const _calcE2 = s => { const v = s.earned!==undefined?s.earned:((s.hours||0)<MAX_SHIFT_HRS?(s.hours||0)*rate:s.overtime?DAILY_MIN_WAGE+(((s.hours||0)-MAX_SHIFT_HRS)*rate):DAILY_MIN_WAGE); return Math.round(v*100)/100; };
+  const monthEarnVal = shifts.filter(s => { const d = new Date(s.inISO||s.date); return d.getMonth()+'-'+d.getFullYear() === monthKey; }).reduce((a,s) => a+_calcE2(s), 0);
   const monthEarn = '₱'+monthEarnVal.toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
 
   const bd = _udCache[BOSS_USERNAME];
@@ -1914,8 +1918,8 @@ function renderStaff() {
   const accessLog = cd.accessLog || [];
   const rate = cd.hourlyRate || 110;
   const shifts = (cd.shifts || []).filter(s => new Date(s.inISO || s.date) >= WORK_START);
-  const totalHrs = shifts.reduce((a, s) => a + (s.hours || 0), 0);
-  const totalEarned = shifts.reduce((a, s) => a + (s.earned !== undefined ? s.earned : Math.min(s.hours||0, MAX_SHIFT_HRS)*rate), 0);
+  const totalHrs = Math.round(shifts.reduce((a, s) => a + (Number(s.hours)||0), 0) * 100) / 100;
+  const totalEarned = Math.round(shifts.reduce((a, s) => a + (s.earned !== undefined ? Number(s.earned) : Math.min(Number(s.hours)||0, MAX_SHIFT_HRS)*rate), 0) * 100) / 100;
   const clockStatus = cd.clockedIn ? '<span style="color:var(--success);font-weight:700">● Clocked In</span> since '+new Date(cd.clockIn).toLocaleTimeString() : '<span style="color:var(--text-muted)">○ Off Shift</span>';
 
   const pres = cd.presence;
@@ -1945,7 +1949,7 @@ function renderStaff() {
         '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:0.82rem"><thead><tr style="border-bottom:1px solid var(--border)">'+
           ['#','Date','Clock In','Clock Out','Hours','Earned','Device'].map(h=>'<th style="text-align:left;padding:0.6rem 1.1rem;font-size:0.68rem;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-muted)">'+h+'</th>').join('')+
         '</tr></thead><tbody>'+
-          shifts.map((s, i) => '<tr style="border-bottom:1px solid var(--border)"><td style="padding:0.6rem 1.1rem;color:var(--text-muted);font-variant-numeric:tabular-nums">'+(shifts.length-i)+'</td><td style="padding:0.6rem 1.1rem;font-variant-numeric:tabular-nums">'+esc(s.date)+'</td><td style="padding:0.6rem 1.1rem;color:var(--success);font-weight:600;font-variant-numeric:tabular-nums">'+esc(s.inTime)+'</td><td style="padding:0.6rem 1.1rem;color:var(--danger);font-weight:600;font-variant-numeric:tabular-nums">'+esc(s.outTime)+'</td><td style="padding:0.6rem 1.1rem;font-weight:700;font-variant-numeric:tabular-nums">'+(s.hours||0).toFixed(2)+'</td><td style="padding:0.6rem 1.1rem;color:var(--success);font-weight:700;font-variant-numeric:tabular-nums">'+fmt(s.earned!==undefined?s.earned:((s.hours||0)<MAX_SHIFT_HRS?(s.hours||0)*rate:s.overtime?DAILY_MIN_WAGE+(((s.hours||0)-MAX_SHIFT_HRS)*rate):DAILY_MIN_WAGE))+'</td><td style="padding:0.6rem 1.1rem">'+(s.device ? '<div style="font-size:0.78rem;font-weight:600">'+esc(s.device.browser)+' · '+esc(s.device.os)+'</div><div style="font-size:0.7rem;color:var(--text-muted)">'+esc(s.device.device)+'</div>'+(s.breakMins?'<div style="font-size:0.68rem;color:var(--warning);margin-top:0.15rem">☕ '+s.breakMins+' min break</div>':'') : '<span style="color:var(--text-muted);font-size:0.75rem">—</span>')+'</td></tr>').join('')+
+          shifts.map((s, i) => { const h=Number(s.hours)||0; const e=s.earned!==undefined?Number(s.earned):(h<MAX_SHIFT_HRS?h*rate:s.overtime?DAILY_MIN_WAGE+((h-MAX_SHIFT_HRS)*rate):DAILY_MIN_WAGE); return '<tr style="border-bottom:1px solid var(--border)"><td style="padding:0.6rem 1.1rem;color:var(--text-muted);font-variant-numeric:tabular-nums">'+(shifts.length-i)+'</td><td style="padding:0.6rem 1.1rem;font-variant-numeric:tabular-nums">'+esc(s.date)+'</td><td style="padding:0.6rem 1.1rem;color:var(--success);font-weight:600;font-variant-numeric:tabular-nums">'+esc(s.inTime)+'</td><td style="padding:0.6rem 1.1rem;color:var(--danger);font-weight:600;font-variant-numeric:tabular-nums">'+esc(s.outTime)+'</td><td style="padding:0.6rem 1.1rem;font-weight:700;font-variant-numeric:tabular-nums">'+h.toFixed(2)+'</td><td style="padding:0.6rem 1.1rem;color:var(--success);font-weight:700;font-variant-numeric:tabular-nums">'+fmt(Math.round(e*100)/100)+'</td><td style="padding:0.6rem 1.1rem">'+(s.device ? '<div style="font-size:0.78rem;font-weight:600">'+esc(s.device.browser)+' · '+esc(s.device.os)+'</div><div style="font-size:0.7rem;color:var(--text-muted)">'+esc(s.device.device)+'</div>'+(s.breakMins?'<div style="font-size:0.68rem;color:var(--warning);margin-top:0.15rem">☕ '+s.breakMins+' min break</div>':'') : '<span style="color:var(--text-muted);font-size:0.75rem">—</span>')+'</td></tr>'; }).join('')+
         '</tbody></table></div>')+
     '</div></div>'+
     '<div class="card"><div class="card-header"><span class="card-title">Portal Access Log</span><span style="font-size:0.72rem;color:var(--text-muted)">'+accessLog.length+' event'+(accessLog.length!==1?'s':'')+'</span></div><div class="card-body" style="padding:0">'+
@@ -2446,7 +2450,7 @@ function renderEarnings() {
   const weekStart = new Date(now); weekStart.setDate(now.getDate()-now.getDay()); weekStart.setHours(0,0,0,0);
   const monthKey = now.getMonth()+'-'+now.getFullYear();
   const sumH = arr=>arr.reduce((a,s)=>a+(s.hours||0),0);
-  const sumE = arr=>arr.reduce((a,s)=>a+(s.earned!==undefined?s.earned:((s.hours||0)<MAX_SHIFT_HRS?(s.hours||0)*rate:s.overtime?DAILY_MIN_WAGE+(((s.hours||0)-MAX_SHIFT_HRS)*rate):DAILY_MIN_WAGE)),0);
+  const sumE = arr=>arr.reduce((a,s)=>{ const v=s.earned!==undefined?s.earned:((s.hours||0)<MAX_SHIFT_HRS?(s.hours||0)*rate:s.overtime?DAILY_MIN_WAGE+(((s.hours||0)-MAX_SHIFT_HRS)*rate):DAILY_MIN_WAGE); return a+Math.round(v*100)/100; },0);
   const fmt = v=>'₱'+v.toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
   const fmtH = h=>h.toFixed(2)+' hrs';
   const todayS = shifts.filter(s=>s.date===todayKey);
@@ -2468,7 +2472,7 @@ function renderShifts() {
   const el = document.getElementById('shift-log-body');
   if (shifts.length===0) { el.innerHTML='<div class="empty-state"><div class="empty-state-text">No shifts logged yet.</div></div>'; return; }
   el.innerHTML='<div class="shift-row" style="font-size:0.68rem;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-muted)"><span class="shift-date">Date</span><span class="shift-time">Clock In → Out</span><span class="shift-hours">Hours</span><span class="shift-earn">Earned</span></div>'
-    +shifts.map(s=>'<div class="shift-row"><span class="shift-date">'+esc(s.date)+'</span><span class="shift-time">'+esc(s.inTime)+' → '+esc(s.outTime)+'</span><span class="shift-hours">'+(s.hours||0).toFixed(2)+'</span><span class="shift-earn">₱'+(s.earned!==undefined?s.earned:((s.hours||0)<MAX_SHIFT_HRS?(s.hours||0)*rate:s.overtime?DAILY_MIN_WAGE+(((s.hours||0)-MAX_SHIFT_HRS)*rate):DAILY_MIN_WAGE)).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2})+'</span></div>').join('');
+    +shifts.map(s=>{ const h=Number(s.hours)||0; const e=s.earned!==undefined?Number(s.earned):(h<MAX_SHIFT_HRS?h*rate:s.overtime?DAILY_MIN_WAGE+((h-MAX_SHIFT_HRS)*rate):DAILY_MIN_WAGE); return '<div class="shift-row"><span class="shift-date">'+esc(s.date)+'</span><span class="shift-time">'+esc(s.inTime)+' → '+esc(s.outTime)+'</span><span class="shift-hours">'+h.toFixed(2)+'</span><span class="shift-earn">₱'+(Math.round(e*100)/100).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2})+'</span></div>'; }).join('');
 }
 
 // =============================================
