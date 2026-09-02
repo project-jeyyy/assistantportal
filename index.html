@@ -1046,11 +1046,22 @@ async function loadUsers() {
 
 async function saveUsers(u) { _usersCache = u; await db.collection('app').doc('users').set(u); }
 
+function _normalizeUserData(d) {
+  if (Array.isArray(d.shifts)) d.shifts = d.shifts.map(s => {
+    if (s.hours !== undefined) s.hours = Number(s.hours) || 0;
+    if (s.earned !== undefined) s.earned = Number(s.earned) || 0;
+    if (s.breakMins !== undefined) s.breakMins = Number(s.breakMins) || 0;
+    return s;
+  });
+  if (d.hourlyRate !== undefined) d.hourlyRate = Number(d.hourlyRate) || 0;
+  return d;
+}
+
 async function loadUserData(username) {
   const def = { accounts:{}, issues:[], shifts:[], hourlyRate:110, fullName:'', seenUpdates:0, activity:[], clockedIn:false, clockIn:null };
   try {
     const snap = await db.collection('users').doc(username).get();
-    _udCache[username] = Object.assign({}, def, snap.exists ? snap.data() : {});
+    _udCache[username] = _normalizeUserData(Object.assign({}, def, snap.exists ? snap.data() : {}));
     const seed = SEED_ACCOUNTS.find(a=>a.username===username);
     if (seed && seed.fullName) _udCache[username].fullName = seed.fullName;
   } catch { _udCache[username] = def; }
@@ -1087,7 +1098,7 @@ function subscribeStaff() {
   _staffUnsub = db.collection('users').doc('athanviloria').onSnapshot(snap => {
     if (snap.exists) {
       const def = { accounts:{}, issues:[], shifts:[], hourlyRate:175, fullName:'Cyrel Athan Viloria', seenUpdates:0, activity:[], clockedIn:false, clockIn:null };
-      _udCache['athanviloria'] = Object.assign({}, def, snap.data());
+      _udCache['athanviloria'] = _normalizeUserData(Object.assign({}, def, snap.data()));
     }
     if (currentUser === BOSS_USERNAME) {
       refreshOverview(); refreshIssuesBadge(); refreshAssignedBadge();
@@ -1109,7 +1120,7 @@ function subscribeStaff() {
 function subscribeBoss() {
   if (_bossUnsub) _bossUnsub();
   _bossUnsub = db.collection('users').doc(BOSS_USERNAME).onSnapshot(snap => {
-    if (snap.exists) _udCache[BOSS_USERNAME] = Object.assign({ clockedIn:false, clockIn:null }, snap.data());
+    if (snap.exists) _udCache[BOSS_USERNAME] = _normalizeUserData(Object.assign({ clockedIn:false, clockIn:null }, snap.data()));
     if (currentUser && currentUser !== BOSS_USERNAME) refreshOverview();
   }, ()=>{});
 }
