@@ -1503,16 +1503,8 @@ function _doAutoLogout() {
 function enterApp() {
   document.getElementById('auth-screen').classList.add('hidden');
   document.getElementById('app-shell').classList.remove('hidden');
-  populateSidebar();
-  refreshClockUI();
-  refreshAll();
-  greetUser();
-  subscribeUpdates();
   const isBoss = currentUser === BOSS_USERNAME;
-  if (isBoss) subscribeStaff(); else { subscribeStaff(); subscribeBoss(); }
-  startPresence();
-  const postCard = document.getElementById('post-update-card');
-  if (postCard) postCard.classList.toggle('hidden', !isBoss);
+  greetUser();
   const clockWidget = document.getElementById('clock-widget');
   const bossIndicator = document.getElementById('boss-online-indicator');
   if (clockWidget) clockWidget.style.display = isBoss ? 'none' : '';
@@ -1530,6 +1522,8 @@ function enterApp() {
   const tabPills = document.getElementById('accounts-tab-pills');
   if (tabPills) tabPills.style.display = isBoss ? 'none' : '';
   if (isBoss) accountTab = 'all';
+  const postCard = document.getElementById('post-update-card');
+  if (postCard) postCard.classList.toggle('hidden', !isBoss);
   const managerBanner = document.getElementById('manager-access-banner');
   if (managerBanner) managerBanner.style.display = managerAccessMode ? 'flex' : 'none';
   if (currentUser !== BOSS_USERNAME && !managerAccessMode) {
@@ -1537,6 +1531,12 @@ function enterApp() {
   } else {
     document.getElementById('assigned-title').textContent = 'Assigned Tasks';
   }
+  populateSidebar();
+  refreshClockUI();
+  try { refreshAll(); } catch(e) { console.error('refreshAll error:', e); }
+  subscribeUpdates();
+  if (isBoss) subscribeStaff(); else { subscribeStaff(); subscribeBoss(); }
+  startPresence();
   startInactivityTracking();
 }
 
@@ -1592,11 +1592,12 @@ function navigate(page) {
 }
 
 function refreshAll() {
-  refreshOverview(); renderUpdates();
-  if (currentUser === BOSS_USERNAME) { renderAssigned(); renderIssues(); }
-  else { renderAccounts(); renderAssigned(); renderIssues(); renderEarnings(); renderShifts(); }
-  refreshUpdatesBadge(); refreshIssuesBadge(); refreshAssignedBadge();
-  updateNotifDot();
+  const _safe = fn => { try { fn(); } catch(e) { console.error(fn.name||'render', e); } };
+  _safe(refreshOverview); _safe(renderUpdates);
+  if (currentUser === BOSS_USERNAME) { _safe(renderAssigned); _safe(renderIssues); }
+  else { _safe(renderAccounts); _safe(renderAssigned); _safe(renderIssues); _safe(renderEarnings); _safe(renderShifts); }
+  _safe(refreshUpdatesBadge); _safe(refreshIssuesBadge); _safe(refreshAssignedBadge);
+  _safe(updateNotifDot);
 }
 
 // =============================================
@@ -2106,6 +2107,7 @@ function refreshUpdatesBadge() {
   userData = getUserData(currentUser);
   const unseen = Math.max(0, _visibleUpdates().length - (userData.seenUpdates||0));
   const b = document.getElementById('updates-badge');
+  if (!b) return;
   if (unseen>0) { b.textContent=unseen; b.classList.remove('hidden'); } else { b.classList.add('hidden'); }
   updateNotifDot();
 }
