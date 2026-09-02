@@ -773,7 +773,7 @@ select {
         </div>
         <div class="grid-4" style="margin-bottom:1.25rem">
           <div class="stat-tile stat-green"><div class="stat-label">This Month</div><div class="stat-value v-green" id="earn-month">&#8369;0.00</div><div class="stat-sub" id="earn-month-hours">0.00 hrs</div></div>
-          <div class="stat-tile stat-copper"><div class="stat-label">This Week</div><div class="stat-value v-copper" id="earn-week">&#8369;0.00</div><div class="stat-sub" id="earn-week-hours">0.00 hrs</div></div>
+          <div class="stat-tile stat-copper" style="border-left:3px solid var(--warning)"><div class="stat-label">Pay Period</div><div class="stat-value v-copper" id="earn-week">&#8369;0.00</div><div class="stat-sub" id="earn-week-hours">0.00 hrs</div><div style="font-size:0.68rem;color:var(--text-muted);margin-top:0.1rem" id="earn-pp-label"></div></div>
           <div class="stat-tile"><div class="stat-label">Today</div><div class="stat-value" id="earn-today">&#8369;0.00</div><div class="stat-sub" id="earn-today-hours">0.00 hrs</div></div>
           <div class="stat-tile stat-gold"><div class="stat-label">All Time</div><div class="stat-value" id="earn-total">&#8369;0.00</div><div class="stat-sub" id="earn-total-hours">0.00 hrs</div></div>
         </div>
@@ -972,6 +972,17 @@ const MASTER_CLIENTS = [
 ];
 
 const WORK_START = new Date('2026-07-27T00:00:00');
+const LAST_PAYDAY = new Date('2026-08-20T00:00:00');
+const PAY_CYCLE_DAYS = 14;
+function getPayPeriod() {
+  const now = new Date(); now.setHours(23,59,59,999);
+  const ms = now - LAST_PAYDAY;
+  const cycles = Math.floor(ms / (PAY_CYCLE_DAYS * 86400000));
+  const start = new Date(LAST_PAYDAY.getTime() + cycles * PAY_CYCLE_DAYS * 86400000);
+  start.setDate(start.getDate() + 1); start.setHours(0,0,0,0);
+  const end = new Date(start.getTime() + (PAY_CYCLE_DAYS - 1) * 86400000); end.setHours(23,59,59,999);
+  return { start, end };
+}
 const OVERALL_STATUS_OPTS = ['Not Yet Started','In Process','Completed','Closed'];
 const BOSS_REVIEWED = new Set([
   'ABI P&O, Inc.','ASA Technologies, Inc.','Backyard Investco I LLC','Backyard Partners LLC',
@@ -1823,6 +1834,11 @@ function _renderBossOverview() {
   const weekEarned  = shifts.filter(s => new Date(s.inISO||s.date) >= weekStart).reduce((a,s) => a+calcE(s), 0);
   const monthEarned = shifts.filter(s => { const d=new Date(s.inISO||s.date); return d.getMonth()+'-'+d.getFullYear() === monthKey; }).reduce((a,s) => a+calcE(s), 0);
   const allEarned   = shifts.reduce((a,s) => a+calcE(s), 0);
+  const pp = getPayPeriod();
+  const ppShifts = shifts.filter(s => { const d = new Date(s.inISO||s.date); return d >= pp.start && d <= pp.end; });
+  const ppEarned = ppShifts.reduce((a,s) => a+calcE(s), 0);
+  const ppHrs = ppShifts.reduce((a,s) => a+(Number(s.hours)||0), 0);
+  const ppLabel = pp.end.toLocaleDateString('en-US',{month:'short',day:'numeric'});
   const fmt = v => '₱'+v.toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
 
   const recentShifts = [...shifts].reverse().slice(0, 5);
@@ -1842,9 +1858,9 @@ function _renderBossOverview() {
     '</div>'+
     '<div class="grid-4" style="margin-bottom:1.25rem;grid-template-columns:repeat(auto-fit,minmax(155px,1fr))">'+
       '<div class="stat-tile"><div class="stat-label">Today\'s Earnings</div><div class="stat-value" style="color:var(--copper);font-size:1.1rem">'+fmt(todayEarned)+'</div></div>'+
-      '<div class="stat-tile"><div class="stat-label">This Week</div><div class="stat-value" style="font-size:1.1rem">'+fmt(weekEarned)+'</div></div>'+
+      '<div class="stat-tile stat-gold" style="border-left:3px solid var(--warning)"><div class="stat-label">Next Payroll</div><div class="stat-value" style="color:var(--warning);font-size:1.1rem">'+fmt(ppEarned)+'</div><div class="stat-sub">'+ppShifts.length+' shift'+(ppShifts.length!==1?'s':'')+' · '+ppHrs.toFixed(1)+' hrs</div><div style="font-size:0.68rem;color:var(--text-muted);margin-top:0.15rem">Due '+ppLabel+'</div></div>'+
       '<div class="stat-tile"><div class="stat-label">This Month</div><div class="stat-value" style="font-size:1.1rem">'+fmt(monthEarned)+'</div></div>'+
-      '<div class="stat-tile stat-gold"><div class="stat-label">All Time</div><div class="stat-value" style="color:var(--warning);font-size:1.1rem">'+fmt(allEarned)+'</div><div class="stat-sub">'+shifts.length+' shift'+(shifts.length!==1?'s':'')+'</div></div>'+
+      '<div class="stat-tile"><div class="stat-label">All Time</div><div class="stat-value" style="font-size:1.1rem">'+fmt(allEarned)+'</div><div class="stat-sub">'+shifts.length+' shift'+(shifts.length!==1?'s':'')+'</div></div>'+
     '</div>'+
     '<div class="grid-2" style="align-items:start;margin-bottom:1rem">'+
       '<div class="card"><div class="card-header"><span class="card-title">Daily Report</span></div><div class="card-body">'+
@@ -1881,6 +1897,11 @@ function _renderStaffOverview() {
   const _calcE2 = s => { const v = s.earned!==undefined?s.earned:((s.hours||0)<MAX_SHIFT_HRS?(s.hours||0)*rate:s.overtime?DAILY_MIN_WAGE+(((s.hours||0)-MAX_SHIFT_HRS)*rate):DAILY_MIN_WAGE); return Math.round(v*100)/100; };
   const monthEarnVal = shifts.filter(s => { const d = new Date(s.inISO||s.date); return d.getMonth()+'-'+d.getFullYear() === monthKey; }).reduce((a,s) => a+_calcE2(s), 0);
   const monthEarn = '₱'+monthEarnVal.toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const pp = getPayPeriod();
+  const ppShifts = shifts.filter(s => { const d = new Date(s.inISO||s.date); return d >= pp.start && d <= pp.end; });
+  const ppEarned = ppShifts.reduce((a,s) => a+_calcE2(s), 0);
+  const ppLabel = pp.end.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  const ppFmt = '₱'+ppEarned.toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
 
   const bd = _udCache[BOSS_USERNAME];
   const bPres = bd && bd.presence;
@@ -1903,7 +1924,7 @@ function _renderStaffOverview() {
       '<div class="stat-tile stat-copper"><div class="stat-label">My Accounts</div><div class="stat-value v-copper">'+owned.length+'</div><div class="stat-sub">Owned by me</div></div>'+
       '<div class="stat-tile stat-green"><div class="stat-label">Completed</div><div class="stat-value v-green">'+completed+'</div><div class="stat-sub">Clients at 100%</div></div>'+
       '<div class="stat-tile stat-orange"><div class="stat-label">Hours Today</div><div class="stat-value">'+todayHrs.toFixed(1)+'</div><div class="stat-sub">Logged</div></div>'+
-      '<div class="stat-tile stat-gold"><div class="stat-label">This Month</div><div class="stat-value v-copper">'+monthEarn+'</div><div class="stat-sub">Earnings</div></div>'+
+      '<div class="stat-tile stat-gold" style="border-left:3px solid var(--warning)"><div class="stat-label">Next Payroll</div><div class="stat-value v-copper">'+ppFmt+'</div><div class="stat-sub">'+ppShifts.length+' shift'+(ppShifts.length!==1?'s':'')+' · Due '+ppLabel+'</div></div>'+
     '</div>'+
     (pendingTasks > 0 ? '<div style="background:rgba(196,149,106,0.06);border:1px solid rgba(196,149,106,0.15);border-radius:var(--radius-md);padding:0.75rem 1.1rem;margin-bottom:1.25rem;cursor:pointer" onclick="navigate(\'assigned\')"><div style="font-size:0.82rem;color:var(--text-primary);font-weight:600">'+pendingTasks+' task'+(pendingTasks!==1?'s':'')+' pending <span style="color:var(--copper)">→ View Tasks</span></div></div>' : '')+
     '<div class="grid-2" style="align-items:start">'+
@@ -1938,6 +1959,12 @@ function renderStaff() {
   const presMap = { active:{ dot:'🟢',label:'Online',color:'var(--success)' }, idle:{ dot:'🟡',label:'Idle',color:'var(--warning)' }, away:{ dot:'🟠',label:'Away',color:'#f97316' }, offline:{ dot:'⚫',label:'Offline',color:'var(--text-muted)' } };
   const presInfo = presMap[presStatus] || presMap.offline;
   const fmt = v => '₱'+v.toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const pp = getPayPeriod();
+  const ppShifts = shifts.filter(s => { const d = new Date(s.inISO||s.date); return d >= pp.start && d <= pp.end; });
+  const ppCalcE = s => { const v = s.earned!==undefined?Number(s.earned):((Number(s.hours)||0)<MAX_SHIFT_HRS?(Number(s.hours)||0)*rate:s.overtime?DAILY_MIN_WAGE+(((Number(s.hours)||0)-MAX_SHIFT_HRS)*rate):DAILY_MIN_WAGE); return Math.round(v*100)/100; };
+  const ppEarned = ppShifts.reduce((a,s) => a+ppCalcE(s), 0);
+  const ppHrs = ppShifts.reduce((a,s) => a+(Number(s.hours)||0), 0);
+  const ppLabel = pp.end.toLocaleDateString('en-US',{month:'short',day:'numeric'});
 
   const todayStr = new Date().toLocaleDateString('en-US');
   const authDate = cd.overtimeAuthDate;
@@ -1949,7 +1976,8 @@ function renderStaff() {
       '<div class="stat-tile stat-copper"><div class="stat-label">Online Status</div><div style="font-size:0.82rem;margin-top:0.5rem;color:'+presInfo.color+';font-weight:700">'+presInfo.dot+' '+presInfo.label+'</div><div style="margin-top:0.35rem;font-size:0.75rem">'+clockStatus+'</div></div>'+
       '<div class="stat-tile stat-green"><div class="stat-label">Total Shifts</div><div class="stat-value v-green">'+shifts.length+'</div><div class="stat-sub">Since Jul 27</div></div>'+
       '<div class="stat-tile stat-orange"><div class="stat-label">Total Hours</div><div class="stat-value">'+totalHrs.toFixed(2)+'</div><div class="stat-sub">hrs logged</div></div>'+
-      '<div class="stat-tile stat-gold"><div class="stat-label">Total Earned</div><div class="stat-value v-copper" style="font-size:1.2rem">'+fmt(totalEarned)+'</div><div class="stat-sub">@ ₱'+rate+'/hr</div></div>'+
+      '<div class="stat-tile stat-gold" style="border-left:3px solid var(--warning)"><div class="stat-label">Next Payroll</div><div class="stat-value v-copper" style="font-size:1.2rem">'+fmt(ppEarned)+'</div><div class="stat-sub">'+ppShifts.length+' shift'+(ppShifts.length!==1?'s':'')+' · '+ppHrs.toFixed(1)+' hrs</div><div style="font-size:0.68rem;color:var(--text-muted);margin-top:0.15rem">Due '+ppLabel+'</div></div>'+
+      '<div class="stat-tile"><div class="stat-label">Total Earned</div><div class="stat-value" style="font-size:1.1rem">'+fmt(totalEarned)+'</div><div class="stat-sub">@ ₱'+rate+'/hr</div></div>'+
       '<div class="stat-tile"><div class="stat-label">Daily Rate</div><div class="stat-value" style="font-size:1.1rem">'+fmt(rate*5)+'</div><div class="stat-sub">₱'+rate+'/hr × 5 hrs</div></div>'+
       '<div class="stat-tile" style="border:1px solid '+(authorized?'rgba(59,130,246,0.3)':'var(--border)')+';background:'+(authorized?'rgba(59,130,246,0.04)':'')+'"><div class="stat-label">Overtime Today</div><div style="margin-top:0.4rem;font-size:0.82rem;font-weight:700;color:'+(authorized?'#3B82F6':'var(--text-muted)')+'">'+(authorized?'✓ Authorized':'Not Authorized')+'</div><button onclick="toggleOvertimeAuth()" style="margin-top:0.5rem;font-size:0.7rem;padding:0.2rem 0.7rem;border-radius:99px;border:1px solid '+(authorized?'#3B82F6':'var(--border)')+';background:'+(authorized?'rgba(59,130,246,0.08)':'transparent')+';color:'+(authorized?'#3B82F6':'var(--text-muted)')+';cursor:pointer;font-weight:600">'+(authorized?'Revoke':'Authorize')+'</button></div>'+
       '<div class="stat-tile" style="border:1px solid '+(noWorkActive?'rgba(239,68,68,0.3)':'var(--border)')+';background:'+(noWorkActive?'rgba(239,68,68,0.04)':'')+'"><div class="stat-label">No Work Mode</div><div style="margin-top:0.4rem;font-size:0.82rem;font-weight:700;color:'+(noWorkActive?'var(--danger)':'var(--text-muted)')+'">'+(noWorkActive?'🚫 Active':'Not Active')+'</div><button onclick="toggleNoWork()" style="margin-top:0.5rem;font-size:0.7rem;padding:0.2rem 0.7rem;border-radius:99px;border:1px solid '+(noWorkActive?'rgba(239,68,68,0.4)':'var(--border)')+';background:'+(noWorkActive?'rgba(239,68,68,0.08)':'transparent')+';color:'+(noWorkActive?'var(--danger)':'var(--text-muted)')+';cursor:pointer;font-weight:600">'+(noWorkActive?'Deactivate':'Activate')+'</button></div>'+
@@ -2464,10 +2492,12 @@ function renderEarnings() {
   const fmt = v=>'₱'+v.toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
   const fmtH = h=>h.toFixed(2)+' hrs';
   const todayS = shifts.filter(s=>s.date===todayKey);
-  const weekS = shifts.filter(s=>new Date(s.inISO||s.date)>=weekStart);
+  const pp = getPayPeriod();
+  const ppS = shifts.filter(s=>{ const d=new Date(s.inISO||s.date); return d>=pp.start && d<=pp.end; });
   const monthS = shifts.filter(s=>{ const d=new Date(s.inISO||s.date); return d.getMonth()+'-'+d.getFullYear()===monthKey; });
   document.getElementById('earn-today').textContent=fmt(sumE(todayS)); document.getElementById('earn-today-hours').textContent=fmtH(sumH(todayS));
-  document.getElementById('earn-week').textContent=fmt(sumE(weekS));  document.getElementById('earn-week-hours').textContent=fmtH(sumH(weekS));
+  document.getElementById('earn-week').textContent=fmt(sumE(ppS));  document.getElementById('earn-week-hours').textContent=fmtH(sumH(ppS));
+  const ppLbl = document.getElementById('earn-pp-label'); if(ppLbl) ppLbl.textContent='Due '+pp.end.toLocaleDateString('en-US',{month:'short',day:'numeric'});
   document.getElementById('earn-month').textContent=fmt(sumE(monthS)); document.getElementById('earn-month-hours').textContent=fmtH(sumH(monthS));
   document.getElementById('earn-total').textContent=fmt(sumE(shifts));  document.getElementById('earn-total-hours').textContent=fmtH(sumH(shifts));
 }
