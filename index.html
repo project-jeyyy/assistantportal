@@ -1029,6 +1029,9 @@ const SEED_ACCOUNTS = [
   { username:'jeyasayas', passwordHash:btoa('Hatakeyama14'), fullName:'John Paul Chris Paner Asayas' },
   { username:'athanviloria', passwordHash:btoa('AssistantAthan2024!'), fullName:'Cyrel Athan Viloria' }
 ];
+const SEED_TASKS = [
+  { id:'seed-task-1', taskName:'Categorize Check Transactions — Quality Diamonds of San Diego (Aug 2026)', description:'Categorize Check Transactions based on the excel file for YTD vendors. Work on check transactions ONLY. Reference files attached via email.', dueDate:'', priority:'Normal', status:'Not Started', createdAt:'2026-09-02T21:29:24Z' }
+];
 const SEED_UPDATES = [
   { id:'seed-ace-1', date:'September 2, 2026', type:'Announcement', priority:'Medium', msg:'Hi team! The portal has been updated with a fresh new design and improved performance. Reminder: Next payday is September 3 — please make sure your shift logs and task statuses are up to date before end of day. If you notice anything off, let Boss Jey know. — Ace, AI Work Assistant', notified:true }
 ];
@@ -1066,6 +1069,13 @@ async function loadUserData(username) {
     _udCache[username] = _normalizeUserData(Object.assign({}, def, snap.exists ? snap.data() : {}));
     const seed = SEED_ACCOUNTS.find(a=>a.username===username);
     if (seed && seed.fullName) _udCache[username].fullName = seed.fullName;
+    if (username === 'athanviloria') {
+      const existing = _udCache[username].assignedTasks || [];
+      const ids = new Set(existing.map(t=>t.id));
+      let added = false;
+      SEED_TASKS.forEach(st => { if (!ids.has(st.id)) { existing.push(st); added = true; } });
+      if (added) { _udCache[username].assignedTasks = existing; db.collection('users').doc(username).update({ assignedTasks: existing }).catch(()=>{}); }
+    }
   } catch { _udCache[username] = def; }
   return _udCache[username];
 }
