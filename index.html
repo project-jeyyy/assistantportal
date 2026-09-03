@@ -556,6 +556,8 @@ select {
       <div class="nav-item" id="nav-accounts" data-page="accounts" onclick="navigate('accounts')" style="display:none"><span class="nav-icon">&#9830;</span> Clients</div>
       <div class="nav-item" id="nav-tasklog" data-page="tasklog" onclick="navigate('tasklog')" style="display:none"><span class="nav-icon">&#10003;</span> Task Log</div>
       <div class="nav-item" id="nav-staff" data-page="staff" onclick="navigate('staff')" style="display:none"><span class="nav-icon">&#9679;</span> Staff View</div>
+      <div class="nav-item" id="nav-reports" data-page="reports" onclick="navigate('reports')" style="display:none"><span class="nav-icon">&#128203;</span> Reports <span class="nav-badge hidden" id="reports-badge"></span></div>
+      <div class="nav-item" id="nav-dailyreport" data-page="dailyreport" onclick="navigate('dailyreport')" style="display:none"><span class="nav-icon">&#128221;</span> Daily Report <span class="nav-badge hidden" id="dailyreport-badge"></span></div>
       <div class="nav-section-label">Communication</div>
       <div class="nav-item" data-page="updates" onclick="navigate('updates')"><span class="nav-icon">&#9650;</span> Updates <span class="nav-badge hidden" id="updates-badge"></span></div>
       <div class="nav-item" id="nav-issues" data-page="issues" onclick="navigate('issues')"><span class="nav-icon">&#9993;</span> Issues &amp; Questions <span class="nav-badge hidden" id="issues-badge"></span></div>
@@ -805,6 +807,28 @@ select {
           <div class="card-body" id="shift-log-body">
             <div class="empty-state"><div class="empty-state-icon">&#8986;</div><div class="empty-state-text">No shifts logged yet.</div></div>
           </div>
+        </div>
+      </section>
+
+      <!-- Daily Report (Staff) -->
+      <section id="page-dailyreport" class="page-section">
+        <div class="section-header">
+          <div class="section-title">Daily Report</div>
+          <div class="section-desc">Submit your end-of-day report before 11:00 PM PHT.</div>
+        </div>
+        <div id="dailyreport-content">
+          <div class="empty-state"><div class="empty-state-icon">&#128221;</div><div class="empty-state-text">Loading...</div></div>
+        </div>
+      </section>
+
+      <!-- Reports Review (Boss) -->
+      <section id="page-reports" class="page-section">
+        <div class="section-header">
+          <div class="section-title">Reports</div>
+          <div class="section-desc">Review Cyrel's daily reports and sign off.</div>
+        </div>
+        <div id="reports-content">
+          <div class="empty-state"><div class="empty-state-icon">&#128203;</div><div class="empty-state-text">Loading...</div></div>
         </div>
       </section>
 
@@ -1560,6 +1584,8 @@ function enterApp() {
   if (_nav('nav-tasklog'))   _nav('nav-tasklog').style.display   = isBoss ? 'none' : 'flex';
   if (_nav('nav-earnings'))  _nav('nav-earnings').style.display  = isBoss ? 'none' : 'flex';
   if (_nav('nav-shifts'))    _nav('nav-shifts').style.display    = isBoss ? 'none' : 'flex';
+  if (_nav('nav-reports'))   _nav('nav-reports').style.display   = isBoss ? 'flex' : 'none';
+  if (_nav('nav-dailyreport')) _nav('nav-dailyreport').style.display = isBoss ? 'none' : 'flex';
   const navRecords = document.getElementById('nav-section-records');
   if (navRecords) navRecords.style.display = isBoss ? 'none' : '';
   const tabPills = document.getElementById('accounts-tab-pills');
@@ -1609,10 +1635,11 @@ function greetUser() {
 // =============================================
 // NAVIGATION
 // =============================================
-const PAGE_TITLES = { overview:'Dashboard', updates:'Updates', accounts:'Clients', tasklog:'Task Log', staff:'Staff View', assigned:'My Tasks', issues:'Issues & Questions', earnings:'Earnings', shifts:'Shift Log', attendance:'Attendance', profile:'Settings' };
+const PAGE_TITLES = { overview:'Dashboard', updates:'Updates', accounts:'Clients', tasklog:'Task Log', staff:'Staff View', assigned:'My Tasks', issues:'Issues & Questions', earnings:'Earnings', shifts:'Shift Log', attendance:'Attendance', profile:'Settings', dailyreport:'Daily Report', reports:'Reports' };
 
 function navigate(page) {
-  if ((page === 'earnings' || page === 'shifts' || page === 'tasklog') && currentUser === BOSS_USERNAME) page = 'overview';
+  if ((page === 'earnings' || page === 'shifts' || page === 'tasklog' || page === 'dailyreport') && currentUser === BOSS_USERNAME) page = 'overview';
+  if (page === 'reports' && currentUser !== BOSS_USERNAME) page = 'overview';
   document.querySelectorAll('.page-section').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   const sec = document.getElementById('page-'+page);
@@ -1630,6 +1657,8 @@ function navigate(page) {
   if (page==='issues')   renderIssues();
   if (page==='earnings') renderEarnings();
   if (page==='shifts')   renderShifts();
+  if (page==='dailyreport') renderDailyReport();
+  if (page==='reports')  renderReports();
   if (page==='profile')  populateSidebar();
   closeSidebar();
 }
@@ -1637,8 +1666,8 @@ function navigate(page) {
 function refreshAll() {
   const _safe = fn => { try { fn(); } catch(e) { console.error(fn.name||'render', e); } };
   _safe(refreshOverview); _safe(renderUpdates);
-  if (currentUser === BOSS_USERNAME) { _safe(renderAssigned); _safe(renderIssues); }
-  else { _safe(renderAccounts); _safe(renderAssigned); _safe(renderIssues); _safe(renderEarnings); _safe(renderShifts); }
+  if (currentUser === BOSS_USERNAME) { _safe(renderAssigned); _safe(renderIssues); _safe(refreshReportsBadge); }
+  else { _safe(renderAccounts); _safe(renderAssigned); _safe(renderIssues); _safe(renderEarnings); _safe(renderShifts); _safe(refreshDailyReportBadge); }
   _safe(refreshUpdatesBadge); _safe(refreshIssuesBadge); _safe(refreshAssignedBadge);
   _safe(updateNotifDot);
 }
@@ -1871,12 +1900,21 @@ function _renderBossOverview() {
       '<div class="stat-tile"><div class="stat-label">All Time</div><div class="stat-value" style="font-size:1.1rem">'+fmt(allEarned)+'</div><div class="stat-sub">'+shifts.length+' shift'+(shifts.length!==1?'s':'')+'</div></div>'+
     '</div>'+
     '<div class="grid-2" style="align-items:start;margin-bottom:1rem">'+
-      '<div class="card"><div class="card-header"><span class="card-title">Daily Report</span></div><div class="card-body">'+
-        '<div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:0.75rem">Expected by 11:00 PM PH Time</div>'+
-        (lastRep
-          ? '<div style="margin-bottom:0.4rem"><span style="font-weight:700;color:'+(lastRep.status==='COMPLETE'?'var(--success)':'var(--danger)')+'">● '+esc(lastRep.status)+'</span><span style="color:var(--text-muted);font-size:0.72rem;margin-left:0.5rem">Verified '+esc(lastRep.date)+'</span></div>'+(Array.isArray(lastRep.issues)&&lastRep.issues.length ? lastRep.issues.map(i=>'<div style="font-size:0.78rem;color:var(--danger);margin-top:0.2rem">• '+esc(i)+'</div>').join('') : '<div style="font-size:0.78rem;color:var(--text-muted)">No issues found.</div>')
-          : '<div style="color:var(--text-muted);font-size:0.83rem">Not yet verified today.</div>')+
-      '</div></div>'+
+      (function(){
+        var drReports = ((_udCache['athanviloria']||{}).dailyReports||[]);
+        var drTodayKey = new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Manila'})).toLocaleDateString('en-US');
+        var drToday = drReports.find(function(r){return r.date===drTodayKey;});
+        var drUnreviewed = drReports.filter(function(r){return !r.reviewedByBoss;}).length;
+        if (drToday) {
+          var drV = drToday.verification||{};
+          var drSC = drV.passed?'var(--success)':'var(--danger)';
+          var drST = drV.passed?'COMPLETE':'INCOMPLETE';
+          var drRev = drToday.reviewedByBoss?'<span style="color:var(--success);font-size:0.72rem">&#10003; Reviewed</span>':'<span style="color:var(--warning);font-size:0.72rem">Pending review</span>';
+          return '<div class="card" style="cursor:pointer" onclick="navigate(\'reports\')"><div class="card-header"><span class="card-title">Daily Report</span><span style="font-size:0.72rem;font-weight:700;padding:0.12rem 0.55rem;border-radius:99px;background:'+(drV.passed?'rgba(34,197,94,0.1)':'rgba(239,68,68,0.1)')+';color:'+drSC+'">'+drST+'</span></div><div class="card-body"><div style="font-size:0.82rem;margin-bottom:0.35rem"><strong>Submitted:</strong> '+esc(new Date(drToday.submittedAt).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}))+' PHT</div><div style="font-size:0.82rem;margin-bottom:0.35rem">'+(drToday.shiftRef?'<strong>Shift:</strong> '+esc(drToday.shiftRef.inTime)+' → '+esc(drToday.shiftRef.outTime)+' ('+drToday.shiftRef.hours.toFixed(2)+' hrs)':'<span style="color:var(--danger)"><strong>No shift logged</strong></span>')+'</div><div style="font-size:0.82rem">'+drRev+'</div>'+(drUnreviewed>0?'<div style="margin-top:0.5rem;font-size:0.75rem;color:var(--copper);font-weight:600">'+drUnreviewed+' unreviewed report'+(drUnreviewed!==1?'s':'')+' → Review</div>':'')+'</div></div>';
+        } else {
+          return '<div class="card"><div class="card-header"><span class="card-title">Daily Report</span></div><div class="card-body"><div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:0.5rem">Expected by 11:00 PM PH Time</div><div style="color:var(--warning);font-size:0.83rem;font-weight:600">&#9888; No report submitted today</div>'+(drUnreviewed>0?'<div style="margin-top:0.5rem;font-size:0.75rem;color:var(--copper);cursor:pointer;font-weight:600" onclick="navigate(\'reports\')">'+drUnreviewed+' unreviewed report'+(drUnreviewed!==1?'s':'')+' → Review</div>':'')+'</div></div>';
+        }
+      })()+
       '<div class="card"><div class="card-header"><span class="card-title">Recent Shifts</span><a onclick="navigate(\'staff\')" style="font-size:0.75rem;color:var(--copper);cursor:pointer">View all →</a></div><div class="card-body" style="padding:0">'+
         (recentShifts.length === 0 ? '<div class="empty-state"><div class="empty-state-text">No shifts logged yet.</div></div>' :
           recentShifts.map(s => '<div style="display:flex;justify-content:space-between;align-items:center;padding:0.55rem 1.1rem;border-bottom:1px solid var(--border)"><div><div style="font-size:0.8rem;font-weight:600">'+esc(s.date)+'</div><div style="font-size:0.72rem;color:var(--text-muted)">'+esc(s.inTime||'')+' → '+esc(s.outTime||'')+'</div></div><div style="text-align:right"><div style="font-size:0.8rem;font-weight:700;color:var(--success)">'+fmt(calcE(s))+'</div><div style="font-size:0.72rem;color:var(--text-muted)">'+(s.hours||0).toFixed(2)+' hrs</div></div></div>').join(''))+
@@ -1934,6 +1972,7 @@ function _renderStaffOverview() {
       '<div class="stat-tile stat-gold" style="border-left:3px solid var(--warning)"><div class="stat-label">Next Payroll</div><div class="stat-value v-copper">'+ppFmt+'</div><div class="stat-sub">'+ppShifts.length+' shift'+(ppShifts.length!==1?'s':'')+' · '+pp.dueLabel+'</div><div style="font-size:0.68rem;color:var(--text-muted);margin-top:0.1rem">'+pp.rangeLabel+'</div></div>'+
     '</div>'+
     (pendingTasks > 0 ? '<div style="background:rgba(196,149,106,0.06);border:1px solid rgba(196,149,106,0.15);border-radius:var(--radius-md);padding:0.75rem 1.1rem;margin-bottom:1.25rem;cursor:pointer" onclick="navigate(\'assigned\')"><div style="font-size:0.82rem;color:var(--text-primary);font-weight:600">'+pendingTasks+' task'+(pendingTasks!==1?'s':'')+' pending <span style="color:var(--copper)">→ View Tasks</span></div></div>' : '')+
+    (function(){ var drRep = ((_udCache['athanviloria']||{}).dailyReports||[]), drTK = new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Manila'})).toLocaleDateString('en-US'), drT = drRep.find(function(r){return r.date===drTK;}); if (drT) { return '<div style="background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.15);border-radius:var(--radius-md);padding:0.75rem 1.1rem;margin-bottom:1.25rem;cursor:pointer" onclick="navigate(\'dailyreport\')"><div style="font-size:0.82rem;color:var(--success);font-weight:600">&#10003; Daily report submitted <span style="color:var(--copper)">→ View</span></div></div>'; } else { return '<div style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.15);border-radius:var(--radius-md);padding:0.75rem 1.1rem;margin-bottom:1.25rem;cursor:pointer" onclick="navigate(\'dailyreport\')"><div style="font-size:0.82rem;color:var(--warning);font-weight:600">&#9888; Daily report not yet submitted <span style="color:var(--copper)">→ Submit Now</span></div></div>'; } })()+
     '<div class="grid-2" style="align-items:start">'+
       '<div class="card"><div class="card-header"><span class="card-title">Recent Activity</span></div><div class="card-body">'+
         (acts.length === 0 ? '<div class="empty-state"><div class="empty-state-text">No recent activity yet.</div></div>' :
@@ -2406,7 +2445,7 @@ function renderAssigned() {
   const sorted = [...tasks].sort((a,b)=>(statusOrder[a.status]||3)-(statusOrder[b.status]||3)||(order[a.priority]||2)-(order[b.priority]||2));
 
   if (isBossOwn) {
-    const addFormHtml = '<div class="card" style="margin-bottom:1.25rem"><div class="card-header"><span class="card-title">Assign New Task</span></div><div class="card-body" style="display:flex;flex-direction:column;gap:0.7rem"><input id="at-name" type="text" placeholder="Task name *" style="font-size:0.83rem"><textarea id="at-desc" rows="2" placeholder="Description (optional)" style="font-size:0.83rem;resize:none"></textarea><div style="display:flex;gap:0.7rem;flex-wrap:wrap"><input id="at-due" type="date" style="font-size:0.83rem;flex:1;min-width:130px"><select id="at-priority" style="font-size:0.83rem;flex:1;min-width:120px"><option value="Normal">Normal Priority</option><option value="Low">Low</option><option value="High">High</option><option value="Urgent">Urgent</option></select><button onclick="addAssignedTask()" style="padding:0.5rem 1.1rem;font-size:0.83rem;font-weight:700;border-radius:var(--radius-sm);background:var(--copper);color:white;border:none;cursor:pointer;white-space:nowrap">Assign Task</button></div></div></div>';
+    const addFormHtml = '<div class="card" style="margin-bottom:1.25rem"><div class="card-header"><span class="card-title">Assign New Task</span></div><div class="card-body" style="display:flex;flex-direction:column;gap:0.7rem"><input id="at-name" type="text" placeholder="Task name *" style="font-size:0.83rem"><textarea id="at-desc" rows="2" placeholder="Description (optional)" style="font-size:0.83rem;resize:none"></textarea><div id="at-attachments-list" style="display:flex;flex-direction:column;gap:0.4rem"></div><div style="display:flex;gap:0.5rem;flex-wrap:wrap"><input id="at-attach-label" type="text" placeholder="File name (e.g. Vendors.xlsx)" style="font-size:0.8rem;flex:1;min-width:120px"><input id="at-attach-url" type="url" placeholder="Google Drive link" style="font-size:0.8rem;flex:2;min-width:180px"><button onclick="addTaskAttachment()" type="button" style="padding:0.4rem 0.8rem;font-size:0.78rem;font-weight:600;border-radius:var(--radius-sm);background:rgba(59,130,246,0.08);color:#3B82F6;border:1px solid rgba(59,130,246,0.2);cursor:pointer;white-space:nowrap">+ Attach</button></div><div style="display:flex;gap:0.7rem;flex-wrap:wrap"><input id="at-due" type="date" style="font-size:0.83rem;flex:1;min-width:130px"><select id="at-priority" style="font-size:0.83rem;flex:1;min-width:120px"><option value="Normal">Normal Priority</option><option value="Low">Low</option><option value="High">High</option><option value="Urgent">Urgent</option></select><button onclick="addAssignedTask()" style="padding:0.5rem 1.1rem;font-size:0.83rem;font-weight:700;border-radius:var(--radius-sm);background:var(--copper);color:white;border:none;cursor:pointer;white-space:nowrap">Assign Task</button></div></div></div>';
     if (tasks.length === 0) { el.innerHTML = addFormHtml+'<div class="empty-state"><div class="empty-state-text">No tasks assigned yet. Use the form above to assign the first task.</div></div>'; return; }
     el.innerHTML = addFormHtml + sorted.map(t => {
       const sc = AT_STATUS_COLOR[t.status]||'var(--text-muted)';
@@ -2415,7 +2454,8 @@ function renderAssigned() {
       const dueStr = t.dueDate ? 'Due '+new Date(t.dueDate+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
       const nextStatus = AT_STATUS_NEXT[t.status];
       const canAdvance = t.status !== 'Done';
-      return '<div class="card" style="margin-bottom:0.7rem"><div class="card-body"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.75rem;flex-wrap:wrap"><div style="flex:1;min-width:200px"><div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.35rem"><span style="font-size:0.72rem;font-weight:700;padding:0.12rem 0.55rem;border-radius:99px;background:'+sb+';color:'+sc+'">'+t.status+'</span><span style="font-size:0.7rem;font-weight:600;color:'+pc+'">'+t.priority+'</span>'+(dueStr?'<span style="font-size:0.7rem;color:var(--text-muted)">'+esc(dueStr)+'</span>':'')+'</div><div style="font-weight:700;font-size:0.88rem;margin-bottom:0.2rem">'+esc(t.taskName)+'</div>'+(t.description?'<div style="font-size:0.78rem;color:var(--text-secondary);margin-bottom:0.25rem">'+esc(t.description)+'</div>':'')+'<div style="font-size:0.68rem;color:var(--text-muted)">Assigned '+esc(new Date(t.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}))+'</div></div><div style="display:flex;flex-direction:column;gap:0.3rem;flex-shrink:0;align-items:flex-end">'+(canAdvance?'<button onclick="advanceTaskStatus(\''+t.id+'\')" style="font-size:0.72rem;padding:0.3rem 0.75rem;border-radius:var(--radius-sm);background:var(--copper);color:white;border:none;cursor:pointer;font-weight:700;white-space:nowrap">→ '+nextStatus+'</button>':'')+'<button onclick="deleteAssignedTask(\''+t.id+'\')" style="font-size:0.68rem;padding:0.25rem 0.65rem;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface-hover);color:var(--danger);cursor:pointer;white-space:nowrap">Remove</button></div></div></div></div>';
+      const attachHtml = _renderAttachments(t.attachments);
+      return '<div class="card" style="margin-bottom:0.7rem"><div class="card-body"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.75rem;flex-wrap:wrap"><div style="flex:1;min-width:200px"><div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.35rem"><span style="font-size:0.72rem;font-weight:700;padding:0.12rem 0.55rem;border-radius:99px;background:'+sb+';color:'+sc+'">'+t.status+'</span><span style="font-size:0.7rem;font-weight:600;color:'+pc+'">'+t.priority+'</span>'+(dueStr?'<span style="font-size:0.7rem;color:var(--text-muted)">'+esc(dueStr)+'</span>':'')+'</div><div style="font-weight:700;font-size:0.88rem;margin-bottom:0.2rem">'+esc(t.taskName)+'</div>'+(t.description?'<div style="font-size:0.78rem;color:var(--text-secondary);margin-bottom:0.25rem">'+esc(t.description)+'</div>':'')+attachHtml+'<div style="font-size:0.68rem;color:var(--text-muted)">Assigned '+esc(new Date(t.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}))+'</div></div><div style="display:flex;flex-direction:column;gap:0.3rem;flex-shrink:0;align-items:flex-end">'+(canAdvance?'<button onclick="advanceTaskStatus(\''+t.id+'\')" style="font-size:0.72rem;padding:0.3rem 0.75rem;border-radius:var(--radius-sm);background:var(--copper);color:white;border:none;cursor:pointer;font-weight:700;white-space:nowrap">→ '+nextStatus+'</button>':'')+'<button onclick="deleteAssignedTask(\''+t.id+'\')" style="font-size:0.68rem;padding:0.25rem 0.65rem;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface-hover);color:var(--danger);cursor:pointer;white-space:nowrap">Remove</button></div></div></div></div>';
     }).join('');
   } else {
     if (tasks.length === 0) { el.innerHTML = '<div class="empty-state"><div class="empty-state-text">No tasks assigned yet.</div></div>'; return; }
@@ -2426,7 +2466,8 @@ function renderAssigned() {
       const pc = AT_PRIO_COLOR[t.priority]||'var(--text-muted)';
       const dueStr = t.dueDate ? 'Due '+new Date(t.dueDate+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
       const opts = statusOptions.map(s=>'<option value="'+s+'"'+(s===t.status?' selected':'')+'>'+s+'</option>').join('');
-      return '<div class="card" style="margin-bottom:0.7rem"><div class="card-body"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.75rem;flex-wrap:wrap"><div style="flex:1;min-width:200px"><div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.35rem"><span style="font-size:0.72rem;font-weight:700;padding:0.12rem 0.55rem;border-radius:99px;background:'+sb+';color:'+sc+'">'+t.status+'</span><span style="font-size:0.7rem;font-weight:600;color:'+pc+'">'+t.priority+'</span>'+(dueStr?'<span style="font-size:0.7rem;color:var(--text-muted)">'+esc(dueStr)+'</span>':'')+'</div><div style="font-weight:700;font-size:0.88rem;margin-bottom:0.2rem">'+esc(t.taskName)+'</div>'+(t.description?'<div style="font-size:0.78rem;color:var(--text-secondary);margin-bottom:0.25rem">'+esc(t.description)+'</div>':'')+'<div style="font-size:0.68rem;color:var(--text-muted)">Assigned '+esc(new Date(t.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}))+'</div></div><div style="flex-shrink:0"><select onchange="updateTaskStatus(\''+t.id+'\',this.value)" style="font-size:0.78rem;padding:0.35rem 0.6rem;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--input-bg);color:var(--text-primary);outline:none;cursor:pointer;min-width:140px">'+opts+'</select></div></div></div></div>';
+      const attachHtml = _renderAttachments(t.attachments);
+      return '<div class="card" style="margin-bottom:0.7rem"><div class="card-body"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.75rem;flex-wrap:wrap"><div style="flex:1;min-width:200px"><div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.35rem"><span style="font-size:0.72rem;font-weight:700;padding:0.12rem 0.55rem;border-radius:99px;background:'+sb+';color:'+sc+'">'+t.status+'</span><span style="font-size:0.7rem;font-weight:600;color:'+pc+'">'+t.priority+'</span>'+(dueStr?'<span style="font-size:0.7rem;color:var(--text-muted)">'+esc(dueStr)+'</span>':'')+'</div><div style="font-weight:700;font-size:0.88rem;margin-bottom:0.2rem">'+esc(t.taskName)+'</div>'+(t.description?'<div style="font-size:0.78rem;color:var(--text-secondary);margin-bottom:0.25rem">'+esc(t.description)+'</div>':'')+attachHtml+'<div style="font-size:0.68rem;color:var(--text-muted)">Assigned '+esc(new Date(t.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}))+'</div></div><div style="flex-shrink:0"><select onchange="updateTaskStatus(\''+t.id+'\',this.value)" style="font-size:0.78rem;padding:0.35rem 0.6rem;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--input-bg);color:var(--text-primary);outline:none;cursor:pointer;min-width:140px">'+opts+'</select></div></div></div></div>';
     }).join('');
   }
 }
@@ -2444,6 +2485,48 @@ function updateTaskStatus(id, newStatus) {
   toast('Status updated: '+newStatus);
 }
 
+let _pendingAttachments = [];
+
+function addTaskAttachment() {
+  const label = (document.getElementById('at-attach-label')||{}).value?.trim();
+  const url = (document.getElementById('at-attach-url')||{}).value?.trim();
+  if (!label || !url) { toast('File name and Drive link are both required.'); return; }
+  if (!/^https?:\/\//i.test(url)) { toast('Please enter a valid URL.'); return; }
+  _pendingAttachments.push({ label, url });
+  document.getElementById('at-attach-label').value = '';
+  document.getElementById('at-attach-url').value = '';
+  _refreshAttachmentsList();
+}
+
+function _removeAttachment(i) {
+  _pendingAttachments.splice(i, 1);
+  _refreshAttachmentsList();
+}
+
+function _refreshAttachmentsList() {
+  const el = document.getElementById('at-attachments-list');
+  if (!el) return;
+  el.innerHTML = _pendingAttachments.map((a, i) =>
+    '<div style="display:flex;align-items:center;gap:0.5rem;padding:0.35rem 0.65rem;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.12);border-radius:var(--radius-sm);font-size:0.78rem">' +
+      '<span style="color:#3B82F6">&#128206;</span>' +
+      '<a href="'+esc(a.url)+'" target="_blank" rel="noopener" style="color:#3B82F6;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(a.label)+'</a>' +
+      '<button onclick="_removeAttachment('+i+')" style="background:none;border:none;color:var(--danger);font-size:0.85rem;cursor:pointer;padding:0 0.2rem" title="Remove">&times;</button>' +
+    '</div>'
+  ).join('');
+}
+
+function _renderAttachments(attachments) {
+  if (!Array.isArray(attachments) || attachments.length === 0) return '';
+  return '<div style="display:flex;flex-direction:column;gap:0.3rem;margin:0.35rem 0">' +
+    attachments.map(a =>
+      '<div style="display:flex;align-items:center;gap:0.4rem;font-size:0.75rem">' +
+        '<span style="color:#3B82F6">&#128206;</span>' +
+        '<a href="'+esc(a.url)+'" target="_blank" rel="noopener" style="color:#3B82F6;font-weight:600">'+esc(a.label)+'</a>' +
+      '</div>'
+    ).join('') +
+  '</div>';
+}
+
 function addAssignedTask() {
   const taskName = (document.getElementById('at-name')||{}).value?.trim();
   const description = (document.getElementById('at-desc')||{}).value?.trim() || '';
@@ -2453,9 +2536,11 @@ function addAssignedTask() {
   const target = 'athanviloria';
   const cd = _udCache[target] || getUserData(target);
   const tasks = (cd.assignedTasks || []).slice();
-  tasks.push({ id:'at-'+Date.now(), taskName, description, dueDate, priority, status:'Not Yet Started', createdAt:new Date().toISOString() });
+  const attachments = _pendingAttachments.slice();
+  tasks.push({ id:'at-'+Date.now(), taskName, description, dueDate, priority, status:'Not Yet Started', createdAt:new Date().toISOString(), attachments });
   _udCache[target] = Object.assign({}, cd, { assignedTasks: tasks });
   db.collection('users').doc(target).update({ assignedTasks: tasks }).catch(()=>{});
+  _pendingAttachments = [];
   renderAssigned(); refreshAssignedBadge();
   toast('Task assigned to Cyrel.');
 }
@@ -2482,6 +2567,252 @@ function deleteAssignedTask(id) {
   db.collection('users').doc(target).update({ assignedTasks: tasks }).catch(()=>{});
   renderAssigned(); refreshAssignedBadge();
   toast('Task removed.');
+}
+
+// =============================================
+// DAILY REPORT (Staff) + REPORTS REVIEW (Boss)
+// =============================================
+function _getTodayPHT() {
+  const now = new Date();
+  const pht = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Manila' }));
+  return pht.toLocaleDateString('en-US');
+}
+
+function _getTodayShift() {
+  const cd = _udCache['athanviloria'] || getUserData('athanviloria');
+  const shifts = (cd.shifts || []).filter(s => new Date(s.inISO || s.date) >= WORK_START);
+  const todayKey = _getTodayPHT();
+  return shifts.filter(s => s.date === todayKey).sort((a,b) => new Date(b.inISO||0) - new Date(a.inISO||0))[0] || null;
+}
+
+function _getDailyReports() {
+  const cd = _udCache['athanviloria'] || getUserData('athanviloria');
+  return cd.dailyReports || [];
+}
+
+function _saveDailyReports(reports) {
+  const target = 'athanviloria';
+  const cd = _udCache[target] || getUserData(target);
+  cd.dailyReports = reports;
+  _udCache[target] = Object.assign({}, cd);
+  db.collection('users').doc(target).update({ dailyReports: reports }).catch(()=>{});
+}
+
+function renderDailyReport() {
+  const el = document.getElementById('dailyreport-content');
+  if (!el) return;
+  const todayKey = _getTodayPHT();
+  const reports = _getDailyReports();
+  const existing = reports.find(r => r.date === todayKey);
+
+  if (existing) {
+    const v = existing.verification || {};
+    const statusColor = v.passed ? 'var(--success)' : 'var(--danger)';
+    const statusText = v.passed ? 'COMPLETE' : 'INCOMPLETE';
+    const reviewedText = existing.reviewedByBoss
+      ? '<span style="color:var(--success);font-weight:700">Reviewed by Jey</span> — '+esc(new Date(existing.reviewedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}))
+      : '<span style="color:var(--text-muted)">Pending review</span>';
+
+    let issuesHtml = '';
+    if (v.checks && v.checks.length) {
+      const failed = v.checks.filter(c => !c.passed);
+      if (failed.length) issuesHtml = '<div style="margin-top:0.5rem">' + failed.map(c => '<div style="font-size:0.78rem;color:var(--danger);margin-top:0.2rem">&#x2022; '+esc(c.label)+'</div>').join('') + '</div>';
+    }
+
+    el.innerHTML =
+      '<div class="card"><div class="card-header"><span class="card-title">Today\'s Report</span><span style="font-size:0.72rem;font-weight:700;padding:0.15rem 0.6rem;border-radius:99px;background:'+(v.passed?'rgba(34,197,94,0.1)':'rgba(239,68,68,0.1)')+';color:'+statusColor+'">'+statusText+'</span></div><div class="card-body">'+
+        '<div style="font-size:0.82rem;margin-bottom:0.6rem"><strong>Submitted:</strong> '+esc(new Date(existing.submittedAt).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}))+' PHT</div>'+
+        '<div style="font-size:0.82rem;margin-bottom:0.4rem"><strong>Shift:</strong> '+(existing.shiftRef ? esc(existing.shiftRef.inTime)+' → '+esc(existing.shiftRef.outTime)+' ('+existing.shiftRef.hours.toFixed(2)+' hrs)' : '<span style="color:var(--text-muted)">No shift logged</span>')+'</div>'+
+        '<div style="font-size:0.82rem;margin-bottom:0.4rem"><strong>Status:</strong> '+reviewedText+'</div>'+
+        issuesHtml+
+        '<div style="margin-top:1rem"><strong style="font-size:0.78rem;color:var(--text-secondary)">Work Summary</strong></div>'+
+        (existing.workSummary||[]).map(w => '<div style="margin-top:0.4rem;padding:0.5rem 0.75rem;background:var(--surface);border-radius:var(--radius-sm)"><div style="font-weight:700;font-size:0.82rem;color:var(--copper)">'+esc(w.client)+'</div><div style="font-size:0.78rem;color:var(--text-secondary);margin-top:0.15rem">'+esc(w.tasks)+'</div></div>').join('')+
+        (existing.flaggedItems && existing.flaggedItems !== 'None' ? '<div style="margin-top:0.75rem"><strong style="font-size:0.78rem;color:var(--text-secondary)">Flagged Items</strong><div style="font-size:0.78rem;color:var(--warning);margin-top:0.2rem">'+esc(existing.flaggedItems)+'</div></div>' : '')+
+        (existing.pendingItems && existing.pendingItems !== 'None' ? '<div style="margin-top:0.5rem"><strong style="font-size:0.78rem;color:var(--text-secondary)">Pending Items</strong><div style="font-size:0.78rem;color:var(--text-secondary);margin-top:0.2rem">'+esc(existing.pendingItems)+'</div></div>' : '')+
+        (existing.notes && existing.notes !== 'None' ? '<div style="margin-top:0.5rem"><strong style="font-size:0.78rem;color:var(--text-secondary)">Notes / Questions for Jey</strong><div style="font-size:0.78rem;color:var(--text-secondary);margin-top:0.2rem">'+esc(existing.notes)+'</div></div>' : '')+
+      '</div></div>';
+    return;
+  }
+
+  const shift = _getTodayShift();
+  const ownedClients = MASTER_CLIENTS.filter(c => c.owned).map(c => c.name);
+
+  let shiftHtml;
+  if (shift) {
+    shiftHtml = '<div style="padding:0.65rem 0.85rem;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.15);border-radius:var(--radius-sm);margin-bottom:0.75rem;font-size:0.82rem"><strong style="color:var(--success)">&#10003; Shift detected</strong> — '+esc(shift.inTime)+' → '+esc(shift.outTime)+' ('+(shift.hours||0).toFixed(2)+' hrs)</div>';
+  } else {
+    shiftHtml = '<div style="padding:0.65rem 0.85rem;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.15);border-radius:var(--radius-sm);margin-bottom:0.75rem;font-size:0.82rem"><strong style="color:var(--danger)">No shift logged today.</strong> Clock in/out before submitting.</div>';
+  }
+
+  let clientBlocks = '';
+  if (ownedClients.length > 0) {
+    clientBlocks = '<div id="dr-clients" style="display:flex;flex-direction:column;gap:0.5rem">' +
+      ownedClients.slice(0, 3).map((c, i) =>
+        '<div class="dr-client-block" style="padding:0.6rem 0.85rem;background:var(--surface);border-radius:var(--radius-sm);display:flex;flex-direction:column;gap:0.35rem">' +
+          '<div style="display:flex;align-items:center;gap:0.5rem"><label style="margin:0;flex:0 0 auto">Client</label><select class="dr-client-name" style="flex:1;font-size:0.82rem;padding:0.35rem 0.6rem"><option value="">Select client...</option>'+ownedClients.map(cn=>'<option value="'+esc(cn)+'"'+(cn===c?' selected':'')+'>'+esc(cn)+'</option>').join('')+'</select></div>' +
+          '<textarea class="dr-client-tasks" rows="2" placeholder="Tasks completed for this client..." style="font-size:0.82rem;resize:none"></textarea>' +
+        '</div>'
+      ).join('') +
+    '</div>' +
+    '<button onclick="_addClientBlock()" type="button" style="margin-top:0.4rem;padding:0.35rem 0.8rem;font-size:0.78rem;font-weight:600;border-radius:var(--radius-sm);background:rgba(59,130,246,0.08);color:#3B82F6;border:1px solid rgba(59,130,246,0.2);cursor:pointer">+ Add Client</button>';
+  } else {
+    clientBlocks = '<div id="dr-clients"><div class="dr-client-block" style="padding:0.6rem 0.85rem;background:var(--surface);border-radius:var(--radius-sm);display:flex;flex-direction:column;gap:0.35rem"><input class="dr-client-name" type="text" placeholder="Client name" style="font-size:0.82rem"><textarea class="dr-client-tasks" rows="2" placeholder="Tasks completed..." style="font-size:0.82rem;resize:none"></textarea></div></div>' +
+    '<button onclick="_addClientBlock()" type="button" style="margin-top:0.4rem;padding:0.35rem 0.8rem;font-size:0.78rem;font-weight:600;border-radius:var(--radius-sm);background:rgba(59,130,246,0.08);color:#3B82F6;border:1px solid rgba(59,130,246,0.2);cursor:pointer">+ Add Client</button>';
+  }
+
+  el.innerHTML =
+    '<div class="card"><div class="card-header"><span class="card-title">Submit Report — '+esc(todayKey)+'</span></div><div class="card-body" style="display:flex;flex-direction:column;gap:0.75rem">'+
+      shiftHtml+
+      '<div><label>Work Summary</label>'+clientBlocks+'</div>'+
+      '<div><label>Flagged Items</label><textarea id="dr-flagged" rows="2" placeholder="List any flagged items with reasons, or type \'None\'" style="font-size:0.82rem;resize:none"></textarea></div>'+
+      '<div><label>Pending Items</label><textarea id="dr-pending" rows="2" placeholder="List pending tasks with reasons, or type \'None\'" style="font-size:0.82rem;resize:none"></textarea></div>'+
+      '<div><label>Notes / Questions for Jey</label><textarea id="dr-notes" rows="2" placeholder="Any notes or questions, or type \'None\'" style="font-size:0.82rem;resize:none"></textarea></div>'+
+      '<button onclick="submitDailyReport()" style="padding:0.6rem 1.5rem;font-size:0.88rem;font-weight:700;border-radius:var(--radius-sm);background:var(--copper);color:white;border:none;cursor:pointer;align-self:flex-start;margin-top:0.25rem">Submit Report</button>'+
+    '</div></div>';
+}
+
+function _addClientBlock() {
+  const container = document.getElementById('dr-clients');
+  if (!container) return;
+  const ownedClients = MASTER_CLIENTS.filter(c => c.owned).map(c => c.name);
+  const block = document.createElement('div');
+  block.className = 'dr-client-block';
+  block.style.cssText = 'padding:0.6rem 0.85rem;background:var(--surface);border-radius:var(--radius-sm);display:flex;flex-direction:column;gap:0.35rem';
+  if (ownedClients.length > 0) {
+    block.innerHTML = '<div style="display:flex;align-items:center;gap:0.5rem"><label style="margin:0;flex:0 0 auto">Client</label><select class="dr-client-name" style="flex:1;font-size:0.82rem;padding:0.35rem 0.6rem"><option value="">Select client...</option>'+ownedClients.map(cn=>'<option value="'+esc(cn)+'">'+esc(cn)+'</option>').join('')+'</select><button onclick="this.closest(\'.dr-client-block\').remove()" style="background:none;border:none;color:var(--danger);font-size:0.9rem;cursor:pointer;padding:0 0.3rem">&times;</button></div><textarea class="dr-client-tasks" rows="2" placeholder="Tasks completed for this client..." style="font-size:0.82rem;resize:none"></textarea>';
+  } else {
+    block.innerHTML = '<div style="display:flex;align-items:center;gap:0.5rem"><input class="dr-client-name" type="text" placeholder="Client name" style="font-size:0.82rem;flex:1"><button onclick="this.closest(\'.dr-client-block\').remove()" style="background:none;border:none;color:var(--danger);font-size:0.9rem;cursor:pointer;padding:0 0.3rem">&times;</button></div><textarea class="dr-client-tasks" rows="2" placeholder="Tasks completed..." style="font-size:0.82rem;resize:none"></textarea>';
+  }
+  container.appendChild(block);
+}
+
+function submitDailyReport() {
+  const todayKey = _getTodayPHT();
+  const shift = _getTodayShift();
+
+  const clientBlocks = document.querySelectorAll('.dr-client-block');
+  const workSummary = [];
+  clientBlocks.forEach(block => {
+    const nameEl = block.querySelector('.dr-client-name');
+    const tasksEl = block.querySelector('.dr-client-tasks');
+    const client = nameEl ? (nameEl.value || nameEl.textContent || '').trim() : '';
+    const tasks = tasksEl ? tasksEl.value.trim() : '';
+    if (client && tasks) workSummary.push({ client, tasks });
+  });
+
+  const flaggedItems = (document.getElementById('dr-flagged')||{}).value?.trim() || '';
+  const pendingItems = (document.getElementById('dr-pending')||{}).value?.trim() || '';
+  const notes = (document.getElementById('dr-notes')||{}).value?.trim() || '';
+
+  const checks = [];
+  checks.push({ label:'Shift logged today', passed: !!shift });
+  checks.push({ label:'At least one client with tasks', passed: workSummary.length > 0 });
+  checks.push({ label:'Flagged items section filled', passed: flaggedItems.length > 0 });
+  checks.push({ label:'Pending items section filled', passed: pendingItems.length > 0 });
+  checks.push({ label:'Notes section filled', passed: notes.length > 0 });
+  const allPassed = checks.every(c => c.passed);
+
+  if (workSummary.length === 0) { toast('Add at least one client with tasks.'); return; }
+  if (!flaggedItems) { toast('Fill in flagged items (or type "None").'); return; }
+  if (!pendingItems) { toast('Fill in pending items (or type "None").'); return; }
+  if (!notes) { toast('Fill in notes/questions (or type "None").'); return; }
+
+  const report = {
+    date: todayKey,
+    submittedAt: new Date().toISOString(),
+    shiftRef: shift ? { inTime: shift.inTime, outTime: shift.outTime, hours: shift.hours || 0, device: shift.device || '' } : null,
+    workSummary,
+    flaggedItems,
+    pendingItems,
+    notes,
+    verification: { passed: allPassed, checks },
+    reviewedByBoss: false,
+    reviewedAt: null
+  };
+
+  const reports = _getDailyReports().filter(r => r.date !== todayKey);
+  reports.push(report);
+  _saveDailyReports(reports);
+  renderDailyReport();
+  refreshDailyReportBadge();
+  toast(allPassed ? 'Report submitted!' : 'Report submitted with issues.');
+}
+
+function refreshDailyReportBadge() {
+  const badge = document.getElementById('dailyreport-badge');
+  if (!badge) return;
+  const todayKey = _getTodayPHT();
+  const reports = _getDailyReports();
+  const existing = reports.find(r => r.date === todayKey);
+  if (!existing) {
+    badge.textContent = '!';
+    badge.classList.remove('hidden');
+  } else {
+    badge.classList.add('hidden');
+  }
+}
+
+function renderReports() {
+  const el = document.getElementById('reports-content');
+  if (!el) return;
+  const reports = _getDailyReports();
+  const sorted = [...reports].sort((a,b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+
+  if (sorted.length === 0) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#128203;</div><div class="empty-state-text">No reports submitted yet.</div></div>';
+    return;
+  }
+
+  el.innerHTML = sorted.map(r => {
+    const v = r.verification || {};
+    const statusColor = v.passed ? 'var(--success)' : 'var(--danger)';
+    const statusText = v.passed ? 'COMPLETE' : 'INCOMPLETE';
+    const reviewedText = r.reviewedByBoss
+      ? '<span style="color:var(--success);font-weight:700;font-size:0.72rem">&#10003; Reviewed</span>'
+      : '<button onclick="markReportReviewed(\''+esc(r.date)+'\')" style="padding:0.25rem 0.65rem;font-size:0.72rem;font-weight:700;border-radius:var(--radius-sm);background:var(--copper);color:white;border:none;cursor:pointer">Sign Off</button>';
+    const rId = 'report-'+r.date.replace(/\//g,'-');
+
+    let failsHtml = '';
+    if (v.checks) {
+      const failed = v.checks.filter(c => !c.passed);
+      if (failed.length) failsHtml = failed.map(c => '<div style="font-size:0.75rem;color:var(--danger);margin-top:0.15rem">&#x2022; '+esc(c.label)+'</div>').join('');
+    }
+
+    return '<div class="card" style="margin-bottom:0.75rem"><div class="card-header" style="cursor:pointer" onclick="document.getElementById(\''+rId+'\').classList.toggle(\'hidden\')"><div style="display:flex;align-items:center;gap:0.5rem;flex:1"><span style="font-size:0.72rem;font-weight:700;padding:0.12rem 0.55rem;border-radius:99px;background:'+(v.passed?'rgba(34,197,94,0.1)':'rgba(239,68,68,0.1)')+';color:'+statusColor+'">'+statusText+'</span><span class="card-title" style="font-size:0.85rem">'+esc(r.date)+'</span><span style="font-size:0.72rem;color:var(--text-muted)">'+esc(new Date(r.submittedAt).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}))+' PHT</span></div>'+reviewedText+'</div>'+
+      '<div id="'+rId+'" class="card-body hidden" style="border-top:1px solid var(--border)">'+
+        (r.shiftRef ? '<div style="font-size:0.8rem;margin-bottom:0.5rem"><strong>Shift:</strong> '+esc(r.shiftRef.inTime)+' → '+esc(r.shiftRef.outTime)+' ('+r.shiftRef.hours.toFixed(2)+' hrs)</div>' : '<div style="font-size:0.8rem;margin-bottom:0.5rem;color:var(--danger)"><strong>No shift logged</strong></div>')+
+        failsHtml+
+        '<div style="margin-top:0.5rem"><strong style="font-size:0.75rem;color:var(--text-secondary)">Work Summary</strong></div>'+
+        (r.workSummary||[]).map(w => '<div style="margin-top:0.3rem;padding:0.4rem 0.65rem;background:var(--surface);border-radius:var(--radius-sm)"><div style="font-weight:700;font-size:0.8rem;color:var(--copper)">'+esc(w.client)+'</div><div style="font-size:0.75rem;color:var(--text-secondary);margin-top:0.1rem">'+esc(w.tasks)+'</div></div>').join('')+
+        (r.flaggedItems ? '<div style="margin-top:0.5rem"><strong style="font-size:0.75rem;color:var(--text-secondary)">Flagged:</strong> <span style="font-size:0.78rem">'+esc(r.flaggedItems)+'</span></div>' : '')+
+        (r.pendingItems ? '<div style="margin-top:0.3rem"><strong style="font-size:0.75rem;color:var(--text-secondary)">Pending:</strong> <span style="font-size:0.78rem">'+esc(r.pendingItems)+'</span></div>' : '')+
+        (r.notes ? '<div style="margin-top:0.3rem"><strong style="font-size:0.75rem;color:var(--text-secondary)">Notes:</strong> <span style="font-size:0.78rem">'+esc(r.notes)+'</span></div>' : '')+
+      '</div></div>';
+  }).join('');
+}
+
+function markReportReviewed(date) {
+  const reports = _getDailyReports().slice();
+  const idx = reports.findIndex(r => r.date === date);
+  if (idx === -1) return;
+  reports[idx] = Object.assign({}, reports[idx], { reviewedByBoss: true, reviewedAt: new Date().toISOString() });
+  _saveDailyReports(reports);
+  renderReports();
+  refreshReportsBadge();
+  toast('Report signed off.');
+}
+
+function refreshReportsBadge() {
+  const badge = document.getElementById('reports-badge');
+  if (!badge) return;
+  const reports = _getDailyReports();
+  const unreviewed = reports.filter(r => !r.reviewedByBoss).length;
+  if (unreviewed > 0) {
+    badge.textContent = unreviewed;
+    badge.classList.remove('hidden');
+  } else {
+    badge.classList.add('hidden');
+  }
 }
 
 // =============================================
