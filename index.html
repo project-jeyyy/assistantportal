@@ -1202,6 +1202,8 @@ let _shiftNotif       = { warn: false, done: false, over: false };
 let managerAccessMode = false;
 let _accessLogPage    = 0;
 const ACCESS_LOG_PER_PAGE = 10;
+let _updatesPage = 0;
+const UPDATES_PER_PAGE = 10;
 const MAX_SHIFT_HRS = 5;
 const DAILY_MIN_WAGE = 508;
 let accountTab  = 'mine';
@@ -2149,7 +2151,22 @@ function _visibleUpdates() {
 function renderUpdates() {
   const updates = [..._visibleUpdates()].sort((a,b)=>(_PRIO_ORDER[a.priority||'Medium']||1)-(_PRIO_ORDER[b.priority||'Medium']||1));
   const el = document.getElementById('updates-list');
-  el.innerHTML = updates.length===0 ? '<div class="empty-state"><div class="empty-state-icon">📬</div><div class="empty-state-text">No updates posted yet.</div></div>' : updates.map(_renderUpdateCard).join('');
+  if (updates.length === 0) { el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📬</div><div class="empty-state-text">No updates posted yet.</div></div>'; return; }
+  const totalPages = Math.max(1, Math.ceil(updates.length / UPDATES_PER_PAGE));
+  if (_updatesPage >= totalPages) _updatesPage = totalPages - 1;
+  if (_updatesPage < 0) _updatesPage = 0;
+  const start = _updatesPage * UPDATES_PER_PAGE;
+  const pageItems = updates.slice(start, start + UPDATES_PER_PAGE);
+  const showingTo = Math.min(start + UPDATES_PER_PAGE, updates.length);
+  el.innerHTML = pageItems.map(_renderUpdateCard).join('') +
+    (updates.length > UPDATES_PER_PAGE ? '<div style="display:flex;align-items:center;justify-content:space-between;padding:0.75rem 0;margin-top:0.5rem;border-top:1px solid var(--border);font-size:0.78rem">' +
+      '<span style="color:var(--text-muted)">Showing '+(start+1)+'–'+showingTo+' of '+updates.length+'</span>' +
+      '<div style="display:flex;gap:0.4rem">' +
+        '<button onclick="_updatesPage--;renderUpdates()" style="padding:0.3rem 0.7rem;font-size:0.75rem;font-weight:600;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface);color:var(--text-secondary);cursor:pointer'+ (_updatesPage===0?';opacity:0.4;pointer-events:none':'')+'">&laquo; Prev</button>' +
+        '<span style="padding:0.3rem 0.5rem;font-size:0.75rem;color:var(--text-muted)">'+(_updatesPage+1)+' / '+totalPages+'</span>' +
+        '<button onclick="_updatesPage++;renderUpdates()" style="padding:0.3rem 0.7rem;font-size:0.75rem;font-weight:600;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface);color:var(--text-secondary);cursor:pointer'+ (_updatesPage>=totalPages-1?';opacity:0.4;pointer-events:none':'')+'">Next &raquo;</button>' +
+      '</div>' +
+    '</div>' : '');
 }
 
 function postUpdate() {
