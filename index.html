@@ -1203,6 +1203,8 @@ let _accessLogPage    = 0;
 const ACCESS_LOG_PER_PAGE = 10;
 let _updatesPage = 0;
 const UPDATES_PER_PAGE = 10;
+let _shiftsPage = 0;
+const SHIFTS_PER_PAGE = 5;
 const MAX_SHIFT_HRS = 5;
 const DAILY_MIN_WAGE = 508;
 let accountTab  = 'mine';
@@ -2894,8 +2896,15 @@ function renderShifts() {
   const rate = userData.hourlyRate||0;
   const el = document.getElementById('shift-log-body');
   if (shifts.length===0) { el.innerHTML='<div class="empty-state"><div class="empty-state-text">No shifts logged yet.</div></div>'; return; }
+  const totalPages = Math.max(1, Math.ceil(shifts.length / SHIFTS_PER_PAGE));
+  if (_shiftsPage >= totalPages) _shiftsPage = totalPages - 1;
+  if (_shiftsPage < 0) _shiftsPage = 0;
+  const start = _shiftsPage * SHIFTS_PER_PAGE;
+  const pageItems = shifts.slice(start, start + SHIFTS_PER_PAGE);
+  const showingTo = Math.min(start + SHIFTS_PER_PAGE, shifts.length);
   el.innerHTML='<div class="shift-row" style="font-size:0.68rem;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-muted)"><span class="shift-date">Date</span><span class="shift-time">Clock In → Out</span><span class="shift-hours">Hours</span><span class="shift-earn">Earned</span></div>'
-    +shifts.map(s=>{ const h=Number(s.hours)||0; const e=s.earned!==undefined?Number(s.earned):(h<MAX_SHIFT_HRS?h*rate:s.overtime?DAILY_MIN_WAGE+((h-MAX_SHIFT_HRS)*rate):DAILY_MIN_WAGE); return '<div class="shift-row"><span class="shift-date">'+esc(s.date)+'</span><span class="shift-time">'+esc(s.inTime)+' → '+esc(s.outTime)+'</span><span class="shift-hours">'+h.toFixed(2)+'</span><span class="shift-earn">₱'+(Math.round(e*100)/100).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2})+'</span></div>'; }).join('');
+    +pageItems.map(s=>{ const h=Number(s.hours)||0; const e=s.earned!==undefined?Number(s.earned):(h<MAX_SHIFT_HRS?h*rate:s.overtime?DAILY_MIN_WAGE+((h-MAX_SHIFT_HRS)*rate):DAILY_MIN_WAGE); return '<div class="shift-row"><span class="shift-date">'+esc(s.date)+'</span><span class="shift-time">'+esc(s.inTime)+' → '+esc(s.outTime)+'</span><span class="shift-hours">'+h.toFixed(2)+'</span><span class="shift-earn">₱'+(Math.round(e*100)/100).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2})+'</span></div>'; }).join('')
+    +(shifts.length > SHIFTS_PER_PAGE ? '<div style="display:flex;align-items:center;justify-content:space-between;padding:0.75rem 0;margin-top:0.5rem;border-top:1px solid var(--border);font-size:0.78rem"><span style="color:var(--text-muted)">Showing '+(start+1)+'–'+showingTo+' of '+shifts.length+'</span><div style="display:flex;gap:0.4rem"><button onclick="_shiftsPage--;renderShifts()" style="padding:0.3rem 0.7rem;font-size:0.75rem;font-weight:600;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface);color:var(--text-secondary);cursor:pointer'+(_shiftsPage===0?';opacity:0.4;pointer-events:none':'')+'">&laquo; Prev</button><span style="padding:0.3rem 0.5rem;font-size:0.75rem;color:var(--text-muted)">'+(_shiftsPage+1)+' / '+totalPages+'</span><button onclick="_shiftsPage++;renderShifts()" style="padding:0.3rem 0.7rem;font-size:0.75rem;font-weight:600;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface);color:var(--text-secondary);cursor:pointer'+(_shiftsPage>=totalPages-1?';opacity:0.4;pointer-events:none':'')+'">Next &raquo;</button></div></div>' : '');
 }
 
 // =============================================
