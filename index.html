@@ -2471,7 +2471,8 @@ function renderAssigned() {
       const nextStatus = AT_STATUS_NEXT[t.status];
       const canAdvance = t.status !== 'Done';
       const attachHtml = _renderAttachments(t.attachments);
-      return '<div class="card" style="margin-bottom:0.7rem"><div class="card-body"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.75rem;flex-wrap:wrap"><div style="flex:1;min-width:200px"><div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.35rem"><span style="font-size:0.72rem;font-weight:700;padding:0.12rem 0.55rem;border-radius:99px;background:'+sb+';color:'+sc+'">'+t.status+'</span><span style="font-size:0.7rem;font-weight:600;color:'+pc+'">'+t.priority+'</span>'+(dueStr?'<span style="font-size:0.7rem;color:var(--text-muted)">'+esc(dueStr)+'</span>':'')+'</div><div style="font-weight:700;font-size:0.88rem;margin-bottom:0.2rem">'+esc(t.taskName)+'</div>'+(t.description?'<div style="font-size:0.78rem;color:var(--text-secondary);margin-bottom:0.25rem">'+esc(t.description)+'</div>':'')+attachHtml+'<div style="font-size:0.68rem;color:var(--text-muted)">Assigned '+esc(new Date(t.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}))+'</div></div><div style="display:flex;flex-direction:column;gap:0.3rem;flex-shrink:0;align-items:flex-end">'+(canAdvance?'<button onclick="advanceTaskStatus(\''+t.id+'\')" style="font-size:0.72rem;padding:0.3rem 0.75rem;border-radius:var(--radius-sm);background:var(--copper);color:white;border:none;cursor:pointer;font-weight:700;white-space:nowrap">→ '+nextStatus+'</button>':'')+'<button onclick="deleteAssignedTask(\''+t.id+'\')" style="font-size:0.68rem;padding:0.25rem 0.65rem;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface-hover);color:var(--danger);cursor:pointer;white-space:nowrap">Remove</button></div></div></div></div>';
+      const addLinkHtml = '<div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-top:0.4rem;align-items:center"><input id="ata-label-'+t.id+'" type="text" placeholder="File name" style="font-size:0.75rem;padding:0.3rem 0.5rem;flex:1;min-width:90px"><input id="ata-url-'+t.id+'" type="url" placeholder="Google Drive link" style="font-size:0.75rem;padding:0.3rem 0.5rem;flex:2;min-width:140px"><button onclick="addAttachmentToTask(\''+t.id+'\')" style="padding:0.3rem 0.6rem;font-size:0.72rem;font-weight:600;border-radius:var(--radius-sm);background:rgba(59,130,246,0.08);color:#3B82F6;border:1px solid rgba(59,130,246,0.2);cursor:pointer;white-space:nowrap">+ Link</button></div>';
+      return '<div class="card" style="margin-bottom:0.7rem"><div class="card-body"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.75rem;flex-wrap:wrap"><div style="flex:1;min-width:200px"><div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.35rem"><span style="font-size:0.72rem;font-weight:700;padding:0.12rem 0.55rem;border-radius:99px;background:'+sb+';color:'+sc+'">'+t.status+'</span><span style="font-size:0.7rem;font-weight:600;color:'+pc+'">'+t.priority+'</span>'+(dueStr?'<span style="font-size:0.7rem;color:var(--text-muted)">'+esc(dueStr)+'</span>':'')+'</div><div style="font-weight:700;font-size:0.88rem;margin-bottom:0.2rem">'+esc(t.taskName)+'</div>'+(t.description?'<div style="font-size:0.78rem;color:var(--text-secondary);margin-bottom:0.25rem">'+esc(t.description)+'</div>':'')+attachHtml+addLinkHtml+'<div style="font-size:0.68rem;color:var(--text-muted);margin-top:0.35rem">Assigned '+esc(new Date(t.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}))+'</div></div><div style="display:flex;flex-direction:column;gap:0.3rem;flex-shrink:0;align-items:flex-end">'+(canAdvance?'<button onclick="advanceTaskStatus(\''+t.id+'\')" style="font-size:0.72rem;padding:0.3rem 0.75rem;border-radius:var(--radius-sm);background:var(--copper);color:white;border:none;cursor:pointer;font-weight:700;white-space:nowrap">→ '+nextStatus+'</button>':'')+'<button onclick="deleteAssignedTask(\''+t.id+'\')" style="font-size:0.68rem;padding:0.25rem 0.65rem;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface-hover);color:var(--danger);cursor:pointer;white-space:nowrap">Remove</button></div></div></div></div>';
     }).join('');
   } else {
     if (tasks.length === 0) { el.innerHTML = '<div class="empty-state"><div class="empty-state-text">No tasks assigned yet.</div></div>'; return; }
@@ -2541,6 +2542,25 @@ function _renderAttachments(attachments) {
       '</div>'
     ).join('') +
   '</div>';
+}
+
+function addAttachmentToTask(taskId) {
+  const label = (document.getElementById('ata-label-'+taskId)||{}).value?.trim();
+  const url = (document.getElementById('ata-url-'+taskId)||{}).value?.trim();
+  if (!label || !url) { toast('File name and link are both required.'); return; }
+  if (!/^https?:\/\//i.test(url)) { toast('Please enter a valid URL.'); return; }
+  const target = 'athanviloria';
+  const cd = _udCache[target] || getUserData(target);
+  const tasks = (cd.assignedTasks || []).slice();
+  const idx = tasks.findIndex(t => String(t.id) === String(taskId));
+  if (idx === -1) return;
+  const attachments = (tasks[idx].attachments || []).slice();
+  attachments.push({ label, url });
+  tasks[idx] = { ...tasks[idx], attachments };
+  _udCache[target] = Object.assign({}, cd, { assignedTasks: tasks });
+  db.collection('users').doc(target).update({ assignedTasks: tasks }).catch(()=>{});
+  renderAssigned();
+  toast('Link added.');
 }
 
 function addAssignedTask() {
