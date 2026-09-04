@@ -1114,7 +1114,6 @@ async function loadUserData(username) {
       SEED_TASKS.forEach(st => {
         const idx = existing.findIndex(t => t.id === st.id);
         if (idx === -1) { existing.push(Object.assign({}, st)); changed = true; }
-        else { existing[idx] = Object.assign({}, st); changed = true; }
       });
       if (changed) { _udCache[username].assignedTasks = existing; db.collection('users').doc(username).update({ assignedTasks: existing }).catch(()=>{}); }
     }
