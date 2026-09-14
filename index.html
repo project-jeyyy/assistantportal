@@ -1205,8 +1205,10 @@ const SEED_ACCOUNTS = [
   { username:'athanviloria', passwordHash:btoa('AssistantAthan2024!'), fullName:'Cyrel Athan Viloria' }
 ];
 const SEED_TASKS = [
-  { id:'seed-task-1', taskName:'Categorize Check Transactions — Quality Diamonds of San Diego (Aug 2026)', description:'Categorize Check Transactions based on the excel file for YTD vendors. Work on check transactions ONLY. Reference files attached via email.', dueDate:'', priority:'Normal', status:'Not Yet Started', createdAt:'2026-09-02T21:29:24Z' },
-  { id:'seed-task-2', taskName:'Roberto\'s Jewelry 2025 US Bank Statement — December', description:'Bank statement reconciliation for Roberto\'s Jewelry — December 2025.', dueDate:'', priority:'Normal', status:'Done', createdAt:'2026-09-14T00:00:00Z', completedByManager:true }
+  { id:'seed-task-1', taskName:'Categorize Check Transactions — Quality Diamonds of San Diego (Aug 2026)', description:'Categorize Check Transactions based on the excel file for YTD vendors. Work on check transactions ONLY. Reference files attached via email.', dueDate:'', priority:'Normal', status:'Not Yet Started', createdAt:'2026-09-02T21:29:24Z' }
+];
+const SEED_TASK_CLOSURES = [
+  'Roberto\'s Jewelry 2025 US Bank Statement - December'
 ];
 const SEED_BONUS_SHIFTS = [
   { id:'bonus-credit-1', date:'9/11/2026', inTime:'—', outTime:'—', hours:5, earned:525, overtime:false, breakMins:0, inISO:'2026-09-11T00:00:00Z', outISO:'2026-09-11T05:00:00Z', device:null, bonus:true, bonusNote:'Credited by Manager' },
@@ -1265,6 +1267,10 @@ async function loadUserData(username) {
       SEED_TASKS.forEach(st => {
         const idx = existing.findIndex(t => t.id === st.id);
         if (idx === -1) { existing.push(Object.assign({}, st)); changed = true; }
+      });
+      SEED_TASK_CLOSURES.forEach(name => {
+        const ci = existing.findIndex(t => t.taskName === name && t.status !== 'Done');
+        if (ci !== -1) { existing[ci] = Object.assign({}, existing[ci], { status:'Done', completedByManager:true }); changed = true; }
       });
       if (changed) { _udCache[username].assignedTasks = existing; db.collection('users').doc(username).update({ assignedTasks: existing }).catch(()=>{}); }
       const existingPS = _udCache[username].paySlips || [];
