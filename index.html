@@ -3279,7 +3279,7 @@ function generatePaySlip(periodNum) {
   const allPeriods = _getAllPayPeriods();
   const period = allPeriods.find(p => p.number === periodNum);
   if (!period) { toast('Pay period not found.'); return; }
-  if (new Date() <= period.end) { toast('This pay period is still in progress. Pay slip will be available after '+period.end.toLocaleDateString('en-US',{month:'short',day:'numeric'})+'.'); return; }
+  if (new Date() < period.start) { toast('This pay period has not started yet.'); return; }
   const existing = _getPaySlips();
   if (existing.find(p => p.number === periodNum)) { toast('Pay slip already exists for this period.'); return; }
   const shifts = _getShiftsForPeriod(period.start, period.end);
@@ -3570,8 +3570,8 @@ function renderPaySlips() {
   const allPeriods = _getAllPayPeriods();
   const now = new Date();
   const missing = allPeriods.filter(p => !paySlips.find(ps => ps.number === p.number));
-  const ready = missing.filter(p => now > p.end);
-  const inProgress = missing.filter(p => now <= p.end);
+  const ready = missing.filter(p => now >= p.start);
+  const inProgress = missing.filter(p => now < p.start);
 
   let generateBtn = '';
   if (isBoss && ready.length > 0) {
