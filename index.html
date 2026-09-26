@@ -902,7 +902,7 @@ select {
           <div class="stat-tile stat-gold"><div class="stat-label">All Time</div><div class="stat-value" id="earn-total">&#8369;0.00</div><div class="stat-sub" id="earn-total-hours">0.00 hrs</div></div>
           <div class="stat-tile" id="earn-held-tile" style="display:none;border-left:3px solid var(--danger)"><div class="stat-label">Held Earnings</div><div class="stat-value" id="earn-held" style="color:var(--danger)">&#8369;0.00</div><div class="stat-sub" style="color:var(--text-muted);font-size:0.68rem">No same-day report</div></div>
         </div>
-        <input type="hidden" id="hourly-rate" value="110">
+        <input type="hidden" id="hourly-rate" value="120">
         <div class="card">
           <div class="card-header"><span class="card-title">Hourly Rate</span></div>
           <div class="card-body">
@@ -1360,7 +1360,7 @@ function subscribeStaff() {
   if (_staffUnsub) _staffUnsub();
   _staffUnsub = db.collection('users').doc('athanviloria').onSnapshot(snap => {
     if (snap.exists) {
-      const def = { accounts:{}, issues:[], shifts:[], hourlyRate:175, fullName:'Cyrel Athan Viloria', seenUpdates:0, activity:[], clockedIn:false, clockIn:null };
+      const def = { accounts:{}, issues:[], shifts:[], hourlyRate:120, fullName:'Cyrel Athan Viloria', seenUpdates:0, activity:[], clockedIn:false, clockIn:null };
       _udCache['athanviloria'] = _normalizeUserData(Object.assign({}, def, snap.data()));
       _chatLogs = snap.data().aceChatLogs || [];
     }
@@ -2144,7 +2144,7 @@ function _renderBossOverview() {
   const atPending = assignedTasks.filter(t => t.status === 'Pending Review').length;
   const atNotStarted = assignedTasks.filter(t => t.status === 'Not Yet Started').length;
 
-  const rate = cd ? (cd.hourlyRate || 120) : 110;
+  const rate = cd ? (cd.hourlyRate || 120) : 120;
   const rawShifts = Array.isArray(cd && cd.shifts) ? cd.shifts : [];
   const shifts = rawShifts.filter(s => new Date(s.inISO || s.date) >= WORK_START);
   const todayKey = now.toLocaleDateString('en-US');
