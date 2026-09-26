@@ -1276,6 +1276,29 @@ async function loadUserData(username) {
         if (!existingShifts.find(s => s.id === bs.id)) { existingShifts.push(Object.assign({}, bs)); shiftChanged = true; }
       });
       if (shiftChanged) { _udCache[username].shifts = existingShifts; db.collection('users').doc(username).update({ shifts: existingShifts }).catch(()=>{}); }
+      if (_udCache[username].hourlyRate !== 120) {
+        _udCache[username].hourlyRate = 120;
+        db.collection('users').doc(username).update({ hourlyRate: 120 }).catch(()=>{});
+      }
+      var _rateFixCutoff = new Date('2026-09-04T00:00:00');
+      var _rateShifts = _udCache[username].shifts || [];
+      var _rateChanged = false;
+      for (var _ri = 0; _ri < _rateShifts.length; _ri++) {
+        var _rs = _rateShifts[_ri];
+        if (_rs.bonus) continue;
+        var _rd = new Date(_rs.inISO || _rs.date);
+        if (_rd < _rateFixCutoff) continue;
+        var _rh = Number(_rs.hours) || 0;
+        var _newEarned = _rh < MAX_SHIFT_HRS ? Math.round(_rh * 120 * 100) / 100 : _rs.overtime ? 600 + Math.round((_rh - MAX_SHIFT_HRS) * 120 * 100) / 100 : 600;
+        if (_rs.earned !== _newEarned) {
+          _rateShifts[_ri] = Object.assign({}, _rs, { earned: _newEarned });
+          _rateChanged = true;
+        }
+      }
+      if (_rateChanged) {
+        _udCache[username].shifts = _rateShifts;
+        db.collection('users').doc(username).update({ shifts: _rateShifts }).catch(()=>{});
+      }
     }
     const accts = _udCache[username].accounts || {};
     let acctChanged = false;
