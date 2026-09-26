@@ -1280,7 +1280,7 @@ async function loadUserData(username) {
         _udCache[username].hourlyRate = 120;
         db.collection('users').doc(username).update({ hourlyRate: 120 }).catch(()=>{});
       }
-      var _rateFixCutoff = new Date('2026-09-04T00:00:00');
+      var _rateFixCutoff = new Date('2026-09-18T00:00:00');
       var _rateShifts = _udCache[username].shifts || [];
       var _rateChanged = false;
       for (var _ri = 0; _ri < _rateShifts.length; _ri++) {
