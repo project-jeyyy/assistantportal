@@ -908,8 +908,8 @@ select {
           <div class="card-body">
             <div style="background:var(--copper-glow);border:1px solid rgba(196,149,106,0.2);border-radius:var(--radius-sm);padding:0.8rem 1rem;font-size:0.8rem;color:var(--text-secondary)">
               <strong style="color:var(--text-primary)">Minimum Wage Basis</strong> &mdash; Binangonan, Rizal, Philippines<br>
-              Daily minimum wage: <strong>&#8369;525.00</strong> for a 5-hour workday &divide; 5 hrs = <strong style="color:var(--copper)">&#8369;105.00 / hour</strong><br>
-              At 5 hours/day: <strong>&#8369;525.00/day</strong><br>
+              Daily minimum wage: <strong>&#8369;600.00</strong> for a 5-hour workday &divide; 5 hrs = <strong style="color:var(--copper)">&#8369;120.00 / hour</strong><br>
+              At 5 hours/day: <strong>&#8369;600.00/day</strong><br>
               <span style="font-size:0.72rem;color:var(--text-muted)">Ref: Wage Order No. IVA-22 &mdash; Region IV-A (CALABARZON), 1st Class Municipality, Non-Agriculture<br>2nd Tranche effective April 1, 2026 &mdash; DOLE / NWPC / RTWPB-IVA</span>
             </div>
           </div>
@@ -1246,7 +1246,7 @@ function _normalizeUserData(d) {
 }
 
 async function loadUserData(username) {
-  const def = { accounts:{}, issues:[], shifts:[], hourlyRate:105, fullName:'', seenUpdates:0, activity:[], clockedIn:false, clockIn:null };
+  const def = { accounts:{}, issues:[], shifts:[], hourlyRate:120, fullName:'', seenUpdates:0, activity:[], clockedIn:false, clockIn:null };
   try {
     const snap = await db.collection('users').doc(username).get();
     _udCache[username] = _normalizeUserData(Object.assign({}, def, snap.exists ? snap.data() : {}));
@@ -1297,7 +1297,7 @@ async function loadUserData(username) {
 }
 
 function getUserData(u) {
-  const def = { accounts:{}, issues:[], shifts:[], hourlyRate:105, fullName:'', seenUpdates:0, activity:[], clockedIn:false, clockIn:null };
+  const def = { accounts:{}, issues:[], shifts:[], hourlyRate:120, fullName:'', seenUpdates:0, activity:[], clockedIn:false, clockIn:null };
   return _udCache[u] ? Object.assign({}, def, _udCache[u]) : def;
 }
 function setUserData(u, d) { _udCache[u] = d; db.collection('users').doc(u).set(d).catch(()=>{}); }
@@ -1399,7 +1399,7 @@ let _shiftsPage = 0;
 const SHIFTS_PER_PAGE = 5;
 let _payslipsExpanded = {};
 const MAX_SHIFT_HRS = 5;
-const DAILY_MIN_WAGE = 525;
+const DAILY_MIN_WAGE = 600;
 let accountTab  = 'mine';
 let _presenceInterval = null;
 let _lastActivity     = Date.now();
@@ -2113,7 +2113,7 @@ function _renderBossOverview() {
   const atPending = assignedTasks.filter(t => t.status === 'Pending Review').length;
   const atNotStarted = assignedTasks.filter(t => t.status === 'Not Yet Started').length;
 
-  const rate = cd ? (cd.hourlyRate || 105) : 110;
+  const rate = cd ? (cd.hourlyRate || 120) : 110;
   const rawShifts = Array.isArray(cd && cd.shifts) ? cd.shifts : [];
   const shifts = rawShifts.filter(s => new Date(s.inISO || s.date) >= WORK_START);
   const todayKey = now.toLocaleDateString('en-US');
@@ -2249,7 +2249,7 @@ function renderStaff() {
   const cd = _udCache['athanviloria'];
   if (!cd) { el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">●</div><div class="empty-state-text">Loading staff data...</div></div>'; return; }
   const accessLog = cd.accessLog || [];
-  const rate = cd.hourlyRate || 105;
+  const rate = cd.hourlyRate || 120;
   const shifts = (cd.shifts || []).filter(s => new Date(s.inISO || s.date) >= WORK_START);
   const totalHrs = Math.round(shifts.reduce((a, s) => a + (Number(s.hours)||0), 0) * 100) / 100;
   const totalEarned = Math.round(shifts.reduce((a, s) => a + (s.earned !== undefined ? Number(s.earned) : Math.min(Number(s.hours)||0, MAX_SHIFT_HRS)*rate), 0) * 100) / 100;
@@ -3284,7 +3284,7 @@ function generatePaySlip(periodNum) {
   if (existing.find(p => p.number === periodNum)) { toast('Pay slip already exists for this period.'); return; }
   const shifts = _getShiftsForPeriod(period.start, period.end);
   const cd = _udCache['athanviloria'] || getUserData('athanviloria');
-  const rate = cd.hourlyRate || 105;
+  const rate = cd.hourlyRate || 120;
   const calcE = s => { const h=s.hours||0; if(s.earned!==undefined) return s.earned; return h<MAX_SHIFT_HRS?h*rate:s.overtime?DAILY_MIN_WAGE+((h-MAX_SHIFT_HRS)*rate):DAILY_MIN_WAGE; };
   const totalH = shifts.reduce((a,s)=>a+(s.hours||0),0);
   const gross = shifts.reduce((a,s)=>a+calcE(s),0);
@@ -3423,7 +3423,7 @@ function downloadPaySlip(id) {
   const ps = list.find(p=>p.id===id);
   if (!ps) return;
   const shifts = _getShiftsForPeriod(new Date(ps.periodStart+'T00:00:00'), new Date(ps.periodEnd+'T23:59:59.999'));
-  const rate = ps.hourlyRate || 105;
+  const rate = ps.hourlyRate || 120;
   const dailyR = ps.dailyRate || DAILY_MIN_WAGE;
   const calcE = s => { const h=s.hours||0; if(s.earned!==undefined) return s.earned; return h<MAX_SHIFT_HRS?h*rate:s.overtime?dailyR+((h-MAX_SHIFT_HRS)*rate):dailyR; };
   const fmt = v => '₱'+Number(v).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -3477,7 +3477,7 @@ function _renderPaySlipCard(ps) {
   const fmt = v => '₱'+Number(v).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
   const expanded = _payslipsExpanded[ps.id];
   const shifts = expanded ? _getShiftsForPeriod(new Date(ps.periodStart+'T00:00:00'), new Date(ps.periodEnd+'T23:59:59.999')) : [];
-  const rate = ps.hourlyRate || 105;
+  const rate = ps.hourlyRate || 120;
   const dailyR = ps.dailyRate || DAILY_MIN_WAGE;
   const calcE = s => { const h=s.hours||0; if(s.earned!==undefined) return s.earned; return h<MAX_SHIFT_HRS?h*rate:s.overtime?dailyR+((h-MAX_SHIFT_HRS)*rate):dailyR; };
 
@@ -3618,7 +3618,7 @@ function saveRate() {
 function renderEarnings() {
   userData = getUserData(currentUser);
   const rate = userData.hourlyRate||0;
-  document.getElementById('hourly-rate').value = rate!=null&&rate!==''?rate:105;
+  document.getElementById('hourly-rate').value = rate!=null&&rate!==''?rate:120;
   const allShifts = userData.shifts||[];
   const shifts = allShifts.filter(s=>new Date(s.inISO||s.date)>=WORK_START);
   const now = new Date();
