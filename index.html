@@ -2808,7 +2808,7 @@ function renderAssigned() {
       const isPendingReview = t.status === 'Pending Review';
       const isTerminal = AT_TERMINAL_STATUSES.has(t.status);
       const isInactive = isTerminal || isOverdue;
-      const canStaffAdvance = !isTerminal && !isOverdue && !AT_MANAGER_STATUSES.has(t.status);
+      const canStaffAdvance = !isTerminal && !isOverdue && !isPendingReview && !AT_MANAGER_STATUSES.has(t.status);
       const attachHtml = _renderAttachments(t.attachments);
       const addLinkHtml = isInactive ? '' : '<div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-top:0.4rem;align-items:center"><input id="ata-label-'+t.id+'" type="text" placeholder="File name" style="font-size:0.75rem;padding:0.3rem 0.5rem;flex:1;min-width:90px"><input id="ata-url-'+t.id+'" type="url" placeholder="Google Drive link" style="font-size:0.75rem;padding:0.3rem 0.5rem;flex:2;min-width:140px"><button onclick="addAttachmentToTask(\''+t.id+'\')" style="padding:0.3rem 0.6rem;font-size:0.72rem;font-weight:600;border-radius:var(--radius-sm);background:rgba(59,130,246,0.08);color:#3B82F6;border:1px solid rgba(59,130,246,0.2);cursor:pointer;white-space:nowrap">+ Link</button></div>';
       const inactiveStyle = isInactive ? 'opacity:0.5;' : '';
@@ -2823,7 +2823,7 @@ function renderAssigned() {
       } else if (isRework) {
         managerBtns = '<div style="display:flex;flex-direction:column;gap:0.3rem;margin-top:0.3rem"><button onclick="holdTask(\''+t.id+'\')" style="font-size:0.72rem;padding:0.3rem 0.75rem;border-radius:var(--radius-sm);background:#3B82F6;color:white;border:none;cursor:pointer;font-weight:700;white-space:nowrap">On Hold</button></div>';
       }
-      var noteInput = (isPendingReview || isOnHold) ? '<div style="margin-top:0.35rem"><textarea id="atn-'+t.id+'" rows="1" placeholder="Add a note (optional)" style="width:100%;font-size:0.75rem;padding:0.3rem 0.5rem;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--input-bg);color:var(--text-primary);resize:none;outline:none"></textarea></div>' : '';
+      var noteInput = (isPendingReview || isOnHold || isRework) ? '<div style="margin-top:0.35rem"><textarea id="atn-'+t.id+'" rows="1" placeholder="Add a note (optional)" style="width:100%;font-size:0.75rem;padding:0.3rem 0.5rem;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--input-bg);color:var(--text-primary);resize:none;outline:none"></textarea></div>' : '';
       return '<div class="card" style="margin-bottom:0.7rem;'+inactiveStyle+'"><div class="card-body"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.75rem;flex-wrap:wrap"><div style="flex:1;min-width:200px"><div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.35rem"><span style="font-size:0.72rem;font-weight:700;padding:0.12rem 0.55rem;border-radius:99px;background:'+sb+';color:'+sc+'">'+t.status+'</span><span style="font-size:0.7rem;font-weight:600;color:'+pc+'">'+t.priority+'</span>'+(dueStr?'<span style="font-size:0.7rem;color:'+(isOverdue?'var(--danger)':'var(--text-muted)')+'">'+esc(dueStr)+'</span>':'')+reworkInfo+'</div><div style="font-weight:700;font-size:0.88rem;margin-bottom:0.2rem">'+esc(t.taskName)+'</div>'+(t.description?'<div style="font-size:0.78rem;color:var(--text-secondary);margin-bottom:0.25rem">'+esc(t.description)+'</div>':'')+attachHtml+notesHtml+addLinkHtml+noteInput+'<div style="font-size:0.68rem;color:var(--text-muted);margin-top:0.35rem">Assigned '+esc(new Date(t.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}))+'</div></div><div style="display:flex;flex-direction:column;gap:0.3rem;flex-shrink:0;align-items:flex-end">'+(isOverdue?'<button onclick="allowContinueTask(\''+t.id+'\')" style="font-size:0.72rem;padding:0.3rem 0.75rem;border-radius:var(--radius-sm);background:#3B82F6;color:white;border:none;cursor:pointer;font-weight:700;white-space:nowrap;opacity:1">Allow Continue</button>':'')+(canStaffAdvance?'<button onclick="advanceTaskStatus(\''+t.id+'\')" style="font-size:0.72rem;padding:0.3rem 0.75rem;border-radius:var(--radius-sm);background:var(--copper);color:white;border:none;cursor:pointer;font-weight:700;white-space:nowrap">&rarr; '+AT_STATUS_NEXT[t.status]+'</button>':'')+managerBtns+'<button onclick="deleteAssignedTask(\''+t.id+'\')" style="font-size:0.68rem;padding:0.25rem 0.65rem;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface-hover);color:var(--danger);cursor:pointer;white-space:nowrap">Remove</button></div></div></div></div>';
     }).join('');
   } else {
@@ -2996,7 +2996,7 @@ function _checkOverdueTasks() {
   var changed = false;
   for (var i = 0; i < tasks.length; i++) {
     var t = tasks[i];
-    if (!t.dueDate || t.status === 'Done' || t.status === 'Overdue — Closed' || t.status === 'Sign Off' || t.status === 'Rejected' || t.dueDateExtended) continue;
+    if (!t.dueDate || t.status === 'Done' || t.status === 'Overdue — Closed' || t.status === 'Sign Off' || t.status === 'Rejected' || t.status === 'On Hold' || t.status === 'Rework' || t.dueDateExtended) continue;
     var due = new Date(t.dueDate + 'T00:00:00'); due.setHours(23,59,59,999);
     if (today > due) {
       tasks[i] = Object.assign({}, t, { previousStatus: t.status, status: 'Overdue — Closed', pastDue: true });
