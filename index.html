@@ -1213,7 +1213,8 @@ const SEED_UPDATES = [
   { id:'seed-ace-5', date:'September 7, 2026', type:'Feature', priority:'Medium', msg:'New Feature: Chat Logs & Direct Messaging\n\nYour manager Jey can now see and reply to your Ask Ace conversations directly from the Manager View!\n\n• All messages you send through Ask Ace are logged and visible to management\n• Jey can reply to your messages — his replies will appear in your Ace chat in real-time with a "Jey" label\n• Chat threads are organized by date for easy tracking\n• This creates a direct communication channel between you and your manager through the portal\n\nFeel free to use Ask Ace to send messages or questions anytime. — Ace, AI Work Assistant', notified:true },
   { id:'seed-ace-6', date:'September 8, 2026', type:'Feature', priority:'High', msg:'New Feature: Auto No Work Mode\n\nThe portal now automatically manages your work availability based on your shift schedule!\n\n• Your working window is weekdays (Monday–Friday), 8:00 AM to 11:00 PM PH Time\n• Outside this window (weekends, before 8 AM, after 11 PM), the system automatically activates No Work Mode\n• You\'ll see "Outside Working Hours" on your clock button when the auto-schedule is active\n• When your work window opens, the system automatically deactivates No Work Mode so you can clock in\n• Your manager can still manually activate No Work Mode anytime — that overrides the schedule\n• If you\'re mid-shift when 11 PM arrives, your active shift is not interrupted\n\nThis keeps your work hours organized and consistent. — Ace, AI Work Assistant', notified:true },
   { id:'seed-ace-7', date:'September 8, 2026', type:'Feature', priority:'High', msg:'New Feature: Task Due Date Enforcement\n\nTasks with due dates are now automatically enforced!\n\n• When a task passes its due date without being completed, it is automatically closed with an "Overdue — Closed" status\n• Overdue tasks appear grayed out — you will not be able to change their status\n• If you need to continue working on an overdue task, contact your manager\n• Your manager has an "Allow Continue" button to unlock any overdue task so you can resume work on it\n• Once unlocked, the task returns to its previous status and is fully interactive again\n\nPlease keep an eye on your task due dates and update statuses promptly. — Ace, AI Work Assistant', notified:true },
-  { id:'seed-ace-8', date:'September 26, 2026', type:'Announcement', priority:'High', msg:'Pay Rate Update — Effective September 18, 2026\n\nYour hourly rate has been updated based on Wage Order No. IVA-22 (CALABARZON, Non-Agricultural Sector).\n\n• Previous rate: ₱105.00/hr (₱525.00/day)\n• New rate: ₱120.00/hr (₱600.00/day)\n• Effective: September 18, 2026 (Pay Period #0004 onward)\n• Basis: Wage Order No. IVA-22 — Region IV-A (CALABARZON), 1st Class Municipality, Non-Agriculture. 2nd Tranche effective April 1, 2026 — DOLE / NWPC / RTWPB-IVA\n• Your 5-hour workday is treated as 1 full working day\n\nPay periods prior to September 18 are not affected. The new rate will be reflected in your upcoming pay slip.\n\nPlease acknowledge this update. — Ace, AI Work Assistant', notified:true, requireAck:true }
+  { id:'seed-ace-8', date:'September 26, 2026', type:'Announcement', priority:'High', msg:'Pay Rate Update — Effective September 18, 2026\n\nYour hourly rate has been updated based on Wage Order No. IVA-22 (CALABARZON, Non-Agricultural Sector).\n\n• Previous rate: ₱105.00/hr (₱525.00/day)\n• New rate: ₱120.00/hr (₱600.00/day)\n• Effective: September 18, 2026 (Pay Period #0004 onward)\n• Basis: Wage Order No. IVA-22 — Region IV-A (CALABARZON), 1st Class Municipality, Non-Agriculture. 2nd Tranche effective April 1, 2026 — DOLE / NWPC / RTWPB-IVA\n• Your 5-hour workday is treated as 1 full working day\n\nPay periods prior to September 18 are not affected. The new rate will be reflected in your upcoming pay slip.\n\nPlease acknowledge this update. — Ace, AI Work Assistant', notified:true, requireAck:true },
+  { id:'seed-ace-9', date:'September 29, 2026', type:'Announcement', priority:'High', msg:'New Feature: Task-Gated Earnings System\n\nYour task completion now directly controls whether your shift earnings are credited. Here is how it works:\n\n• When you finish a task, move it to "Pending Review" — your manager will review it\n• Sign Off — Your manager approves your work. Earnings for that task period are credited\n• On Hold — Your task is paused due to pending issues. Earnings are held until resolved\n• Rework — Your manager sends the task back. You need to redo it and resubmit for review\n• Rejected — Your work did not meet requirements. Earnings for that task are not credited\n\nWhat this means for you:\n• Complete your tasks properly the first time to ensure your earnings are credited promptly\n• If a task is sent back for Rework, fix the issues and move it back to "Pending Review"\n• You will see manager notes explaining any holds, reworks, or rejections\n• Previous completed tasks are not affected by this change\n\nThis system ensures fair compensation tied to verified work quality.\n\nPlease acknowledge this update. — Ace, AI Work Assistant', notified:true, requireAck:true }
 ];
 const SEED_PAYSLIPS = [
   { id:'ps-0001', number:'#0001', periodStart:'2026-08-12', periodEnd:'2026-08-20', totalHours:21.25, grossPay:1806.70, heldAmount:0, netPay:1806.70, status:'paid', paymentMethod:'gcash', paymentRef:'GCash Transfer — Aug 20, 2026', generatedAt:'2026-08-20T02:55:18Z', approvedAt:'2026-08-20T03:36:41Z', finalizedAt:'2026-08-20T14:35:14Z', paidAt:'2026-08-20T14:35:14Z', payReceived:true, payReceivedAt:'2026-08-20T14:42:12Z' },
@@ -2711,10 +2712,12 @@ function refreshIssuesBadge() {
 
 const ISSUE_LABEL = { question:'Question', issue:'Issue', feedback:'Feedback' };
 const PRIORITY_BADGE = { Normal:'badge-muted', High:'badge-warning', Urgent:'badge-danger' };
-const AT_STATUS_COLOR = { 'Not Yet Started':'var(--text-muted)', 'In Progress':'var(--teal)', 'Pending Review':'#f97316', 'Done':'var(--success)', 'Overdue — Closed':'var(--danger)' };
-const AT_STATUS_BG = { 'Not Yet Started':'rgba(128,128,128,0.08)', 'In Progress':'rgba(31,184,195,0.1)', 'Pending Review':'rgba(249,115,22,0.1)', 'Done':'rgba(34,197,94,0.1)', 'Overdue — Closed':'rgba(239,68,68,0.08)' };
+const AT_STATUS_COLOR = { 'Not Yet Started':'var(--text-muted)', 'In Progress':'var(--teal)', 'Pending Review':'#f97316', 'Done':'var(--success)', 'Overdue — Closed':'var(--danger)', 'Sign Off':'var(--success)', 'On Hold':'#3B82F6', 'Rejected':'var(--danger)', 'Rework':'#f97316' };
+const AT_STATUS_BG = { 'Not Yet Started':'rgba(128,128,128,0.08)', 'In Progress':'rgba(31,184,195,0.1)', 'Pending Review':'rgba(249,115,22,0.1)', 'Done':'rgba(34,197,94,0.1)', 'Overdue — Closed':'rgba(239,68,68,0.08)', 'Sign Off':'rgba(34,197,94,0.12)', 'On Hold':'rgba(59,130,246,0.1)', 'Rejected':'rgba(239,68,68,0.1)', 'Rework':'rgba(249,115,22,0.1)' };
 const AT_PRIO_COLOR = { 'Low':'var(--success)', 'Normal':'var(--text-muted)', 'High':'var(--warning)', 'Urgent':'var(--danger)' };
-const AT_STATUS_NEXT = { 'Not Yet Started':'In Progress', 'In Progress':'Pending Review', 'Pending Review':'Done', 'Done':'Done', 'Overdue — Closed':'Overdue — Closed' };
+const AT_STATUS_NEXT = { 'Not Yet Started':'In Progress', 'In Progress':'Pending Review', 'Pending Review':'Pending Review', 'Done':'Done', 'Overdue — Closed':'Overdue — Closed', 'Sign Off':'Sign Off', 'On Hold':'On Hold', 'Rejected':'Rejected', 'Rework':'In Progress' };
+const AT_MANAGER_STATUSES = new Set(['Sign Off','On Hold','Rejected','Rework']);
+const AT_TERMINAL_STATUSES = new Set(['Done','Sign Off','Overdue — Closed','Rejected']);
 
 function renderIssues() {
   const isBoss = currentUser === BOSS_USERNAME;
@@ -2764,9 +2767,13 @@ function respondToIssue(id) {
 function refreshAssignedBadge() {
   const cd = _udCache['athanviloria'];
   const allTasks = cd ? (cd.assignedTasks||[]) : [];
-  const pending = allTasks.filter(t=>t.status==='Pending Review').length;
-  const overdue = allTasks.filter(t=>t.status==='Overdue — Closed').length;
-  const count = pending + overdue;
+  const isBoss = currentUser === BOSS_USERNAME;
+  var count;
+  if (isBoss) {
+    count = allTasks.filter(t=>t.status==='Pending Review'||t.status==='Overdue — Closed').length;
+  } else {
+    count = allTasks.filter(t=>t.status==='Rework'||t.status==='Rejected').length;
+  }
   const b = document.getElementById('assigned-badge');
   if (!b) return;
   if (count>0) { b.textContent=count; b.classList.remove('hidden'); } else { b.classList.add('hidden'); }
@@ -2781,8 +2788,8 @@ function renderAssigned() {
   _checkOverdueTasks();
   tasks = _udCache['athanviloria'] ? (_udCache['athanviloria'].assignedTasks || []) : tasks;
   const order = { 'Urgent':0, 'High':1, 'Normal':2, 'Low':3 };
-  const statusOrder = { 'Pending Review':0, 'In Progress':1, 'Not Yet Started':2, 'Done':3, 'Overdue — Closed':4 };
-  const sorted = [...tasks].sort((a,b)=>(statusOrder[a.status]||3)-(statusOrder[b.status]||3)||(order[a.priority]||2)-(order[b.priority]||2));
+  const statusOrder = { 'Pending Review':0, 'Rework':1, 'On Hold':2, 'In Progress':3, 'Not Yet Started':4, 'Sign Off':5, 'Done':6, 'Rejected':7, 'Overdue — Closed':8 };
+  const sorted = [...tasks].sort((a,b)=>(statusOrder[a.status]??5)-(statusOrder[b.status]??5)||(order[a.priority]||2)-(order[b.priority]||2));
 
   if (isBossOwn) {
     const addFormHtml = '<div class="card" style="margin-bottom:1.25rem"><div class="card-header"><span class="card-title">Assign New Task</span></div><div class="card-body" style="display:flex;flex-direction:column;gap:0.7rem"><input id="at-name" type="text" placeholder="Task name *" style="font-size:0.83rem"><textarea id="at-desc" rows="2" placeholder="Description (optional)" style="font-size:0.83rem;resize:none"></textarea><div id="at-attachments-list" style="display:flex;flex-direction:column;gap:0.4rem"></div><div style="display:flex;gap:0.5rem;flex-wrap:wrap"><input id="at-attach-label" type="text" placeholder="File name (e.g. Vendors.xlsx)" style="font-size:0.8rem;flex:1;min-width:120px"><input id="at-attach-url" type="url" placeholder="Google Drive link" style="font-size:0.8rem;flex:2;min-width:180px"><button onclick="addTaskAttachment()" type="button" style="padding:0.4rem 0.8rem;font-size:0.78rem;font-weight:600;border-radius:var(--radius-sm);background:rgba(59,130,246,0.08);color:#3B82F6;border:1px solid rgba(59,130,246,0.2);cursor:pointer;white-space:nowrap">+ Attach</button></div><div style="display:flex;gap:0.7rem;flex-wrap:wrap"><input id="at-due" type="date" style="font-size:0.83rem;flex:1;min-width:130px"><select id="at-priority" style="font-size:0.83rem;flex:1;min-width:120px"><option value="Normal">Normal Priority</option><option value="Low">Low</option><option value="High">High</option><option value="Urgent">Urgent</option></select><button onclick="addAssignedTask()" style="padding:0.5rem 1.1rem;font-size:0.83rem;font-weight:700;border-radius:var(--radius-sm);background:var(--copper);color:white;border:none;cursor:pointer;white-space:nowrap">Assign Task</button></div></div></div>';
@@ -2792,19 +2799,36 @@ function renderAssigned() {
       const sb = AT_STATUS_BG[t.status]||'transparent';
       const pc = AT_PRIO_COLOR[t.priority]||'var(--text-muted)';
       const dueStr = t.dueDate ? 'Due '+new Date(t.dueDate+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
-      const nextStatus = AT_STATUS_NEXT[t.status];
       const isOverdue = t.status === 'Overdue — Closed';
       const isDone = t.status === 'Done';
-      const isInactive = isOverdue || isDone;
-      const canAdvance = !isDone && !isOverdue;
+      const isSignOff = t.status === 'Sign Off';
+      const isRejected = t.status === 'Rejected';
+      const isOnHold = t.status === 'On Hold';
+      const isRework = t.status === 'Rework';
+      const isPendingReview = t.status === 'Pending Review';
+      const isTerminal = AT_TERMINAL_STATUSES.has(t.status);
+      const isInactive = isTerminal || isOverdue;
+      const canStaffAdvance = !isTerminal && !isOverdue && !AT_MANAGER_STATUSES.has(t.status);
       const attachHtml = _renderAttachments(t.attachments);
       const addLinkHtml = isInactive ? '' : '<div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-top:0.4rem;align-items:center"><input id="ata-label-'+t.id+'" type="text" placeholder="File name" style="font-size:0.75rem;padding:0.3rem 0.5rem;flex:1;min-width:90px"><input id="ata-url-'+t.id+'" type="url" placeholder="Google Drive link" style="font-size:0.75rem;padding:0.3rem 0.5rem;flex:2;min-width:140px"><button onclick="addAttachmentToTask(\''+t.id+'\')" style="padding:0.3rem 0.6rem;font-size:0.72rem;font-weight:600;border-radius:var(--radius-sm);background:rgba(59,130,246,0.08);color:#3B82F6;border:1px solid rgba(59,130,246,0.2);cursor:pointer;white-space:nowrap">+ Link</button></div>';
       const inactiveStyle = isInactive ? 'opacity:0.5;' : '';
-      return '<div class="card" style="margin-bottom:0.7rem;'+inactiveStyle+'"><div class="card-body"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.75rem;flex-wrap:wrap"><div style="flex:1;min-width:200px"><div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.35rem"><span style="font-size:0.72rem;font-weight:700;padding:0.12rem 0.55rem;border-radius:99px;background:'+sb+';color:'+sc+'">'+t.status+'</span><span style="font-size:0.7rem;font-weight:600;color:'+pc+'">'+t.priority+'</span>'+(dueStr?'<span style="font-size:0.7rem;color:'+(isOverdue?'var(--danger)':'var(--text-muted)')+'">'+esc(dueStr)+'</span>':'')+'</div><div style="font-weight:700;font-size:0.88rem;margin-bottom:0.2rem">'+esc(t.taskName)+'</div>'+(t.description?'<div style="font-size:0.78rem;color:var(--text-secondary);margin-bottom:0.25rem">'+esc(t.description)+'</div>':'')+attachHtml+addLinkHtml+'<div style="font-size:0.68rem;color:var(--text-muted);margin-top:0.35rem">Assigned '+esc(new Date(t.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}))+'</div></div><div style="display:flex;flex-direction:column;gap:0.3rem;flex-shrink:0;align-items:flex-end">'+(isOverdue?'<button onclick="allowContinueTask(\''+t.id+'\')" style="font-size:0.72rem;padding:0.3rem 0.75rem;border-radius:var(--radius-sm);background:#3B82F6;color:white;border:none;cursor:pointer;font-weight:700;white-space:nowrap;opacity:1">Allow Continue</button>':'')+(canAdvance?'<button onclick="advanceTaskStatus(\''+t.id+'\')" style="font-size:0.72rem;padding:0.3rem 0.75rem;border-radius:var(--radius-sm);background:var(--copper);color:white;border:none;cursor:pointer;font-weight:700;white-space:nowrap">→ '+nextStatus+'</button>':'')+'<button onclick="deleteAssignedTask(\''+t.id+'\')" style="font-size:0.68rem;padding:0.25rem 0.65rem;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface-hover);color:var(--danger);cursor:pointer;white-space:nowrap">Remove</button></div></div></div></div>';
+      var reworkInfo = (t.reworkCount && t.reworkCount > 0) ? '<span style="font-size:0.68rem;color:#f97316;font-weight:600;margin-left:0.3rem">Rework x'+t.reworkCount+'</span>' : '';
+      var notesHtml = '';
+      if (t.managerNote) { notesHtml = '<div style="font-size:0.75rem;color:var(--text-secondary);background:rgba(196,149,106,0.06);border:1px solid rgba(196,149,106,0.15);border-radius:var(--radius-sm);padding:0.4rem 0.6rem;margin-top:0.35rem"><span style="font-weight:700;color:var(--copper);font-size:0.7rem">Manager Note:</span> '+esc(t.managerNote)+'</div>'; }
+      var managerBtns = '';
+      if (isPendingReview) {
+        managerBtns = '<div style="display:flex;flex-direction:column;gap:0.3rem;margin-top:0.3rem"><button onclick="signOffTask(\''+t.id+'\')" style="font-size:0.72rem;padding:0.3rem 0.75rem;border-radius:var(--radius-sm);background:var(--success);color:white;border:none;cursor:pointer;font-weight:700;white-space:nowrap">Sign Off</button><button onclick="holdTask(\''+t.id+'\')" style="font-size:0.72rem;padding:0.3rem 0.75rem;border-radius:var(--radius-sm);background:#3B82F6;color:white;border:none;cursor:pointer;font-weight:700;white-space:nowrap">On Hold</button><button onclick="reworkTask(\''+t.id+'\')" style="font-size:0.72rem;padding:0.3rem 0.75rem;border-radius:var(--radius-sm);background:#f97316;color:white;border:none;cursor:pointer;font-weight:700;white-space:nowrap">Rework</button><button onclick="rejectTask(\''+t.id+'\')" style="font-size:0.72rem;padding:0.3rem 0.75rem;border-radius:var(--radius-sm);background:var(--danger);color:white;border:none;cursor:pointer;font-weight:700;white-space:nowrap">Reject</button></div>';
+      } else if (isOnHold) {
+        managerBtns = '<div style="display:flex;flex-direction:column;gap:0.3rem;margin-top:0.3rem"><button onclick="signOffTask(\''+t.id+'\')" style="font-size:0.72rem;padding:0.3rem 0.75rem;border-radius:var(--radius-sm);background:var(--success);color:white;border:none;cursor:pointer;font-weight:700;white-space:nowrap">Sign Off</button><button onclick="reworkTask(\''+t.id+'\')" style="font-size:0.72rem;padding:0.3rem 0.75rem;border-radius:var(--radius-sm);background:#f97316;color:white;border:none;cursor:pointer;font-weight:700;white-space:nowrap">Rework</button><button onclick="rejectTask(\''+t.id+'\')" style="font-size:0.72rem;padding:0.3rem 0.75rem;border-radius:var(--radius-sm);background:var(--danger);color:white;border:none;cursor:pointer;font-weight:700;white-space:nowrap">Reject</button></div>';
+      } else if (isRework) {
+        managerBtns = '<div style="display:flex;flex-direction:column;gap:0.3rem;margin-top:0.3rem"><button onclick="holdTask(\''+t.id+'\')" style="font-size:0.72rem;padding:0.3rem 0.75rem;border-radius:var(--radius-sm);background:#3B82F6;color:white;border:none;cursor:pointer;font-weight:700;white-space:nowrap">On Hold</button></div>';
+      }
+      var noteInput = (isPendingReview || isOnHold) ? '<div style="margin-top:0.35rem"><textarea id="atn-'+t.id+'" rows="1" placeholder="Add a note (optional)" style="width:100%;font-size:0.75rem;padding:0.3rem 0.5rem;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--input-bg);color:var(--text-primary);resize:none;outline:none"></textarea></div>' : '';
+      return '<div class="card" style="margin-bottom:0.7rem;'+inactiveStyle+'"><div class="card-body"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.75rem;flex-wrap:wrap"><div style="flex:1;min-width:200px"><div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.35rem"><span style="font-size:0.72rem;font-weight:700;padding:0.12rem 0.55rem;border-radius:99px;background:'+sb+';color:'+sc+'">'+t.status+'</span><span style="font-size:0.7rem;font-weight:600;color:'+pc+'">'+t.priority+'</span>'+(dueStr?'<span style="font-size:0.7rem;color:'+(isOverdue?'var(--danger)':'var(--text-muted)')+'">'+esc(dueStr)+'</span>':'')+reworkInfo+'</div><div style="font-weight:700;font-size:0.88rem;margin-bottom:0.2rem">'+esc(t.taskName)+'</div>'+(t.description?'<div style="font-size:0.78rem;color:var(--text-secondary);margin-bottom:0.25rem">'+esc(t.description)+'</div>':'')+attachHtml+notesHtml+addLinkHtml+noteInput+'<div style="font-size:0.68rem;color:var(--text-muted);margin-top:0.35rem">Assigned '+esc(new Date(t.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}))+'</div></div><div style="display:flex;flex-direction:column;gap:0.3rem;flex-shrink:0;align-items:flex-end">'+(isOverdue?'<button onclick="allowContinueTask(\''+t.id+'\')" style="font-size:0.72rem;padding:0.3rem 0.75rem;border-radius:var(--radius-sm);background:#3B82F6;color:white;border:none;cursor:pointer;font-weight:700;white-space:nowrap;opacity:1">Allow Continue</button>':'')+(canStaffAdvance?'<button onclick="advanceTaskStatus(\''+t.id+'\')" style="font-size:0.72rem;padding:0.3rem 0.75rem;border-radius:var(--radius-sm);background:var(--copper);color:white;border:none;cursor:pointer;font-weight:700;white-space:nowrap">&rarr; '+AT_STATUS_NEXT[t.status]+'</button>':'')+managerBtns+'<button onclick="deleteAssignedTask(\''+t.id+'\')" style="font-size:0.68rem;padding:0.25rem 0.65rem;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface-hover);color:var(--danger);cursor:pointer;white-space:nowrap">Remove</button></div></div></div></div>';
     }).join('');
   } else {
     if (tasks.length === 0) { el.innerHTML = '<div class="empty-state"><div class="empty-state-text">No tasks assigned yet.</div></div>'; return; }
-    const statusOptions = ['Not Yet Started','In Progress','Pending Review','Done'];
+    const staffStatusOptions = ['Not Yet Started','In Progress','Pending Review'];
     el.innerHTML = sorted.map(t => {
       const sc = AT_STATUS_COLOR[t.status]||'var(--text-muted)';
       const sb = AT_STATUS_BG[t.status]||'transparent';
@@ -2812,12 +2836,29 @@ function renderAssigned() {
       const dueStr = t.dueDate ? 'Due '+new Date(t.dueDate+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
       const isOverdue = t.status === 'Overdue — Closed';
       const isDone = t.status === 'Done';
-      const isInactive = isOverdue || isDone;
-      const opts = statusOptions.map(s=>'<option value="'+s+'"'+(s===t.status?' selected':'')+'>'+s+'</option>').join('');
+      const isSignOff = t.status === 'Sign Off';
+      const isRejected = t.status === 'Rejected';
+      const isOnHold = t.status === 'On Hold';
+      const isRework = t.status === 'Rework';
+      const isTerminal = AT_TERMINAL_STATUSES.has(t.status);
+      const isManagerSet = AT_MANAGER_STATUSES.has(t.status);
+      const isInactive = isTerminal || isOverdue;
+      const canChange = !isTerminal && !isOverdue && !isManagerSet;
       const attachHtml = _renderAttachments(t.attachments);
-      const inactiveStyle = isInactive ? 'opacity:0.5;pointer-events:none;' : '';
-      const statusMsg = isOverdue ? '<div style="font-size:0.72rem;color:var(--danger);font-weight:600;margin-top:0.3rem;pointer-events:auto">This task is overdue. Contact your manager if you need to continue.</div>' : isDone ? '<div style="font-size:0.72rem;color:var(--success);font-weight:600;margin-top:0.3rem">Task completed.</div>' : '';
-      return '<div class="card" style="margin-bottom:0.7rem;'+inactiveStyle+'"><div class="card-body"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.75rem;flex-wrap:wrap"><div style="flex:1;min-width:200px"><div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.35rem"><span style="font-size:0.72rem;font-weight:700;padding:0.12rem 0.55rem;border-radius:99px;background:'+sb+';color:'+sc+'">'+t.status+'</span><span style="font-size:0.7rem;font-weight:600;color:'+pc+'">'+t.priority+'</span>'+(dueStr?'<span style="font-size:0.7rem;color:'+(isOverdue?'var(--danger)':'var(--text-muted)')+'">'+esc(dueStr)+'</span>':'')+'</div><div style="font-weight:700;font-size:0.88rem;margin-bottom:0.2rem">'+esc(t.taskName)+'</div>'+(t.description?'<div style="font-size:0.78rem;color:var(--text-secondary);margin-bottom:0.25rem">'+esc(t.description)+'</div>':'')+attachHtml+'<div style="font-size:0.68rem;color:var(--text-muted)">Assigned '+esc(new Date(t.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}))+'</div>'+statusMsg+'</div>'+(isInactive?'':'<div style="flex-shrink:0"><select onchange="updateTaskStatus(\''+t.id+'\',this.value)" style="font-size:0.78rem;padding:0.35rem 0.6rem;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--input-bg);color:var(--text-primary);outline:none;cursor:pointer;min-width:140px">'+opts+'</select></div>')+'</div></div></div>';
+      var reworkInfo = (t.reworkCount && t.reworkCount > 0) ? '<span style="font-size:0.68rem;color:#f97316;font-weight:600;margin-left:0.3rem">Rework x'+t.reworkCount+'</span>' : '';
+      var notesHtml = '';
+      if (t.managerNote) { notesHtml = '<div style="font-size:0.75rem;color:var(--text-secondary);background:rgba(196,149,106,0.06);border:1px solid rgba(196,149,106,0.15);border-radius:var(--radius-sm);padding:0.4rem 0.6rem;margin-top:0.35rem"><span style="font-weight:700;color:var(--copper);font-size:0.7rem">Manager Note:</span> '+esc(t.managerNote)+'</div>'; }
+      var statusMsg = '';
+      if (isOverdue) statusMsg = '<div style="font-size:0.72rem;color:var(--danger);font-weight:600;margin-top:0.3rem;pointer-events:auto">This task is overdue. Contact your manager if you need to continue.</div>';
+      else if (isDone) statusMsg = '<div style="font-size:0.72rem;color:var(--success);font-weight:600;margin-top:0.3rem">Task completed.</div>';
+      else if (isSignOff) statusMsg = '<div style="font-size:0.72rem;color:var(--success);font-weight:600;margin-top:0.3rem">Signed off by your manager. Earnings credited.</div>';
+      else if (isRejected) statusMsg = '<div style="font-size:0.72rem;color:var(--danger);font-weight:600;margin-top:0.3rem">Rejected by your manager. Earnings not credited.</div>';
+      else if (isOnHold) statusMsg = '<div style="font-size:0.72rem;color:#3B82F6;font-weight:600;margin-top:0.3rem">On hold by your manager. Earnings pending.</div>';
+      else if (isRework) statusMsg = '<div style="font-size:0.72rem;color:#f97316;font-weight:600;margin-top:0.3rem">Sent back for rework. Please redo and resubmit.</div>';
+      const inactiveStyle = (isInactive && !isRework) ? 'opacity:0.5;pointer-events:none;' : (isOnHold ? 'opacity:0.7;pointer-events:none;' : '');
+      const reworkSelect = isRework ? '<div style="flex-shrink:0"><select onchange="updateTaskStatus(\''+t.id+'\',this.value)" style="font-size:0.78rem;padding:0.35rem 0.6rem;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--input-bg);color:var(--text-primary);outline:none;cursor:pointer;min-width:140px"><option value="Rework" selected>Rework</option><option value="In Progress">In Progress</option><option value="Pending Review">Pending Review</option></select></div>' : '';
+      const opts = staffStatusOptions.map(s=>'<option value="'+s+'"'+(s===t.status?' selected':'')+'>'+s+'</option>').join('');
+      return '<div class="card" style="margin-bottom:0.7rem;'+inactiveStyle+'"><div class="card-body"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.75rem;flex-wrap:wrap"><div style="flex:1;min-width:200px"><div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.35rem"><span style="font-size:0.72rem;font-weight:700;padding:0.12rem 0.55rem;border-radius:99px;background:'+sb+';color:'+sc+'">'+t.status+'</span><span style="font-size:0.7rem;font-weight:600;color:'+pc+'">'+t.priority+'</span>'+(dueStr?'<span style="font-size:0.7rem;color:'+(isOverdue?'var(--danger)':'var(--text-muted)')+'">'+esc(dueStr)+'</span>':'')+reworkInfo+'</div><div style="font-weight:700;font-size:0.88rem;margin-bottom:0.2rem">'+esc(t.taskName)+'</div>'+(t.description?'<div style="font-size:0.78rem;color:var(--text-secondary);margin-bottom:0.25rem">'+esc(t.description)+'</div>':'')+attachHtml+notesHtml+'<div style="font-size:0.68rem;color:var(--text-muted)">Assigned '+esc(new Date(t.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}))+'</div>'+statusMsg+'</div>'+(canChange?'<div style="flex-shrink:0"><select onchange="updateTaskStatus(\''+t.id+'\',this.value)" style="font-size:0.78rem;padding:0.35rem 0.6rem;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--input-bg);color:var(--text-primary);outline:none;cursor:pointer;min-width:140px">'+opts+'</select></div>':reworkSelect)+'</div></div></div>';
     }).join('');
   }
 }
@@ -2828,7 +2869,12 @@ function updateTaskStatus(id, newStatus) {
   const tasks = (cd.assignedTasks || []).slice();
   const idx = tasks.findIndex(t => String(t.id) === String(id));
   if (idx === -1) return;
-  if (tasks[idx].status === 'Overdue — Closed' && currentUser !== BOSS_USERNAME) { toast('This task is overdue and locked.'); renderAssigned(); return; }
+  var cur = tasks[idx].status;
+  if (cur === 'Overdue — Closed' && currentUser !== BOSS_USERNAME) { toast('This task is overdue and locked.'); renderAssigned(); return; }
+  if (AT_TERMINAL_STATUSES.has(cur) && currentUser !== BOSS_USERNAME) { toast('This task is locked.'); renderAssigned(); return; }
+  if (currentUser !== BOSS_USERNAME && (cur === 'Sign Off' || cur === 'On Hold' || cur === 'Rejected')) { toast('This status is set by your manager.'); renderAssigned(); return; }
+  if (currentUser !== BOSS_USERNAME && cur === 'Rework' && newStatus !== 'In Progress' && newStatus !== 'Pending Review') { toast('You can move this task to In Progress or Pending Review.'); renderAssigned(); return; }
+  if (currentUser !== BOSS_USERNAME && AT_MANAGER_STATUSES.has(newStatus)) { toast('Only your manager can set this status.'); renderAssigned(); return; }
   tasks[idx] = { ...tasks[idx], status: newStatus };
   _udCache[target] = Object.assign({}, cd, { assignedTasks: tasks });
   db.collection('users').doc(target).update({ assignedTasks: tasks }).catch(()=>{});
@@ -2922,6 +2968,8 @@ function advanceTaskStatus(id) {
   const idx = tasks.findIndex(t => String(t.id) === String(id));
   if (idx === -1) return;
   if (tasks[idx].status === 'Overdue — Closed') { toast('Use "Allow Continue" to unlock this task first.'); return; }
+  if (AT_TERMINAL_STATUSES.has(tasks[idx].status)) { toast('This task is already finalized.'); return; }
+  if (AT_MANAGER_STATUSES.has(tasks[idx].status)) { toast('This status is managed by Jey.'); return; }
   tasks[idx] = { ...tasks[idx], status: AT_STATUS_NEXT[tasks[idx].status] || tasks[idx].status };
   _udCache[target] = Object.assign({}, cd, { assignedTasks: tasks });
   db.collection('users').doc(target).update({ assignedTasks: tasks }).catch(()=>{});
@@ -2948,7 +2996,7 @@ function _checkOverdueTasks() {
   var changed = false;
   for (var i = 0; i < tasks.length; i++) {
     var t = tasks[i];
-    if (!t.dueDate || t.status === 'Done' || t.status === 'Overdue — Closed' || t.dueDateExtended) continue;
+    if (!t.dueDate || t.status === 'Done' || t.status === 'Overdue — Closed' || t.status === 'Sign Off' || t.status === 'Rejected' || t.dueDateExtended) continue;
     var due = new Date(t.dueDate + 'T00:00:00'); due.setHours(23,59,59,999);
     if (today > due) {
       tasks[i] = Object.assign({}, t, { previousStatus: t.status, status: 'Overdue — Closed', pastDue: true });
@@ -2973,6 +3021,73 @@ function allowContinueTask(id) {
   db.collection('users').doc(target).update({ assignedTasks: tasks }).catch(function(){});
   renderAssigned(); refreshAssignedBadge();
   toast('Task unlocked — Cyrel can continue working on it.');
+}
+
+function _getTaskNote(id) {
+  var el = document.getElementById('atn-'+id);
+  return el ? el.value.trim() : '';
+}
+
+function signOffTask(id) {
+  if (currentUser !== BOSS_USERNAME) return;
+  var target = 'athanviloria';
+  var cd = _udCache[target] || getUserData(target);
+  var tasks = (cd.assignedTasks || []).slice();
+  var idx = tasks.findIndex(function(t){ return String(t.id) === String(id); });
+  if (idx === -1) return;
+  var note = _getTaskNote(id);
+  tasks[idx] = Object.assign({}, tasks[idx], { status:'Sign Off', signedOffAt:new Date().toISOString(), managerNote:note||tasks[idx].managerNote||'' });
+  _udCache[target] = Object.assign({}, cd, { assignedTasks: tasks });
+  db.collection('users').doc(target).update({ assignedTasks: tasks }).catch(function(){});
+  renderAssigned(); refreshAssignedBadge();
+  toast('Task signed off — earnings credited.');
+}
+
+function holdTask(id) {
+  if (currentUser !== BOSS_USERNAME) return;
+  var target = 'athanviloria';
+  var cd = _udCache[target] || getUserData(target);
+  var tasks = (cd.assignedTasks || []).slice();
+  var idx = tasks.findIndex(function(t){ return String(t.id) === String(id); });
+  if (idx === -1) return;
+  var note = _getTaskNote(id);
+  tasks[idx] = Object.assign({}, tasks[idx], { status:'On Hold', managerNote:note||tasks[idx].managerNote||'' });
+  _udCache[target] = Object.assign({}, cd, { assignedTasks: tasks });
+  db.collection('users').doc(target).update({ assignedTasks: tasks }).catch(function(){});
+  renderAssigned(); refreshAssignedBadge();
+  toast('Task on hold — earnings pending.');
+}
+
+function rejectTask(id) {
+  if (currentUser !== BOSS_USERNAME) return;
+  var note = _getTaskNote(id);
+  if (!note) { note = prompt('Rejection reason (required):'); if (!note || !note.trim()) { toast('A reason is required to reject a task.'); return; } note = note.trim(); }
+  var target = 'athanviloria';
+  var cd = _udCache[target] || getUserData(target);
+  var tasks = (cd.assignedTasks || []).slice();
+  var idx = tasks.findIndex(function(t){ return String(t.id) === String(id); });
+  if (idx === -1) return;
+  tasks[idx] = Object.assign({}, tasks[idx], { status:'Rejected', rejectedAt:new Date().toISOString(), managerNote:note });
+  _udCache[target] = Object.assign({}, cd, { assignedTasks: tasks });
+  db.collection('users').doc(target).update({ assignedTasks: tasks }).catch(function(){});
+  renderAssigned(); refreshAssignedBadge();
+  toast('Task rejected — earnings not credited.');
+}
+
+function reworkTask(id) {
+  if (currentUser !== BOSS_USERNAME) return;
+  var target = 'athanviloria';
+  var cd = _udCache[target] || getUserData(target);
+  var tasks = (cd.assignedTasks || []).slice();
+  var idx = tasks.findIndex(function(t){ return String(t.id) === String(id); });
+  if (idx === -1) return;
+  var note = _getTaskNote(id);
+  var count = (tasks[idx].reworkCount || 0) + 1;
+  tasks[idx] = Object.assign({}, tasks[idx], { status:'Rework', reworkCount:count, managerNote:note||tasks[idx].managerNote||'' });
+  _udCache[target] = Object.assign({}, cd, { assignedTasks: tasks });
+  db.collection('users').doc(target).update({ assignedTasks: tasks }).catch(function(){});
+  renderAssigned(); refreshAssignedBadge();
+  toast('Task sent back for rework (x'+count+').');
 }
 
 // =============================================
