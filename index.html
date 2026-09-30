@@ -1262,7 +1262,7 @@ async function loadUserData(username) {
         if (idx === -1) { existing.push(Object.assign({}, st)); changed = true; }
       });
       SEED_TASK_CLOSURES.forEach(name => {
-        const ci = existing.findIndex(t => t.taskName === name && t.status !== 'Done');
+        const ci = existing.findIndex(t => t.taskName === name && t.status !== 'Done' && t.status !== 'Sign Off');
         if (ci !== -1) { existing[ci] = Object.assign({}, existing[ci], { status:'Done', completedByManager:true }); changed = true; }
       });
       if (changed) { _udCache[username].assignedTasks = existing; db.collection('users').doc(username).update({ assignedTasks: existing }).catch(()=>{}); }
@@ -3016,6 +3016,7 @@ function allowContinueTask(id) {
   var idx = tasks.findIndex(function(t) { return String(t.id) === String(id); });
   if (idx === -1) return;
   var prev = tasks[idx].previousStatus || 'In Progress';
+  if (AT_TERMINAL_STATUSES.has(prev) || prev === 'Overdue — Closed') prev = 'In Progress';
   tasks[idx] = Object.assign({}, tasks[idx], { status: prev, pastDue: false, dueDateExtended: true, previousStatus: '' });
   _udCache[target] = Object.assign({}, cd, { assignedTasks: tasks });
   db.collection('users').doc(target).update({ assignedTasks: tasks }).catch(function(){});
