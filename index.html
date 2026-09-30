@@ -1369,22 +1369,24 @@ function subscribeStaff() {
     _refreshChatLogsBadge();
     _checkOverdueTasks();
     if (currentUser === BOSS_USERNAME) {
-      refreshOverview(); refreshIssuesBadge(); refreshAssignedBadge();
+      refreshOverview(); refreshIssuesBadge(); refreshAssignedBadge(); refreshReportsBadge();
       const activePage = document.querySelector('.nav-item.active');
       const pg = activePage ? activePage.getAttribute('data-page') : '';
       if (pg==='staff') renderStaff();
       if (pg==='accounts') renderAccounts();
       if (pg==='issues') renderIssues();
       if (pg==='assigned') renderAssigned();
+      if (pg==='reports') renderReports();
       if (pg==='payslips') renderPaySlips();
       if (pg==='chatlogs') renderChatLogs();
     } else if (currentUser === 'athanviloria') {
       _aceSyncBossReplies();
-      refreshOverview();
+      refreshOverview(); refreshDailyReportBadge();
       const activePage = document.querySelector('.nav-item.active');
       const pg = activePage ? activePage.getAttribute('data-page') : '';
       if (pg==='assigned') renderAssigned();
       if (pg==='issues') { renderIssues(); refreshIssuesBadge(); }
+      if (pg==='dailyreport') renderDailyReport();
       if (pg==='payslips') renderPaySlips();
     }
   }, ()=>{});
@@ -2185,22 +2187,23 @@ function _renderBossOverview() {
       '<div class="stat-tile"><div class="stat-label">Today\'s Earnings</div><div class="stat-value" style="color:var(--copper);font-size:1.1rem">'+fmt(todayEarned)+'</div></div>'+
       '<div class="stat-tile stat-gold" style="border-left:3px solid var(--warning)"><div class="stat-label">Next Payroll</div><div class="stat-value" style="color:var(--warning);font-size:1.1rem">'+fmt(ppEarned)+'</div><div class="stat-sub">'+ppShifts.length+' shift'+(ppShifts.length!==1?'s':'')+' · '+ppHrs.toFixed(1)+' hrs</div>'+(ppHeld>0?'<div style="font-size:0.68rem;color:var(--danger);margin-top:0.15rem">'+fmt(ppHeld)+' held</div>':'')+'<div style="font-size:0.68rem;color:var(--text-muted);margin-top:0.15rem">'+pp.dueLabel+' · '+pp.rangeLabel+'</div></div>'+
       '<div class="stat-tile"><div class="stat-label">This Month</div><div class="stat-value" style="font-size:1.1rem">'+fmt(monthEarned)+'</div></div>'+
-      (totalHeld>0?'<div class="stat-tile" style="border-left:3px solid var(--danger);cursor:pointer" onclick="navigate(\'staff\')"><div class="stat-label">Held Earnings</div><div class="stat-value" style="color:var(--danger);font-size:1.1rem">'+fmt(totalHeld)+'</div><div class="stat-sub">'+heldCount+' shift'+(heldCount!==1?'s':'')+' — no report</div></div>':'<div class="stat-tile"><div class="stat-label">All Time</div><div class="stat-value" style="font-size:1.1rem">'+fmt(allEarned)+'</div><div class="stat-sub">'+shifts.length+' shift'+(shifts.length!==1?'s':'')+'</div></div>')+
+      (totalHeld>0?'<div class="stat-tile" style="border-left:3px solid var(--danger);cursor:pointer" onclick="navigate(\'staff\')"><div class="stat-label">Held Earnings</div><div class="stat-value" style="color:var(--danger);font-size:1.1rem">'+fmt(totalHeld)+'</div><div class="stat-sub">'+heldCount+' shift'+(heldCount!==1?'s':'')+' — pending review</div></div>':'<div class="stat-tile"><div class="stat-label">All Time</div><div class="stat-value" style="font-size:1.1rem">'+fmt(allEarned)+'</div><div class="stat-sub">'+shifts.length+' shift'+(shifts.length!==1?'s':'')+'</div></div>')+
     '</div>'+
     '<div class="grid-2" style="align-items:start;margin-bottom:1rem">'+
       (function(){
         var drReports = ((_udCache['athanviloria']||{}).dailyReports||[]);
         var drTodayKey = new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Manila'})).toLocaleDateString('en-US');
         var drToday = drReports.find(function(r){return r.date===drTodayKey;});
-        var drUnreviewed = drReports.filter(function(r){return !r.reviewedByBoss;}).length;
+        var drUnreviewed = drReports.filter(function(r){ var _s=r.reviewStatus||(r.reviewedByBoss?'Signed Off':'Pending'); return _s==='Pending'||_s==='On Hold'||_s==='Rework'; }).length;
         if (drToday) {
           var drV = drToday.verification||{};
           var drSC = drV.passed?'var(--success)':'var(--danger)';
           var drST = drV.passed?'COMPLETE':'INCOMPLETE';
-          var drRev = drToday.reviewedByBoss?'<span style="color:var(--success);font-size:0.72rem">&#10003; Reviewed</span>':'<span style="color:var(--warning);font-size:0.72rem">Pending review</span>';
-          return '<div class="card" style="cursor:pointer" onclick="navigate(\'reports\')"><div class="card-header"><span class="card-title">Daily Report</span><span style="font-size:0.72rem;font-weight:700;padding:0.12rem 0.55rem;border-radius:99px;background:'+(drV.passed?'rgba(34,197,94,0.1)':'rgba(239,68,68,0.1)')+';color:'+drSC+'">'+drST+'</span></div><div class="card-body"><div style="font-size:0.82rem;margin-bottom:0.35rem"><strong>Submitted:</strong> '+esc(new Date(drToday.submittedAt).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}))+' PHT</div><div style="font-size:0.82rem;margin-bottom:0.35rem">'+(drToday.shiftRef?'<strong>Shift:</strong> '+esc(drToday.shiftRef.inTime)+' → '+esc(drToday.shiftRef.outTime)+' ('+drToday.shiftRef.hours.toFixed(2)+' hrs)':'<span style="color:var(--danger)"><strong>No shift logged</strong></span>')+'</div><div style="font-size:0.82rem">'+drRev+'</div>'+(drUnreviewed>0?'<div style="margin-top:0.5rem;font-size:0.75rem;color:var(--copper);font-weight:600">'+drUnreviewed+' unreviewed report'+(drUnreviewed!==1?'s':'')+' → Review</div>':'')+'</div></div>';
+          var _drRS = drToday.reviewStatus||(drToday.reviewedByBoss?'Signed Off':'Pending');
+          var drRev = _drRS==='Signed Off'?'<span style="color:var(--success);font-size:0.72rem">&#10003; Signed Off</span>':_drRS==='On Hold'?'<span style="color:#3B82F6;font-size:0.72rem">&#9679; On Hold</span>':_drRS==='Rework'?'<span style="color:#f97316;font-size:0.72rem">&#8635; Rework</span>':_drRS==='Rejected'?'<span style="color:var(--danger);font-size:0.72rem">&#10007; Rejected</span>':'<span style="color:var(--warning);font-size:0.72rem">Pending review</span>';
+          return '<div class="card" style="cursor:pointer" onclick="navigate(\'reports\')"><div class="card-header"><span class="card-title">Daily Report</span><span style="font-size:0.72rem;font-weight:700;padding:0.12rem 0.55rem;border-radius:99px;background:'+(drV.passed?'rgba(34,197,94,0.1)':'rgba(239,68,68,0.1)')+';color:'+drSC+'">'+drST+'</span></div><div class="card-body"><div style="font-size:0.82rem;margin-bottom:0.35rem"><strong>Submitted:</strong> '+esc(new Date(drToday.submittedAt).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}))+' PHT</div><div style="font-size:0.82rem;margin-bottom:0.35rem">'+(drToday.shiftRef?'<strong>Shift:</strong> '+esc(drToday.shiftRef.inTime)+' → '+esc(drToday.shiftRef.outTime)+' ('+drToday.shiftRef.hours.toFixed(2)+' hrs)':'<span style="color:var(--danger)"><strong>No shift logged</strong></span>')+'</div><div style="font-size:0.82rem">'+drRev+'</div>'+(drUnreviewed>0?'<div style="margin-top:0.5rem;font-size:0.75rem;color:var(--copper);font-weight:600">'+drUnreviewed+' report'+(drUnreviewed!==1?'s':'')+' need'+(drUnreviewed===1?'s':'')+' review → Review</div>':'')+'</div></div>';
         } else {
-          return '<div class="card"><div class="card-header"><span class="card-title">Daily Report</span></div><div class="card-body"><div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:0.5rem">Expected by 11:00 PM PH Time</div><div style="color:var(--warning);font-size:0.83rem;font-weight:600">&#9888; No report submitted today</div>'+(drUnreviewed>0?'<div style="margin-top:0.5rem;font-size:0.75rem;color:var(--copper);cursor:pointer;font-weight:600" onclick="navigate(\'reports\')">'+drUnreviewed+' unreviewed report'+(drUnreviewed!==1?'s':'')+' → Review</div>':'')+'</div></div>';
+          return '<div class="card"><div class="card-header"><span class="card-title">Daily Report</span></div><div class="card-body"><div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:0.5rem">Expected by 11:00 PM PH Time</div><div style="color:var(--warning);font-size:0.83rem;font-weight:600">&#9888; No report submitted today</div>'+(drUnreviewed>0?'<div style="margin-top:0.5rem;font-size:0.75rem;color:var(--copper);cursor:pointer;font-weight:600" onclick="navigate(\'reports\')">'+drUnreviewed+' report'+(drUnreviewed!==1?'s':'')+' need'+(drUnreviewed===1?'s':'')+' review → Review</div>':'')+'</div></div>';
         }
       })()+
       '<div class="card"><div class="card-header"><span class="card-title">Recent Shifts</span><a onclick="navigate(\'staff\')" style="font-size:0.75rem;color:var(--copper);cursor:pointer">View all →</a></div><div class="card-body" style="padding:0">'+
@@ -3192,6 +3195,7 @@ function renderDailyReport() {
         (existing.pendingItems && existing.pendingItems !== 'None' ? '<div style="margin-top:0.5rem"><strong style="font-size:0.78rem;color:var(--text-secondary)">Pending Items</strong><div style="font-size:0.78rem;color:var(--text-secondary);margin-top:0.2rem">'+esc(existing.pendingItems)+'</div></div>' : '')+
         (existing.notes && existing.notes !== 'None' ? '<div style="margin-top:0.5rem"><strong style="font-size:0.78rem;color:var(--text-secondary)">Notes / Questions for Jey</strong><div style="font-size:0.78rem;color:var(--text-secondary);margin-top:0.2rem">'+esc(existing.notes)+'</div></div>' : '')+
         staffNoteHtml+
+        (_rs === 'Rework' ? '<div style="margin-top:0.75rem;padding:0.65rem 0.85rem;background:rgba(249,115,22,0.06);border:1px solid rgba(249,115,22,0.15);border-radius:var(--radius-sm)"><div style="font-size:0.78rem;font-weight:700;color:#f97316;margin-bottom:0.4rem">Corrections / Additional Details</div><textarea id="dr-rework-note" rows="3" placeholder="Describe what you corrected or add missing details..." style="width:100%;font-size:0.82rem;padding:0.4rem 0.6rem;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--input-bg);color:var(--text-primary);resize:none;outline:none;margin-bottom:0.4rem"></textarea><button onclick="resubmitReport()" style="padding:0.4rem 1rem;font-size:0.78rem;font-weight:700;border-radius:var(--radius-sm);background:#f97316;color:white;border:none;cursor:pointer">Resubmit for Review</button></div>' : '')+
       '</div></div>';
     return;
   }
@@ -3322,6 +3326,9 @@ function refreshDailyReportBadge() {
   if (!existing) {
     badge.textContent = '!';
     badge.classList.remove('hidden');
+  } else if (existing.reviewStatus === 'Rework') {
+    badge.textContent = '!';
+    badge.classList.remove('hidden');
   } else {
     badge.classList.add('hidden');
   }
@@ -3358,6 +3365,8 @@ function renderReports() {
     }
     const rId = 'report-'+r.date.replace(/\//g,'-');
     var managerNoteHtml = r.reviewNote ? '<div style="font-size:0.75rem;color:var(--text-secondary);background:rgba(196,149,106,0.06);border:1px solid rgba(196,149,106,0.15);border-radius:var(--radius-sm);padding:0.4rem 0.6rem;margin-top:0.4rem"><span style="font-weight:700;color:var(--copper);font-size:0.7rem">Manager Note:</span> '+esc(r.reviewNote)+'</div>' : '';
+    var correctionHtml = r.correctionNote ? '<div style="font-size:0.75rem;color:var(--text-secondary);background:rgba(249,115,22,0.06);border:1px solid rgba(249,115,22,0.15);border-radius:var(--radius-sm);padding:0.4rem 0.6rem;margin-top:0.4rem"><span style="font-weight:700;color:#f97316;font-size:0.7rem">Correction Note (Cyrel):</span> '+esc(r.correctionNote)+'</div>' : '';
+    var resubmitTag = r.resubmittedAt ? '<span style="font-size:0.68rem;color:#f97316;font-weight:600;margin-left:0.4rem">[Resubmitted]</span>' : '';
     var reviewActions = '';
     if (rs === 'On Hold' || rs === 'Rework') {
       reviewActions = '<div style="display:flex;gap:0.3rem;flex-wrap:wrap;margin-top:0.5rem"><button onclick="reportAction(\''+rDateKey+'\',\'signoff\')" style="padding:0.25rem 0.65rem;font-size:0.72rem;font-weight:700;border-radius:var(--radius-sm);background:var(--success);color:white;border:none;cursor:pointer">Sign Off</button>'+(rs==='On Hold'?'<button onclick="reportAction(\''+rDateKey+'\',\'rework\')" style="padding:0.25rem 0.5rem;font-size:0.72rem;font-weight:700;border-radius:var(--radius-sm);background:#f97316;color:white;border:none;cursor:pointer">Rework</button>':'')+'<button onclick="reportAction(\''+rDateKey+'\',\'reject\')" style="padding:0.25rem 0.5rem;font-size:0.72rem;font-weight:700;border-radius:var(--radius-sm);background:var(--danger);color:white;border:none;cursor:pointer">Reject</button></div>';
@@ -3371,7 +3380,7 @@ function renderReports() {
     }
 
     const cardOpacity = (rs === 'Signed Off' || rs === 'Rejected') ? 'opacity:0.5;' : '';
-    return '<div class="card" style="margin-bottom:0.75rem;'+cardOpacity+'"><div class="card-header" style="cursor:pointer" onclick="document.getElementById(\''+rId+'\').classList.toggle(\'hidden\')"><div style="display:flex;align-items:center;gap:0.5rem;flex:1"><span style="font-size:0.72rem;font-weight:700;padding:0.12rem 0.55rem;border-radius:99px;background:'+(v.passed?'rgba(34,197,94,0.1)':'rgba(239,68,68,0.1)')+';color:'+statusColor+'">'+statusText+'</span><span class="card-title" style="font-size:0.85rem">'+esc(r.date)+'</span><span style="font-size:0.72rem;color:var(--text-muted)">'+esc(new Date(r.submittedAt).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}))+' PHT</span></div>'+reviewedText+'</div>'+
+    return '<div class="card" style="margin-bottom:0.75rem;'+cardOpacity+'"><div class="card-header" style="cursor:pointer" onclick="document.getElementById(\''+rId+'\').classList.toggle(\'hidden\')"><div style="display:flex;align-items:center;gap:0.5rem;flex:1"><span style="font-size:0.72rem;font-weight:700;padding:0.12rem 0.55rem;border-radius:99px;background:'+(v.passed?'rgba(34,197,94,0.1)':'rgba(239,68,68,0.1)')+';color:'+statusColor+'">'+statusText+'</span><span class="card-title" style="font-size:0.85rem">'+esc(r.date)+'</span>'+resubmitTag+'<span style="font-size:0.72rem;color:var(--text-muted)">'+esc(new Date(r.submittedAt).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}))+' PHT</span></div>'+reviewedText+'</div>'+
       '<div id="'+rId+'" class="card-body hidden" style="border-top:1px solid var(--border)">'+
         (r.shiftRef ? '<div style="font-size:0.8rem;margin-bottom:0.5rem"><strong>Shift:</strong> '+esc(r.shiftRef.inTime)+' → '+esc(r.shiftRef.outTime)+' ('+r.shiftRef.hours.toFixed(2)+' hrs)</div>' : '<div style="font-size:0.8rem;margin-bottom:0.5rem;color:var(--danger)"><strong>No shift logged</strong></div>')+
         failsHtml+
@@ -3380,7 +3389,7 @@ function renderReports() {
         (r.flaggedItems ? '<div style="margin-top:0.5rem"><strong style="font-size:0.75rem;color:var(--text-secondary)">Flagged:</strong> <span style="font-size:0.78rem">'+esc(r.flaggedItems)+'</span></div>' : '')+
         (r.pendingItems ? '<div style="margin-top:0.3rem"><strong style="font-size:0.75rem;color:var(--text-secondary)">Pending:</strong> <span style="font-size:0.78rem">'+esc(r.pendingItems)+'</span></div>' : '')+
         (r.notes ? '<div style="margin-top:0.3rem"><strong style="font-size:0.75rem;color:var(--text-secondary)">Notes:</strong> <span style="font-size:0.78rem">'+esc(r.notes)+'</span></div>' : '')+
-        managerNoteHtml+reviewActions+noteInput+
+        managerNoteHtml+correctionHtml+reviewActions+noteInput+
       '</div></div>';
   }).join('');
 }
@@ -3437,6 +3446,28 @@ function reportAction(date, action) {
 
 function markReportReviewed(date) {
   reportAction(date, 'signoff');
+}
+
+function resubmitReport() {
+  const todayKey = _getTodayPHT();
+  const reports = _getDailyReports().slice();
+  const idx = reports.findIndex(r => r.date === todayKey);
+  if (idx === -1) return;
+  var r = Object.assign({}, reports[idx]);
+  if (r.reviewStatus !== 'Rework') { toast('This report is not in rework status.'); return; }
+  var note = (document.getElementById('dr-rework-note') || {}).value;
+  note = note ? note.trim() : '';
+  if (!note) { toast('Please describe what you corrected.'); return; }
+  r.reviewStatus = undefined;
+  r.reviewedByBoss = false;
+  r.reviewNote = undefined;
+  r.resubmittedAt = new Date().toISOString();
+  r.correctionNote = note;
+  reports[idx] = r;
+  _saveDailyReports(reports);
+  renderDailyReport();
+  refreshDailyReportBadge();
+  toast('Report resubmitted for review.');
 }
 
 function refreshReportsBadge() {
