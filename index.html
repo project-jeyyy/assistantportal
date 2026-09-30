@@ -949,7 +949,7 @@ select {
       <section id="page-reports" class="page-section">
         <div class="section-header">
           <div class="section-title">Reports</div>
-          <div class="section-desc">Review Cyrel's daily reports and sign off.</div>
+          <div class="section-desc">Review Cyrel's daily reports — sign off, hold, rework, or reject.</div>
         </div>
         <div id="reports-content">
           <div class="empty-state"><div class="empty-state-icon">&#128203;</div><div class="empty-state-text">Loading...</div></div>
@@ -1214,7 +1214,8 @@ const SEED_UPDATES = [
   { id:'seed-ace-6', date:'September 8, 2026', type:'Feature', priority:'High', msg:'New Feature: Auto No Work Mode\n\nThe portal now automatically manages your work availability based on your shift schedule!\n\n• Your working window is weekdays (Monday–Friday), 8:00 AM to 11:00 PM PH Time\n• Outside this window (weekends, before 8 AM, after 11 PM), the system automatically activates No Work Mode\n• You\'ll see "Outside Working Hours" on your clock button when the auto-schedule is active\n• When your work window opens, the system automatically deactivates No Work Mode so you can clock in\n• Your manager can still manually activate No Work Mode anytime — that overrides the schedule\n• If you\'re mid-shift when 11 PM arrives, your active shift is not interrupted\n\nThis keeps your work hours organized and consistent. — Ace, AI Work Assistant', notified:true },
   { id:'seed-ace-7', date:'September 8, 2026', type:'Feature', priority:'High', msg:'New Feature: Task Due Date Enforcement\n\nTasks with due dates are now automatically enforced!\n\n• When a task passes its due date without being completed, it is automatically closed with an "Overdue — Closed" status\n• Overdue tasks appear grayed out — you will not be able to change their status\n• If you need to continue working on an overdue task, contact your manager\n• Your manager has an "Allow Continue" button to unlock any overdue task so you can resume work on it\n• Once unlocked, the task returns to its previous status and is fully interactive again\n\nPlease keep an eye on your task due dates and update statuses promptly. — Ace, AI Work Assistant', notified:true },
   { id:'seed-ace-8', date:'September 26, 2026', type:'Announcement', priority:'High', msg:'Pay Rate Update — Effective September 18, 2026\n\nYour hourly rate has been updated based on Wage Order No. IVA-22 (CALABARZON, Non-Agricultural Sector).\n\n• Previous rate: ₱105.00/hr (₱525.00/day)\n• New rate: ₱120.00/hr (₱600.00/day)\n• Effective: September 18, 2026 (Pay Period #0004 onward)\n• Basis: Wage Order No. IVA-22 — Region IV-A (CALABARZON), 1st Class Municipality, Non-Agriculture. 2nd Tranche effective April 1, 2026 — DOLE / NWPC / RTWPB-IVA\n• Your 5-hour workday is treated as 1 full working day\n\nPay periods prior to September 18 are not affected. The new rate will be reflected in your upcoming pay slip.\n\nPlease acknowledge this update. — Ace, AI Work Assistant', notified:true, requireAck:true },
-  { id:'seed-ace-9', date:'September 29, 2026', type:'Announcement', priority:'High', msg:'New Feature: Task-Gated Earnings System\n\nYour task completion now directly controls whether your shift earnings are credited. Here is how it works:\n\n• When you finish a task, move it to "Pending Review" — your manager will review it\n• Sign Off — Your manager approves your work. Earnings for that task period are credited\n• On Hold — Your task is paused due to pending issues. Earnings are held until resolved\n• Rework — Your manager sends the task back. You need to redo it and resubmit for review\n• Rejected — Your work did not meet requirements. Earnings for that task are not credited\n\nWhat this means for you:\n• Complete your tasks properly the first time to ensure your earnings are credited promptly\n• If a task is sent back for Rework, fix the issues and move it back to "Pending Review"\n• You will see manager notes explaining any holds, reworks, or rejections\n• Previous completed tasks are not affected by this change\n\nThis system ensures fair compensation tied to verified work quality.\n\nPlease acknowledge this update. — Ace, AI Work Assistant', notified:true, requireAck:true }
+  { id:'seed-ace-9', date:'September 29, 2026', type:'Announcement', priority:'High', msg:'New Feature: Task-Gated Earnings System\n\nYour task completion now directly controls whether your shift earnings are credited. Here is how it works:\n\n• When you finish a task, move it to "Pending Review" — your manager will review it\n• Sign Off — Your manager approves your work. Earnings for that task period are credited\n• On Hold — Your task is paused due to pending issues. Earnings are held until resolved\n• Rework — Your manager sends the task back. You need to redo it and resubmit for review\n• Rejected — Your work did not meet requirements. Earnings for that task are not credited\n\nWhat this means for you:\n• Complete your tasks properly the first time to ensure your earnings are credited promptly\n• If a task is sent back for Rework, fix the issues and move it back to "Pending Review"\n• You will see manager notes explaining any holds, reworks, or rejections\n• Previous completed tasks are not affected by this change\n\nThis system ensures fair compensation tied to verified work quality.\n\nPlease acknowledge this update. — Ace, AI Work Assistant', notified:true, requireAck:true },
+  { id:'seed-ace-10', date:'September 30, 2026', type:'Announcement', priority:'High', msg:'New Feature: Report Review System\n\nYour daily reports now go through the same review process as your tasks. Here is how it works:\n\n• After you submit your daily report, your manager will review it\n• Sign Off — Report approved. Shift earnings for that day are released\n• On Hold — Report review is paused. Earnings are held until the report is resolved\n• Rework — Your manager requests changes. Resubmit the report with corrections\n• Rejected — Report did not meet requirements. Earnings for that day are not credited\n\nWhat this means for you:\n• Submit complete and accurate daily reports to ensure your earnings are released promptly\n• If a report is sent back for Rework, make the requested corrections and resubmit\n• You will see manager notes explaining any holds, reworks, or rejections on your Daily Report page\n• Reports submitted before this update are not affected\n\nThis ensures earnings are tied to verified, quality daily reports.\n\nPlease acknowledge this update. — Ace, AI Work Assistant', notified:true, requireAck:true }
 ];
 const SEED_PAYSLIPS = [
   { id:'ps-0001', number:'#0001', periodStart:'2026-08-12', periodEnd:'2026-08-20', totalHours:21.25, grossPay:1806.70, heldAmount:0, netPay:1806.70, status:'paid', paymentMethod:'gcash', paymentRef:'GCash Transfer — Aug 20, 2026', generatedAt:'2026-08-20T02:55:18Z', approvedAt:'2026-08-20T03:36:41Z', finalizedAt:'2026-08-20T14:35:14Z', paidAt:'2026-08-20T14:35:14Z', payReceived:true, payReceivedAt:'2026-08-20T14:42:12Z' },
@@ -3102,8 +3103,11 @@ function _isShiftHeld(shift) {
   const reports = cd.dailyReports || [];
   const dateKey = shift.date;
   const report = reports.find(r => r.date === dateKey);
-  if (report && report.reviewedByBoss) return false;
-  if (report) return false;
+  if (report) {
+    const rs = report.reviewStatus || (report.reviewedByBoss ? 'Signed Off' : 'Pending');
+    if (rs === 'Signed Off') return false;
+    if (rs === 'Rejected' || rs === 'On Hold' || rs === 'Rework' || rs === 'Pending') return true;
+  }
   const released = cd.releasedEarnings || [];
   if (released.includes(dateKey)) return false;
   return true;
@@ -3161,9 +3165,14 @@ function renderDailyReport() {
     const v = existing.verification || {};
     const statusColor = v.passed ? 'var(--success)' : 'var(--danger)';
     const statusText = v.passed ? 'COMPLETE' : 'INCOMPLETE';
-    const reviewedText = existing.reviewedByBoss
-      ? '<span style="color:var(--success);font-weight:700">Reviewed by Jey</span> — '+esc(new Date(existing.reviewedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}))
-      : '<span style="color:var(--text-muted)">Pending review</span>';
+    const _rs = existing.reviewStatus || (existing.reviewedByBoss ? 'Signed Off' : 'Pending');
+    var reviewedText = '';
+    if (_rs === 'Signed Off') reviewedText = '<span style="color:var(--success);font-weight:700">&#10003; Signed Off by Jey</span>'+(existing.reviewedAt ? ' — '+esc(new Date(existing.reviewedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})) : '');
+    else if (_rs === 'On Hold') reviewedText = '<span style="color:#3B82F6;font-weight:700">&#9679; On Hold</span> — Your manager placed this report on hold.';
+    else if (_rs === 'Rework') reviewedText = '<span style="color:#f97316;font-weight:700">&#8635; Rework Needed</span> — Your manager requested changes to this report.'+(existing.reworkCount ? ' (x'+existing.reworkCount+')' : '');
+    else if (_rs === 'Rejected') reviewedText = '<span style="color:var(--danger);font-weight:700">&#10007; Rejected</span>'+(existing.rejectedAt ? ' — '+esc(new Date(existing.rejectedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})) : '');
+    else reviewedText = '<span style="color:var(--text-muted)">Pending review</span>';
+    var staffNoteHtml = existing.reviewNote ? '<div style="margin-top:0.5rem;padding:0.45rem 0.7rem;background:rgba(196,149,106,0.06);border:1px solid rgba(196,149,106,0.15);border-radius:var(--radius-sm)"><span style="font-weight:700;color:var(--copper);font-size:0.75rem">Note from Jey:</span> <span style="font-size:0.78rem">'+esc(existing.reviewNote)+'</span></div>' : '';
 
     let issuesHtml = '';
     if (v.checks && v.checks.length) {
@@ -3182,6 +3191,7 @@ function renderDailyReport() {
         (existing.flaggedItems && existing.flaggedItems !== 'None' ? '<div style="margin-top:0.75rem"><strong style="font-size:0.78rem;color:var(--text-secondary)">Flagged Items</strong><div style="font-size:0.78rem;color:var(--warning);margin-top:0.2rem">'+esc(existing.flaggedItems)+'</div></div>' : '')+
         (existing.pendingItems && existing.pendingItems !== 'None' ? '<div style="margin-top:0.5rem"><strong style="font-size:0.78rem;color:var(--text-secondary)">Pending Items</strong><div style="font-size:0.78rem;color:var(--text-secondary);margin-top:0.2rem">'+esc(existing.pendingItems)+'</div></div>' : '')+
         (existing.notes && existing.notes !== 'None' ? '<div style="margin-top:0.5rem"><strong style="font-size:0.78rem;color:var(--text-secondary)">Notes / Questions for Jey</strong><div style="font-size:0.78rem;color:var(--text-secondary);margin-top:0.2rem">'+esc(existing.notes)+'</div></div>' : '')+
+        staffNoteHtml+
       '</div></div>';
     return;
   }
@@ -3332,10 +3342,27 @@ function renderReports() {
     const v = r.verification || {};
     const statusColor = v.passed ? 'var(--success)' : 'var(--danger)';
     const statusText = v.passed ? 'COMPLETE' : 'INCOMPLETE';
-    const reviewedText = r.reviewedByBoss
-      ? '<span style="color:var(--success);font-weight:700;font-size:0.72rem">&#10003; Reviewed</span>'
-      : '<button onclick="markReportReviewed(\''+esc(r.date)+'\')" style="padding:0.25rem 0.65rem;font-size:0.72rem;font-weight:700;border-radius:var(--radius-sm);background:var(--copper);color:white;border:none;cursor:pointer">Sign Off</button>';
+    const rs = r.reviewStatus || (r.reviewedByBoss ? 'Signed Off' : 'Pending');
+    const rDateKey = esc(r.date);
+    var reviewedText = '';
+    if (rs === 'Signed Off') {
+      reviewedText = '<span style="color:var(--success);font-weight:700;font-size:0.72rem">&#10003; Signed Off</span>';
+    } else if (rs === 'Rejected') {
+      reviewedText = '<span style="color:var(--danger);font-weight:700;font-size:0.72rem">&#10007; Rejected</span>';
+    } else if (rs === 'On Hold') {
+      reviewedText = '<span style="color:#3B82F6;font-weight:700;font-size:0.72rem">&#9679; On Hold</span>';
+    } else if (rs === 'Rework') {
+      reviewedText = '<span style="color:#f97316;font-weight:700;font-size:0.72rem">&#8635; Rework</span>';
+    } else {
+      reviewedText = '<div style="display:flex;gap:0.3rem;flex-wrap:wrap"><button onclick="reportAction(\''+rDateKey+'\',\'signoff\')" style="padding:0.25rem 0.65rem;font-size:0.72rem;font-weight:700;border-radius:var(--radius-sm);background:var(--success);color:white;border:none;cursor:pointer">Sign Off</button><button onclick="reportAction(\''+rDateKey+'\',\'hold\')" style="padding:0.25rem 0.5rem;font-size:0.72rem;font-weight:700;border-radius:var(--radius-sm);background:#3B82F6;color:white;border:none;cursor:pointer">Hold</button><button onclick="reportAction(\''+rDateKey+'\',\'rework\')" style="padding:0.25rem 0.5rem;font-size:0.72rem;font-weight:700;border-radius:var(--radius-sm);background:#f97316;color:white;border:none;cursor:pointer">Rework</button><button onclick="reportAction(\''+rDateKey+'\',\'reject\')" style="padding:0.25rem 0.5rem;font-size:0.72rem;font-weight:700;border-radius:var(--radius-sm);background:var(--danger);color:white;border:none;cursor:pointer">Reject</button></div>';
+    }
     const rId = 'report-'+r.date.replace(/\//g,'-');
+    var managerNoteHtml = r.reviewNote ? '<div style="font-size:0.75rem;color:var(--text-secondary);background:rgba(196,149,106,0.06);border:1px solid rgba(196,149,106,0.15);border-radius:var(--radius-sm);padding:0.4rem 0.6rem;margin-top:0.4rem"><span style="font-weight:700;color:var(--copper);font-size:0.7rem">Manager Note:</span> '+esc(r.reviewNote)+'</div>' : '';
+    var reviewActions = '';
+    if (rs === 'On Hold' || rs === 'Rework') {
+      reviewActions = '<div style="display:flex;gap:0.3rem;flex-wrap:wrap;margin-top:0.5rem"><button onclick="reportAction(\''+rDateKey+'\',\'signoff\')" style="padding:0.25rem 0.65rem;font-size:0.72rem;font-weight:700;border-radius:var(--radius-sm);background:var(--success);color:white;border:none;cursor:pointer">Sign Off</button>'+(rs==='On Hold'?'<button onclick="reportAction(\''+rDateKey+'\',\'rework\')" style="padding:0.25rem 0.5rem;font-size:0.72rem;font-weight:700;border-radius:var(--radius-sm);background:#f97316;color:white;border:none;cursor:pointer">Rework</button>':'')+'<button onclick="reportAction(\''+rDateKey+'\',\'reject\')" style="padding:0.25rem 0.5rem;font-size:0.72rem;font-weight:700;border-radius:var(--radius-sm);background:var(--danger);color:white;border:none;cursor:pointer">Reject</button></div>';
+    }
+    var noteInput = (rs === 'Pending' || rs === 'On Hold' || rs === 'Rework') ? '<div style="margin-top:0.4rem"><textarea id="rptn-'+rId+'" rows="1" placeholder="Add a note (optional)" style="width:100%;font-size:0.75rem;padding:0.3rem 0.5rem;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--input-bg);color:var(--text-primary);resize:none;outline:none"></textarea></div>' : '';
 
     let failsHtml = '';
     if (v.checks) {
@@ -3343,7 +3370,8 @@ function renderReports() {
       if (failed.length) failsHtml = failed.map(c => '<div style="font-size:0.75rem;color:var(--danger);margin-top:0.15rem">&#x2022; '+esc(c.label)+'</div>').join('');
     }
 
-    return '<div class="card" style="margin-bottom:0.75rem"><div class="card-header" style="cursor:pointer" onclick="document.getElementById(\''+rId+'\').classList.toggle(\'hidden\')"><div style="display:flex;align-items:center;gap:0.5rem;flex:1"><span style="font-size:0.72rem;font-weight:700;padding:0.12rem 0.55rem;border-radius:99px;background:'+(v.passed?'rgba(34,197,94,0.1)':'rgba(239,68,68,0.1)')+';color:'+statusColor+'">'+statusText+'</span><span class="card-title" style="font-size:0.85rem">'+esc(r.date)+'</span><span style="font-size:0.72rem;color:var(--text-muted)">'+esc(new Date(r.submittedAt).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}))+' PHT</span></div>'+reviewedText+'</div>'+
+    const cardOpacity = (rs === 'Signed Off' || rs === 'Rejected') ? 'opacity:0.5;' : '';
+    return '<div class="card" style="margin-bottom:0.75rem;'+cardOpacity+'"><div class="card-header" style="cursor:pointer" onclick="document.getElementById(\''+rId+'\').classList.toggle(\'hidden\')"><div style="display:flex;align-items:center;gap:0.5rem;flex:1"><span style="font-size:0.72rem;font-weight:700;padding:0.12rem 0.55rem;border-radius:99px;background:'+(v.passed?'rgba(34,197,94,0.1)':'rgba(239,68,68,0.1)')+';color:'+statusColor+'">'+statusText+'</span><span class="card-title" style="font-size:0.85rem">'+esc(r.date)+'</span><span style="font-size:0.72rem;color:var(--text-muted)">'+esc(new Date(r.submittedAt).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}))+' PHT</span></div>'+reviewedText+'</div>'+
       '<div id="'+rId+'" class="card-body hidden" style="border-top:1px solid var(--border)">'+
         (r.shiftRef ? '<div style="font-size:0.8rem;margin-bottom:0.5rem"><strong>Shift:</strong> '+esc(r.shiftRef.inTime)+' → '+esc(r.shiftRef.outTime)+' ('+r.shiftRef.hours.toFixed(2)+' hrs)</div>' : '<div style="font-size:0.8rem;margin-bottom:0.5rem;color:var(--danger)"><strong>No shift logged</strong></div>')+
         failsHtml+
@@ -3352,28 +3380,75 @@ function renderReports() {
         (r.flaggedItems ? '<div style="margin-top:0.5rem"><strong style="font-size:0.75rem;color:var(--text-secondary)">Flagged:</strong> <span style="font-size:0.78rem">'+esc(r.flaggedItems)+'</span></div>' : '')+
         (r.pendingItems ? '<div style="margin-top:0.3rem"><strong style="font-size:0.75rem;color:var(--text-secondary)">Pending:</strong> <span style="font-size:0.78rem">'+esc(r.pendingItems)+'</span></div>' : '')+
         (r.notes ? '<div style="margin-top:0.3rem"><strong style="font-size:0.75rem;color:var(--text-secondary)">Notes:</strong> <span style="font-size:0.78rem">'+esc(r.notes)+'</span></div>' : '')+
+        managerNoteHtml+reviewActions+noteInput+
       '</div></div>';
   }).join('');
 }
 
-function markReportReviewed(date) {
+function _getReportNote(date) {
+  var rId = 'report-'+date.replace(/\//g,'-');
+  var el = document.getElementById('rptn-'+rId);
+  return el ? el.value.trim() : '';
+}
+
+function reportAction(date, action) {
+  if (currentUser !== BOSS_USERNAME) { toast('Only your manager can review reports.'); return; }
   const reports = _getDailyReports().slice();
   const idx = reports.findIndex(r => r.date === date);
   if (idx === -1) return;
-  reports[idx] = Object.assign({}, reports[idx], { reviewedByBoss: true, reviewedAt: new Date().toISOString() });
-  _saveDailyReports(reports);
-  renderReports();
-  refreshReportsBadge();
-  toast('Report signed off.');
+  var note = _getReportNote(date);
+  var r = Object.assign({}, reports[idx]);
+  if (action === 'signoff') {
+    r.reviewStatus = 'Signed Off';
+    r.reviewedByBoss = true;
+    r.reviewedAt = new Date().toISOString();
+    if (note) r.reviewNote = note;
+    reports[idx] = r;
+    _saveDailyReports(reports);
+    renderReports(); refreshReportsBadge();
+    toast('Report signed off.');
+  } else if (action === 'hold') {
+    r.reviewStatus = 'On Hold';
+    if (note) r.reviewNote = note;
+    reports[idx] = r;
+    _saveDailyReports(reports);
+    renderReports(); refreshReportsBadge();
+    toast('Report placed on hold.');
+  } else if (action === 'rework') {
+    r.reviewStatus = 'Rework';
+    r.reworkCount = (r.reworkCount || 0) + 1;
+    if (note) r.reviewNote = note;
+    reports[idx] = r;
+    _saveDailyReports(reports);
+    renderReports(); refreshReportsBadge();
+    toast('Report sent back for rework (x'+r.reworkCount+').');
+  } else if (action === 'reject') {
+    if (!note) note = prompt('Reason for rejection (required):');
+    if (!note) { toast('Rejection requires a reason.'); return; }
+    r.reviewStatus = 'Rejected';
+    r.rejectedAt = new Date().toISOString();
+    r.reviewNote = note;
+    reports[idx] = r;
+    _saveDailyReports(reports);
+    renderReports(); refreshReportsBadge();
+    toast('Report rejected.');
+  }
+}
+
+function markReportReviewed(date) {
+  reportAction(date, 'signoff');
 }
 
 function refreshReportsBadge() {
   const badge = document.getElementById('reports-badge');
   if (!badge) return;
   const reports = _getDailyReports();
-  const unreviewed = reports.filter(r => !r.reviewedByBoss).length;
-  if (unreviewed > 0) {
-    badge.textContent = unreviewed;
+  const needsAction = reports.filter(r => {
+    const rs = r.reviewStatus || (r.reviewedByBoss ? 'Signed Off' : 'Pending');
+    return rs === 'Pending' || rs === 'On Hold' || rs === 'Rework';
+  }).length;
+  if (needsAction > 0) {
+    badge.textContent = needsAction;
     badge.classList.remove('hidden');
   } else {
     badge.classList.add('hidden');
