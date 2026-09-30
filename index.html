@@ -1331,6 +1331,24 @@ async function loadUserData(username) {
     });
     if (acctChanged) { _udCache[username].accounts = accts; db.collection('users').doc(username).update({ accounts: accts }).catch(()=>{}); }
     var _archives = _udCache[username].monthArchives || {};
+    if (_archives['September-2026'] && !_archives['August-2026']) {
+      _archives['August-2026'] = _archives['September-2026'];
+      delete _archives['September-2026'];
+      _udCache[username].monthArchives = _archives;
+      db.collection('users').doc(username).update({ monthArchives: _archives }).catch(function(){});
+    }
+    var _monthFixNeeded = false;
+    var _curAccts = _udCache[username].accounts || {};
+    Object.keys(_curAccts).forEach(function(k) {
+      if (_curAccts[k] && _curAccts[k].month === 'October') {
+        _curAccts[k].month = CURRENT_CLIENT_MONTH;
+        _monthFixNeeded = true;
+      }
+    });
+    if (_monthFixNeeded) {
+      _udCache[username].accounts = _curAccts;
+      db.collection('users').doc(username).update({ accounts: _curAccts }).catch(function(){});
+    }
     if (!_archives['August-2026'] && Object.keys(accts).length > 0) {
       var _hasData = Object.keys(accts).some(function(k) {
         var a = accts[k];
