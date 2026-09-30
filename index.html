@@ -798,7 +798,7 @@ select {
             <option value="">All Status</option>
           </select>
           <select class="filter-select" id="month-archive-select" onchange="switchArchiveMonth(this.value)" style="width:auto;display:none">
-            <option value="">October (Live)</option>
+            <option value="">September (Live)</option>
           </select>
         </div>
         <div class="card">
@@ -1152,7 +1152,7 @@ function getPayPeriod() {
 }
 const OVERALL_STATUS_OPTS = ['Not Yet Started','In Process','Completed','Closed'];
 const BOSS_REVIEWED = new Set([]);
-const CURRENT_CLIENT_MONTH = 'October';
+const CURRENT_CLIENT_MONTH = 'September';
 const TASK_TYPES = [
   'Bookkeeping - Regular Transactions Categorization',
   'Bookkeeping - Check Categorization',
@@ -1220,7 +1220,7 @@ const SEED_UPDATES = [
   { id:'seed-ace-8', date:'September 26, 2026', type:'Announcement', priority:'High', msg:'Pay Rate Update — Effective September 18, 2026\n\nYour hourly rate has been updated based on Wage Order No. IVA-22 (CALABARZON, Non-Agricultural Sector).\n\n• Previous rate: ₱105.00/hr (₱525.00/day)\n• New rate: ₱120.00/hr (₱600.00/day)\n• Effective: September 18, 2026 (Pay Period #0004 onward)\n• Basis: Wage Order No. IVA-22 — Region IV-A (CALABARZON), 1st Class Municipality, Non-Agriculture. 2nd Tranche effective April 1, 2026 — DOLE / NWPC / RTWPB-IVA\n• Your 5-hour workday is treated as 1 full working day\n\nPay periods prior to September 18 are not affected. The new rate will be reflected in your upcoming pay slip.\n\nPlease acknowledge this update. — Ace, AI Work Assistant', notified:true, requireAck:true },
   { id:'seed-ace-9', date:'September 29, 2026', type:'Announcement', priority:'High', msg:'New Feature: Task-Gated Earnings System\n\nYour task completion now directly controls whether your shift earnings are credited. Here is how it works:\n\n• When you finish a task, move it to "Pending Review" — your manager will review it\n• Sign Off — Your manager approves your work. Earnings for that task period are credited\n• On Hold — Your task is paused due to pending issues. Earnings are held until resolved\n• Rework — Your manager sends the task back. You need to redo it and resubmit for review\n• Rejected — Your work did not meet requirements. Earnings for that task are not credited\n\nWhat this means for you:\n• Complete your tasks properly the first time to ensure your earnings are credited promptly\n• If a task is sent back for Rework, fix the issues and move it back to "Pending Review"\n• You will see manager notes explaining any holds, reworks, or rejections\n• Previous completed tasks are not affected by this change\n\nThis system ensures fair compensation tied to verified work quality.\n\nPlease acknowledge this update. — Ace, AI Work Assistant', notified:true, requireAck:true },
   { id:'seed-ace-10', date:'September 30, 2026', type:'Announcement', priority:'High', msg:'New Feature: Report Review System\n\nYour daily reports now go through the same review process as your tasks. Here is how it works:\n\n• After you submit your daily report, your manager will review it\n• Sign Off — Report approved. Shift earnings for that day are released\n• On Hold — Report review is paused. Earnings are held until the report is resolved\n• Rework — Your manager requests changes. Resubmit the report with corrections\n• Rejected — Report did not meet requirements. Earnings for that day are not credited\n\nWhat this means for you:\n• Submit complete and accurate daily reports to ensure your earnings are released promptly\n• If a report is sent back for Rework, make the requested corrections and resubmit\n• You will see manager notes explaining any holds, reworks, or rejections on your Daily Report page\n• Reports submitted before this update are not affected\n\nThis ensures earnings are tied to verified, quality daily reports.\n\nPlease acknowledge this update. — Ace, AI Work Assistant', notified:true, requireAck:true },
-  { id:'seed-ace-11', date:'September 30, 2026', type:'Announcement', priority:'Normal', msg:'September Closing — Client Tab Reset\n\nSeptember books are now closed. All client accounts have been archived and reset for October.\n\n• September data has been saved and can be reviewed by your manager\n• All client progress has been reset to "Not Yet Started"\n• Task checklists are cleared — start fresh for October\n• Your Clients tab now shows October as the active month\n\nPlease begin working on your assigned client accounts for October. — Ace, AI Work Assistant', notified:true }
+  { id:'seed-ace-11', date:'September 30, 2026', type:'Announcement', priority:'Normal', msg:'Client Tab Reset — September Closing\n\nAugust books are now archived. All client accounts have been reset for September closing.\n\n• August data has been saved and can be reviewed by your manager\n• All client progress has been reset to "Not Yet Started"\n• Task checklists are cleared — start fresh for September\n• Your Clients tab now shows September as the active month\n\nPlease begin working on your assigned client accounts for September closing. — Ace, AI Work Assistant', notified:true }
 ];
 const SEED_PAYSLIPS = [
   { id:'ps-0001', number:'#0001', periodStart:'2026-08-12', periodEnd:'2026-08-20', totalHours:21.25, grossPay:1806.70, heldAmount:0, netPay:1806.70, status:'paid', paymentMethod:'gcash', paymentRef:'GCash Transfer — Aug 20, 2026', generatedAt:'2026-08-20T02:55:18Z', approvedAt:'2026-08-20T03:36:41Z', finalizedAt:'2026-08-20T14:35:14Z', paidAt:'2026-08-20T14:35:14Z', payReceived:true, payReceivedAt:'2026-08-20T14:42:12Z' },
@@ -1331,13 +1331,13 @@ async function loadUserData(username) {
     });
     if (acctChanged) { _udCache[username].accounts = accts; db.collection('users').doc(username).update({ accounts: accts }).catch(()=>{}); }
     var _archives = _udCache[username].monthArchives || {};
-    if (!_archives['September-2026'] && Object.keys(accts).length > 0) {
+    if (!_archives['August-2026'] && Object.keys(accts).length > 0) {
       var _hasData = Object.keys(accts).some(function(k) {
         var a = accts[k];
         return a && (a.overallStatus === 'Completed' || a.overallStatus === 'Closed' || a.overallStatus === 'In Process' || (a.tasks && a.tasks.length > 0));
       });
       if (_hasData) {
-        _archives['September-2026'] = JSON.parse(JSON.stringify(accts));
+        _archives['August-2026'] = JSON.parse(JSON.stringify(accts));
         var _freshAccts = {};
         MASTER_CLIENTS.forEach(function(mc) {
           _freshAccts[mc.name] = { month: CURRENT_CLIENT_MONTH, tasks: [], issues: '', comments: '', flagged: false, overallStatus: '' };
