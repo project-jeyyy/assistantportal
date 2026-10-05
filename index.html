@@ -3242,6 +3242,8 @@ function renderDailyReport() {
   const reports = _getDailyReports();
   const existing = reports.find(r => r.date === todayKey);
 
+  if (!existing && document.getElementById('dr-flagged')) return;
+
   if (existing) {
     const v = existing.verification || {};
     const statusColor = v.passed ? 'var(--success)' : 'var(--danger)';
