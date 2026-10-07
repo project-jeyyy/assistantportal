@@ -1364,26 +1364,32 @@ function subscribeStaff() {
     }
     _refreshChatLogsBadge();
     _checkOverdueTasks();
+    var _ae = document.activeElement;
+    var _typing = _ae && (_ae.tagName === 'INPUT' || _ae.tagName === 'TEXTAREA') && _ae.closest('.page-section');
     if (currentUser === BOSS_USERNAME) {
       refreshOverview(); refreshIssuesBadge(); refreshAssignedBadge(); refreshReportsBadge();
-      const activePage = document.querySelector('.nav-item.active');
-      const pg = activePage ? activePage.getAttribute('data-page') : '';
-      if (pg==='staff') renderStaff();
-      if (pg==='accounts') renderAccounts();
-      if (pg==='issues') renderIssues();
-      if (pg==='assigned') renderAssigned();
-      if (pg==='reports') renderReports();
-      if (pg==='payslips') renderPaySlips();
-      if (pg==='chatlogs') renderChatLogs();
+      if (!_typing) {
+        const activePage = document.querySelector('.nav-item.active');
+        const pg = activePage ? activePage.getAttribute('data-page') : '';
+        if (pg==='staff') renderStaff();
+        if (pg==='accounts') renderAccounts();
+        if (pg==='issues') renderIssues();
+        if (pg==='assigned') renderAssigned();
+        if (pg==='reports') renderReports();
+        if (pg==='payslips') renderPaySlips();
+        if (pg==='chatlogs') renderChatLogs();
+      }
     } else if (currentUser === 'athanviloria') {
       _aceSyncBossReplies();
       refreshOverview(); refreshDailyReportBadge();
-      const activePage = document.querySelector('.nav-item.active');
-      const pg = activePage ? activePage.getAttribute('data-page') : '';
-      if (pg==='assigned') renderAssigned();
-      if (pg==='issues') { renderIssues(); refreshIssuesBadge(); }
-      if (pg==='dailyreport') renderDailyReport();
-      if (pg==='payslips') renderPaySlips();
+      if (!_typing) {
+        const activePage = document.querySelector('.nav-item.active');
+        const pg = activePage ? activePage.getAttribute('data-page') : '';
+        if (pg==='assigned') renderAssigned();
+        if (pg==='issues') { renderIssues(); refreshIssuesBadge(); }
+        if (pg==='dailyreport') renderDailyReport();
+        if (pg==='payslips') renderPaySlips();
+      }
     }
   }, ()=>{});
 }
@@ -4093,9 +4099,12 @@ function _refreshChatLogsBadge() {
   else badge.classList.add('hidden');
 }
 
+var _lastRenderedChatLen = -1;
 function renderChatLogs() {
   var el = document.getElementById('chatlogs-content');
   if (!el) return;
+  if (_chatLogs.length === _lastRenderedChatLen) return;
+  _lastRenderedChatLen = _chatLogs.length;
   if (!_chatLogs || _chatLogs.length === 0) {
     el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#128172;</div><div class="empty-state-text">No chat messages yet. Messages will appear here when someone uses Ask Ace.</div></div>';
     return;
