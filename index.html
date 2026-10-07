@@ -4206,7 +4206,7 @@ function _aceCreateUI() {
 
   _aceAddMsg('system', 'Hi! I\'m Ace, your AI work assistant. Ask me anything about the portal, clients, bookkeeping, or workflow.');
 
-  _aceLastSyncIdx = _chatLogs.length;
+  _aceLastSyncIdx = 0;
 }
 
 function _aceSyncBossReplies() {
@@ -4214,9 +4214,9 @@ function _aceSyncBossReplies() {
   if (!container) return;
   for (var i = _aceLastSyncIdx; i < _chatLogs.length; i++) {
     var m = _chatLogs[i];
-    if (m.from === BOSS_USERNAME) {
-      _aceAddMsg('boss', m.text);
-    }
+    if (m.from === BOSS_USERNAME) _aceAddMsg('boss', m.text);
+    else if (m.role === 'assistant') _aceAddMsg('assistant', m.text);
+    else _aceAddMsg('user', m.text);
   }
   _aceLastSyncIdx = _chatLogs.length;
 }
