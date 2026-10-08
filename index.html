@@ -1186,6 +1186,18 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 // =============================================
+// APP VERSION — auto-refresh stale browsers
+// =============================================
+const APP_VERSION = 3;
+(function() {
+  db.collection('app').doc('version').onSnapshot(function(snap) {
+    var remote = snap.exists ? snap.data().v : 0;
+    if (remote > APP_VERSION) location.reload();
+    if (APP_VERSION > remote) db.collection('app').doc('version').set({ v: APP_VERSION }).catch(function(){});
+  }, function(){});
+})();
+
+// =============================================
 // STORAGE
 // =============================================
 const BOSS_USERNAME = 'jeyasayas';
@@ -1205,6 +1217,9 @@ const SEED_TASKS = [
 ];
 const SEED_TASK_CLOSURES = [
   'Roberto\'s Jewelry 2025 US Bank Statement - December'
+];
+const SEED_TASK_SIGNOFFS = [
+  'CSV Needed'
 ];
 const SEED_BONUS_SHIFTS = [
   { id:'bonus-credit-1', date:'9/11/2026', inTime:'—', outTime:'—', hours:5, earned:525, overtime:false, breakMins:0, inISO:'2026-09-11T00:00:00Z', outISO:'2026-09-11T05:00:00Z', device:null, bonus:true, bonusNote:'Credited by Manager' },
@@ -1272,6 +1287,10 @@ async function loadUserData(username) {
       SEED_TASK_CLOSURES.forEach(name => {
         const ci = existing.findIndex(t => t.taskName === name && t.status !== 'Done' && t.status !== 'Sign Off');
         if (ci !== -1) { existing[ci] = Object.assign({}, existing[ci], { status:'Done', completedByManager:true }); changed = true; }
+      });
+      SEED_TASK_SIGNOFFS.forEach(name => {
+        const si = existing.findIndex(t => t.taskName === name && t.status !== 'Sign Off');
+        if (si !== -1) { existing[si] = Object.assign({}, existing[si], { status:'Sign Off', signedOffAt:new Date().toISOString(), managerNote:'Signed off by manager.' }); changed = true; }
       });
       if (changed) { _udCache[username].assignedTasks = existing; db.collection('users').doc(username).update({ assignedTasks: existing }).catch(()=>{}); }
       const existingPS = _udCache[username].paySlips || [];
