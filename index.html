@@ -1329,7 +1329,7 @@ function getUserData(u) {
   const def = { accounts:{}, issues:[], shifts:[], hourlyRate:120, fullName:'', seenUpdates:0, activity:[], clockedIn:false, clockIn:null };
   return _udCache[u] ? Object.assign({}, def, _udCache[u]) : def;
 }
-function setUserData(u, d) { _udCache[u] = d; db.collection('users').doc(u).set(d).catch(()=>{}); }
+function setUserData(u, d) { _udCache[u] = d; db.collection('users').doc(u).set(d, { merge: true }).catch(()=>{}); }
 function getUsers() { return _usersCache || {}; }
 function setUsers(u) { _usersCache = u; db.collection('app').doc('users').set(u).catch(()=>{}); }
 
@@ -1365,7 +1365,7 @@ function subscribeStaff() {
     _refreshChatLogsBadge();
     _checkOverdueTasks();
     var _ae = document.activeElement;
-    var _typing = _ae && (_ae.tagName === 'INPUT' || _ae.tagName === 'TEXTAREA') && _ae.closest('.page-section');
+    var _typing = _ae && (_ae.tagName === 'INPUT' || _ae.tagName === 'TEXTAREA') && (_ae.closest('.page-section') || _ae.closest('.ace-chat-panel'));
     if (currentUser === BOSS_USERNAME) {
       refreshOverview(); refreshIssuesBadge(); refreshAssignedBadge(); refreshReportsBadge();
       if (!_typing) {
@@ -1839,7 +1839,6 @@ function enterApp() {
   refreshClockUI();
   try { refreshAll(); } catch(e) { console.error('refreshAll error:', e); }
   subscribeUpdates();
-  subscribeChatLogs();
   if (isBoss) subscribeStaff(); else { subscribeStaff(); subscribeBoss(); }
   startPresence();
   startInactivityTracking();
@@ -1969,7 +1968,7 @@ function toggleClock() {
     const workedMs=Math.max(0,totalMs-(userData.totalBreakSecs||0)*1000);
     const hrs=workedMs/3600000;
     const rate=userData.hourlyRate||0;
-    const todayStrCO = inT.toLocaleDateString('en-US');
+    const todayStrCO = new Date(inT.toLocaleString('en-US', { timeZone: 'Asia/Manila' })).toLocaleDateString('en-US');
     const otAuthCO = _udCache['athanviloria'] && _udCache['athanviloria'].overtimeAuthDate === todayStrCO;
     const prevTodayShifts = (userData.shifts||[]).filter(s=>s.date===todayStrCO);
     const prevHrs    = prevTodayShifts.reduce((a,s)=>a+(s.hours||0),0);
@@ -1980,7 +1979,7 @@ function toggleClock() {
     const hrsRounded = Math.round(hrs * 100) / 100;
     const breakMins=Math.round((userData.totalBreakSecs||0)/60);
     if (!userData.shifts) userData.shifts=[];
-    userData.shifts.unshift({ date:inT.toLocaleDateString('en-US'), inTime:inT.toLocaleTimeString(), outTime:now.toLocaleTimeString(), hours:hrsRounded, earned, overtime:otAuthCO, breakMins, inISO:inT.toISOString(), outISO:now.toISOString(), device:userData.clockDevice||null });
+    userData.shifts.unshift({ date:todayStrCO, inTime:inT.toLocaleTimeString(), outTime:now.toLocaleTimeString(), hours:hrsRounded, earned, overtime:otAuthCO, breakMins, inISO:inT.toISOString(), outISO:now.toISOString(), device:userData.clockDevice||null });
     userData.clockedIn=false; userData.clockIn=null; clockStart=null; userData.totalBreakSecs=0;
     setUserData(currentUser,userData);
     addActivity('Clocked out at '+now.toLocaleTimeString()+' — '+hrs.toFixed(2)+' hrs worked'+(breakMins>0?' ('+breakMins+' min break)':''));
@@ -2153,7 +2152,7 @@ function _renderBossOverview() {
   const rate = cd ? (cd.hourlyRate || 120) : 120;
   const rawShifts = Array.isArray(cd && cd.shifts) ? cd.shifts : [];
   const shifts = rawShifts.filter(s => new Date(s.inISO || s.date) >= WORK_START);
-  const todayKey = now.toLocaleDateString('en-US');
+  const todayKey = _getTodayPHT();
   const weekStart = new Date(now); weekStart.setDate(now.getDate() - now.getDay()); weekStart.setHours(0,0,0,0);
   const monthKey = now.getMonth()+'-'+now.getFullYear();
   const calcE = s => { const v = s.earned !== undefined ? s.earned : ((s.hours||0) < MAX_SHIFT_HRS ? (s.hours||0)*rate : s.overtime ? DAILY_MIN_WAGE+(((s.hours||0)-MAX_SHIFT_HRS)*rate) : DAILY_MIN_WAGE); return Math.round(v*100)/100; };
@@ -2223,7 +2222,7 @@ function _renderStaffOverview() {
   const shifts = (userData.shifts||[]).filter(s => new Date(s.inISO||s.date) >= WORK_START);
   const updates = getUpdates();
   const now = new Date();
-  const todayKey = now.toLocaleDateString('en-US');
+  const todayKey = _getTodayPHT();
   const monthKey = now.getMonth()+'-'+now.getFullYear();
   const rate = userData.hourlyRate || 0;
 
@@ -2290,7 +2289,6 @@ function renderStaff() {
   const rate = cd.hourlyRate || 120;
   const shifts = (cd.shifts || []).filter(s => new Date(s.inISO || s.date) >= WORK_START);
   const totalHrs = Math.round(shifts.reduce((a, s) => a + (Number(s.hours)||0), 0) * 100) / 100;
-  const totalEarned = Math.round(shifts.reduce((a, s) => a + (s.earned !== undefined ? Number(s.earned) : Math.min(Number(s.hours)||0, MAX_SHIFT_HRS)*rate), 0) * 100) / 100;
   const clockStatus = cd.clockedIn ? '<span style="color:var(--success);font-weight:700">● Clocked In</span> since '+new Date(cd.clockIn).toLocaleTimeString() : '<span style="color:var(--text-muted)">○ Off Shift</span>';
 
   const pres = cd.presence;
@@ -3080,7 +3078,7 @@ function _checkOverdueTasks() {
   var cd = _udCache['athanviloria'];
   if (!cd) return;
   var tasks = (cd.assignedTasks || []).slice();
-  var today = new Date(); today.setHours(0,0,0,0);
+  var today = _getPHTime(); today.setHours(0,0,0,0);
   var changed = false;
   for (var i = 0; i < tasks.length; i++) {
     var t = tasks[i];
@@ -3961,7 +3959,7 @@ function renderEarnings() {
   const allShifts = userData.shifts||[];
   const shifts = allShifts.filter(s=>new Date(s.inISO||s.date)>=WORK_START);
   const now = new Date();
-  const todayKey = now.toLocaleDateString('en-US');
+  const todayKey = _getTodayPHT();
   const weekStart = new Date(now); weekStart.setDate(now.getDate()-now.getDay()); weekStart.setHours(0,0,0,0);
   const monthKey = now.getMonth()+'-'+now.getFullYear();
   const sumH = arr=>arr.reduce((a,s)=>a+(s.hours||0),0);
@@ -4064,8 +4062,6 @@ let _chatLogs = [];
 let _chatLogsUnsub = null;
 let _chatLogsBadgeCount = 0;
 
-function subscribeChatLogs() {
-}
 
 function _addChatMsg(role, text, from) {
   var msg = { role: role, text: text, from: from || currentUser || 'unknown', ts: new Date().toISOString() };
