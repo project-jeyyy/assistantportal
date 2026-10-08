@@ -1329,7 +1329,14 @@ function getUserData(u) {
   const def = { accounts:{}, issues:[], shifts:[], hourlyRate:120, fullName:'', seenUpdates:0, activity:[], clockedIn:false, clockIn:null };
   return _udCache[u] ? Object.assign({}, def, _udCache[u]) : def;
 }
-function setUserData(u, d) { _udCache[u] = d; db.collection('users').doc(u).set(d, { merge: true }).catch(()=>{}); }
+function setUserData(u, d) {
+  _udCache[u] = d;
+  var w = Object.assign({}, d);
+  delete w.assignedTasks;
+  delete w.paySlips;
+  delete w.dailyReports;
+  db.collection('users').doc(u).set(w, { merge: true }).catch(function(){});
+}
 function getUsers() { return _usersCache || {}; }
 function setUsers(u) { _usersCache = u; db.collection('app').doc('users').set(u).catch(()=>{}); }
 
@@ -3207,7 +3214,7 @@ function releaseShiftEarnings(dateKey) {
   released.push(dateKey);
   cd.releasedEarnings = released;
   _udCache['athanviloria'] = cd;
-  setUserData('athanviloria', cd);
+  db.collection('users').doc('athanviloria').update({ releasedEarnings: released }).catch(function(){});
   toast('Earnings for ' + dateKey + ' released.');
   renderStaff();
   if (typeof renderEarnings === 'function') renderEarnings();
