@@ -1446,9 +1446,9 @@ let _lastActivity     = Date.now();
 // =============================================
 function updatePresence(status) {
   if (!currentUser) return;
-  const ud = getUserData(currentUser);
-  ud.presence = { lastSeen: new Date().toISOString(), status };
-  setUserData(currentUser, ud);
+  var presData = { lastSeen: new Date().toISOString(), status: status };
+  if (_udCache[currentUser]) _udCache[currentUser].presence = presData;
+  db.collection('users').doc(currentUser).update({ presence: presData }).catch(function(){});
 }
 function startPresence() {
   _lastActivity = Date.now();
@@ -2050,7 +2050,8 @@ function addActivity(msg) {
   if (!userData.activity) userData.activity=[];
   userData.activity.unshift({ msg, time:new Date().toISOString() });
   if (userData.activity.length>20) userData.activity.length=20;
-  setUserData(currentUser,userData);
+  if (_udCache[currentUser]) _udCache[currentUser].activity = userData.activity;
+  db.collection('users').doc(currentUser).update({ activity: userData.activity }).catch(function(){});
 }
 
 // =============================================
