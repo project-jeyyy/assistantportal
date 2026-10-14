@@ -1198,7 +1198,7 @@ const db = firebase.firestore();
 // =============================================
 // APP VERSION — auto-refresh stale browsers
 // =============================================
-const APP_VERSION = 5;
+const APP_VERSION = 6;
 (function() {
   db.collection('app').doc('version').onSnapshot(function(snap) {
     var remote = snap.exists ? snap.data().v : 0;
@@ -2296,7 +2296,7 @@ function _renderBossOverview() {
         +'<div style="padding:0.75rem 1.1rem;border-bottom:1px solid var(--border)">'
         +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.35rem"><span style="font-size:0.78rem;font-weight:600">Overall</span><span style="font-size:0.78rem;font-weight:700;color:var(--success)">'+allPct+'%</span></div>'
         +'<div style="background:var(--border);border-radius:99px;height:8px;overflow:hidden">'
-        +'<div style="height:100%;border-radius:99px;background:linear-gradient(90deg,var(--success) '+allPct+'%,var(--warning) '+allPct+'%);width:'+(totalClients>0?Math.round((allCompleted+allInProcess)/totalClients*100):0)+'%;transition:width 0.3s"></div>'
+        +'<div style="height:100%;border-radius:99px;background:linear-gradient(90deg,var(--success) '+((allCompleted+allInProcess)>0?Math.round(allCompleted/(allCompleted+allInProcess)*100):0)+'%,var(--warning) '+((allCompleted+allInProcess)>0?Math.round(allCompleted/(allCompleted+allInProcess)*100):0)+'%);width:'+(totalClients>0?Math.round((allCompleted+allInProcess)/totalClients*100):0)+'%;transition:width 0.3s"></div>'
         +'</div>'
         +'<div style="display:flex;gap:0.75rem;font-size:0.7rem;color:var(--text-muted);margin-top:0.3rem">'
         +'<span style="color:var(--success)">'+allCompleted+' completed</span>'
@@ -2823,11 +2823,10 @@ function closeMonth() {
   _udCache['athanviloria'] = cd;
   db.collection('users').doc('athanviloria').update({ accounts: freshAccts, monthArchives: archives, activeClientMonth: next }).catch(function(){});
   _viewingArchive = null;
-  var updates = cd.updates || [];
   var closeDate = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-  updates.unshift({ id: 'close-' + active, date: closeDate, type: 'Announcement', priority: 'Normal', msg: 'Client Tab Reset — ' + nextName + ' Closing\n\n' + monthName + ' books are now archived. All client accounts have been reset for ' + nextName + ' closing.\n\n• ' + monthName + ' data has been saved and can be reviewed by your manager\n• All client progress has been reset to "Not Yet Started"\n• Task checklists are cleared — start fresh for ' + nextName + '\n• Your Clients tab now shows ' + nextName + ' as the active month\n\nPlease begin working on your assigned client accounts for ' + nextName + ' closing. — Ace, AI Work Assistant', notified: true });
-  cd.updates = updates;
-  db.collection('users').doc('athanviloria').update({ updates: updates }).catch(function(){});
+  var appUpdates = getUpdates();
+  appUpdates.unshift({ id: 'close-' + active, date: closeDate, type: 'Announcement', priority: 'Normal', msg: 'Client Tab Reset — ' + nextName + ' Closing\n\n' + monthName + ' books are now archived. All client accounts have been reset for ' + nextName + ' closing.\n\n• ' + monthName + ' data has been saved and can be reviewed by your manager\n• All client progress has been reset to "Not Yet Started"\n• Task checklists are cleared — start fresh for ' + nextName + '\n• Your Clients tab now shows ' + nextName + ' as the active month\n\nPlease begin working on your assigned client accounts for ' + nextName + ' closing. — Ace, AI Work Assistant', notified: true });
+  setUpdates(appUpdates);
   renderAccounts();
   toast(monthName + ' archived. Starting ' + nextName + '.');
 }
@@ -2846,7 +2845,6 @@ function updateTask(clientName, idx, taskType, field, value) {
 function updateOverallStatus(clientName, idx, value) {
   const clientUser = currentUser === BOSS_USERNAME ? 'athanviloria' : currentUser;
   const cd=getClientData(clientUser,clientName); cd.overallStatus=value; saveClientData(clientUser,clientName,cd);
-  if (currentUser === BOSS_USERNAME) { const bcd=getClientData(BOSS_USERNAME,clientName); bcd.overallStatus=value; saveClientData(BOSS_USERNAME,clientName,bcd); }
   const overall=calcOverall(cd); const fillClass=overall===100?'full':overall>0?'half':'zero';
   const pctEl=document.querySelector('#row-'+idx+' .client-overall');
   if (pctEl) { const color=overall===100?'color:var(--success)':overall>0?'color:var(--warning)':'color:var(--text-muted)'; const badge=value==='Closed'?'<span style="font-size:0.6rem;font-weight:700;color:#3B82F6;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);padding:0.05rem 0.4rem;border-radius:99px">✓ Closed</span>':overall===100?'<span style="font-size:0.6rem;font-weight:700;color:var(--success);background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);padding:0.05rem 0.4rem;border-radius:99px">✓ Review</span>':''; pctEl.innerHTML='<div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:3px"><span style="font-size:0.72rem;font-weight:700;'+color+'">'+overall+'%</span>'+badge+'</div><div class="prog-bar"><div class="prog-fill '+fillClass+'" style="width:'+overall+'%"></div></div>'; }
@@ -4167,7 +4165,7 @@ function toast(msg) {
 
 function esc(s) {
   if (s==null) return '';
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
 // =============================================
