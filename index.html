@@ -1198,7 +1198,7 @@ const db = firebase.firestore();
 // =============================================
 // APP VERSION — auto-refresh stale browsers
 // =============================================
-const APP_VERSION = 6;
+const APP_VERSION = 7;
 (function() {
   db.collection('app').doc('version').onSnapshot(function(snap) {
     var remote = snap.exists ? snap.data().v : 0;
@@ -1349,6 +1349,20 @@ async function loadUserData(username) {
     if (!_udCache[username].activeClientMonth) {
       _udCache[username].activeClientMonth = CURRENT_CLIENT_MONTH + '-2026';
       db.collection('users').doc(username).update({ activeClientMonth: CURRENT_CLIENT_MONTH + '-2026' }).catch(function(){});
+    }
+    var _accts = _udCache[username].accounts || {};
+    var _statusSynced = false;
+    MASTER_CLIENTS.forEach(function(mc) {
+      if (!mc.reconStatus) return;
+      var existing = _accts[mc.name];
+      if (existing && (!existing.overallStatus || existing.overallStatus === 'Not Yet Started') && mc.reconStatus !== existing.overallStatus) {
+        existing.overallStatus = mc.reconStatus;
+        _statusSynced = true;
+      }
+    });
+    if (_statusSynced) {
+      _udCache[username].accounts = _accts;
+      db.collection('users').doc(username).update({ accounts: _accts }).catch(function(){});
     }
   } catch { _udCache[username] = def; }
   return _udCache[username];
