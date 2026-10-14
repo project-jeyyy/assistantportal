@@ -380,6 +380,10 @@ select {
 .client-name { font-size:0.86rem; font-weight:600; flex:1; }
 .client-month { color:var(--text-muted); font-size:0.72rem; flex-shrink:0; }
 .client-owned-tag { font-size:0.62rem; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; background:var(--copper-glow); color:var(--copper); border:1px solid rgba(196,149,106,0.25); padding:0.08rem 0.5rem; border-radius:99px; flex-shrink:0; }
+.client-owner-tag { font-size:0.58rem; font-weight:700; letter-spacing:0.04em; padding:0.08rem 0.45rem; border-radius:99px; flex-shrink:0; }
+.owner-jey { background:rgba(59,130,246,0.08); color:#3B82F6; border:1px solid rgba(59,130,246,0.2); }
+.owner-eugene { background:rgba(139,92,246,0.08); color:#8B5CF6; border:1px solid rgba(139,92,246,0.2); }
+.owner-mildez { background:rgba(236,72,153,0.08); color:#EC4899; border:1px solid rgba(236,72,153,0.2); }
 .client-overall { flex-shrink:0; width:80px; }
 
 .client-detail { display:none; padding:0 1.25rem 1rem 2.8rem; background:var(--surface); border-top:1px solid var(--border); }
@@ -787,8 +791,11 @@ select {
         </div>
         <div class="accounts-toolbar">
           <div class="tab-pills" id="accounts-tab-pills">
-            <button class="tab-pill active" id="tab-mine" onclick="switchAccountTab('mine')">Athan <span style="color:var(--copper)">(13)</span></button>
-            <button class="tab-pill" id="tab-all" onclick="switchAccountTab('all')">All Clients <span style="color:var(--text-muted)">(108)</span></button>
+            <button class="tab-pill active" id="tab-mine" onclick="switchAccountTab('mine')">Athan</button>
+            <button class="tab-pill" id="tab-all" onclick="switchAccountTab('all')">All</button>
+            <button class="tab-pill" id="tab-jey" onclick="switchAccountTab('Jey')" style="display:none">Jey</button>
+            <button class="tab-pill" id="tab-eugene" onclick="switchAccountTab('Eugene')" style="display:none">Eugene</button>
+            <button class="tab-pill" id="tab-mildez" onclick="switchAccountTab('Mildez')" style="display:none">Mildez</button>
           </div>
           <div class="search-wrap">
             <span class="search-icon">&#128269;</span>
@@ -806,6 +813,7 @@ select {
           <div style="display:flex;align-items:center;gap:0.75rem;padding:0.65rem 1.25rem;border-bottom:1px solid var(--border)">
             <div style="width:17px;flex-shrink:0"></div>
             <div style="flex:1;font-size:0.68rem;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-muted)">Client</div>
+            <div style="width:70px;font-size:0.68rem;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-muted)" id="col-owner">Owner</div>
             <div style="width:90px;font-size:0.68rem;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-muted)">Month</div>
             <div style="width:100px;font-size:0.68rem;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-muted)">Overall</div>
             <div style="width:60px;font-size:0.68rem;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-muted)">Flag</div>
@@ -1024,115 +1032,117 @@ select {
 // CLIENT MASTER LIST
 // =============================================
 const MASTER_CLIENTS = [
-  { name:'5 Trades Inc.', owned:false },
-  { name:'ABI P&O, Inc.', owned:true },
-  { name:'ASA Technologies, Inc.', owned:false },
-  { name:'ATB 3, LLC', owned:true },
-  { name:'Babylon International Market, Inc.', owned:false },
-  { name:'Backyard Investco I LLC', owned:false },
-  { name:'Backyard Partners LLC', owned:false },
-  { name:'Backyard SD 35 LLC', owned:false },
-  { name:'Backyard SD Nile, LLC', owned:false },
-  { name:'Backyard SD Nola, LLC', owned:false },
-  { name:'Barron Enterprises Inc', owned:false },
+  { name:'5 Trades Inc.', owned:false, owner:'Eugene', reconStatus:'Completed' },
+  { name:'ABI P&O, Inc.', owned:true, owner:'Jey', reconStatus:'Completed' },
+  { name:'ASA Technologies, Inc.', owned:false, owner:'Eugene', reconStatus:'Completed' },
+  { name:'ATB 3, LLC', owned:true, owner:'Jey', reconStatus:'Completed' },
+  { name:'Babylon International Market, Inc.', owned:false, owner:'Mildez', reconStatus:'In Process' },
+  { name:'Backyard Investco I LLC', owned:false, owner:'Jey', reconStatus:'Completed' },
+  { name:'Backyard Partners LLC', owned:false, owner:'Jey', reconStatus:'Completed' },
+  { name:'Backyard SD 35 LLC', owned:false, owner:'Jey', reconStatus:'Completed' },
+  { name:'Backyard SD Nile, LLC', owned:false, owner:'Jey', reconStatus:'Completed' },
+  { name:'Backyard SD Nola, LLC', owned:false, owner:'Jey', reconStatus:'Completed' },
+  { name:'Barron Enterprises Inc', owned:false, owner:'Eugene', reconStatus:'Completed' },
   { name:'Be Goods LLC', owned:false },
-  { name:'Beau Sucre, LLC', owned:false },
-  { name:'Beyer Pharmacy', owned:false },
-  { name:'Biozenic, LLC', owned:false },
-  { name:'Birch Insurance Solutions, Inc', owned:false },
-  { name:'Boutique Care Management', owned:false },
-  { name:'BRK, Inc.', owned:false },
-  { name:'Buy Sell Rent San Diego', owned:false },
-  { name:'Catspaw Realty LLC', owned:false },
-  { name:'Chayim Veterinary Services, Inc.', owned:false },
-  { name:'Coast to Coast Souvenirs, LLC', owned:false },
-  { name:'Country Club Guest Home', owned:false },
-  { name:'Crack Taco Coronado Inc', owned:false },
-  { name:'Creative Marketing Incentive Group, Inc.', owned:false },
-  { name:'Cyra Design Build (Tax Prep Only)', owned:false },
-  { name:'Damman, Inc.', owned:false },
-  { name:'Dave Huxtable, Inc.', owned:false },
-  { name:'David Levi Jewelers & Repair, Inc.', owned:false },
-  { name:'DAWZ, Inc.', owned:false },
-  { name:'Derman, LLC', owned:false },
-  { name:'Diamond Daughters, Inc.', owned:false },
-  { name:'Diamonds by Avi, Inc.', owned:false },
-  { name:'Elizabeth Lazarus', owned:true },
-  { name:'Empire Garage Door, Inc.', owned:false },
-  { name:'Encinitas Karate, Inc.', owned:false },
-  { name:'Entila Corp', owned:false },
-  { name:'F & M Auto Repair & Diesel Specialist', owned:false },
-  { name:'Fentiman Enterprises, Inc. DBA Seaside Papery', owned:false },
-  { name:'Fernand S Lacayanga DMD, Inc.', owned:false },
-  { name:'FORUM Wealth Management, Inc.', owned:false },
-  { name:'Frank Enterprises, LLC', owned:false },
-  { name:'Gibson Wealth Management, Inc.', owned:false },
-  { name:'Guardtower Financial Services, LLC', owned:false },
-  { name:'Guidroz Rice Construction', owned:false },
-  { name:'Haddad Group Inc', owned:false },
-  { name:'HD Restaurant Group', owned:false },
-  { name:'Henrick Construction, Inc.', owned:false },
-  { name:"John Sadler's Auto Repair", owned:false },
-  { name:'Joubin Nasseri Law Group, APC', owned:false },
-  { name:'Kirks Radiator & Auto Air Conditioning, Inc.', owned:false },
-  { name:'La Jolla Florist, LLC', owned:false },
-  { name:'Lamys, Inc (Crack Taco Encinitas)', owned:false },
-  { name:'Law Office of Karl Kuenhold, LLC', owned:false },
-  { name:'Layvan, Inc.', owned:false },
-  { name:'Ledge Ivy Properties, LLC', owned:false },
-  { name:'Legallink, LLC', owned:false },
-  { name:'Lourdes Mexican Food by the Sea, Inc.', owned:true },
-  { name:'Lourdes Mexican Food Cantina, Inc.', owned:true },
-  { name:'Lourdes Mexican Food Express Togo, Inc.', owned:true },
-  { name:'Lourdes Mexican Food San Elijo, Inc.', owned:true },
-  { name:'Lourdes Mexican Food, Inc.', owned:true },
-  { name:'Lucky Panda Kids, LLC', owned:false },
-  { name:'Maisy Place', owned:false },
-  { name:'Malek Law Group, APC', owned:false },
-  { name:'Mexa Distributors, Inc.', owned:false },
-  { name:'Michael Thomas Sommer', owned:false },
-  { name:'Mike and George, Inc.', owned:false },
-  { name:'Miller BDS, A Dental Corporation', owned:false },
-  { name:'Miss Match Group, Inc.', owned:false },
-  { name:'Momentra', owned:false },
-  { name:'NetOps Africa, LLC', owned:false },
-  { name:'PDDA Alliance', owned:false },
-  { name:'Pesto Italian Craft Kitchen', owned:true },
-  { name:'Quality Diamonds of San Diego, Inc.', owned:false },
-  { name:'Rancho Viejo Mex, Inc.', owned:false },
-  { name:'Rua Michelle Realty LLC', owned:false },
-  { name:'Schindler Brokerage, LLC', owned:false },
-  { name:'SD Bay Rentals', owned:false },
-  { name:'SDCA ACU, Inc.', owned:false },
-  { name:'Shawn Luke, Inc.', owned:true },
-  { name:'Simplicity Enterprises', owned:false },
-  { name:'Siselectron USA, Inc.', owned:false },
-  { name:'Skim Steezy, LLC', owned:false },
-  { name:'Skyn Alchemy, Inc.', owned:false },
-  { name:'South Bay Pioneers', owned:false },
-  { name:'Sphere Surveying & Mapping', owned:false },
-  { name:'Taco Shop Restaurant group', owned:false },
-  { name:'TGRH2, Inc.', owned:false },
-  { name:'TLC Medical Transport, LLC', owned:false },
-  { name:'Torreblanca Wealth Management Corp', owned:false },
-  { name:'Touma Group 2, LLC', owned:false },
-  { name:'Truck & SUV Center', owned:false },
-  { name:'Unicorn Jewelry & Fine Gifts, Inc.', owned:false },
-  { name:'Upas Realty LLC', owned:false },
-  { name:'US Jewelrybuyers, Inc.', owned:true },
-  { name:'Vamos CRCS, Inc.', owned:false },
-  { name:'Versatile Surfaces, Inc.', owned:true },
-  { name:'Victory Auto Supply, Inc.', owned:false },
-  { name:'Vince Kattoula & Associates, LLC', owned:false },
-  { name:'VMFS Group, Inc.', owned:false },
-  { name:'Waheed & Sons, Inc.', owned:false },
-  { name:'Way of Wellness Helathcare Inc', owned:false },
-  { name:'World Carpet & Tile, Inc.', owned:false },
-  { name:'Yalcin Investment, LLC', owned:false },
-  { name:'Yudaman Inc', owned:true },
-  { name:'Z1 Parts, Inc.', owned:false },
-  { name:'Zanker Construction, Inc.', owned:false },
+  { name:'Beau Sucre, LLC', owned:false, owner:'Jey', reconStatus:'Completed' },
+  { name:'Beyer Pharmacy', owned:false, owner:'Eugene', reconStatus:'In Process' },
+  { name:'Biozenic, LLC', owned:false, owner:'Eugene', reconStatus:'Completed' },
+  { name:'Birch Insurance Solutions, Inc', owned:false, owner:'Mildez', reconStatus:'Completed' },
+  { name:'Boutique Care Management', owned:false, owner:'Mildez', reconStatus:'In Process' },
+  { name:'BRK, Inc.', owned:false, owner:'Eugene', reconStatus:'Completed' },
+  { name:'Buy Sell Rent San Diego', owned:false, owner:'Mildez' },
+  { name:'Catspaw Realty LLC', owned:false, owner:'Jey', reconStatus:'Completed' },
+  { name:'Chayim Veterinary Services, Inc.', owned:false, owner:'Eugene', reconStatus:'Completed' },
+  { name:'Coast to Coast Souvenirs, LLC', owned:false, owner:'Jey', reconStatus:'Completed' },
+  { name:'Country Club Guest Home', owned:false, owner:'Eugene', reconStatus:'In Process' },
+  { name:'Crack Taco Coronado Inc', owned:false, owner:'Eugene', reconStatus:'Completed' },
+  { name:'Creative Marketing Incentive Group, Inc.', owned:false, owner:'Mildez', reconStatus:'In Process' },
+  { name:'Cyra Design Build (Tax Prep Only)', owned:false, owner:'Mildez', reconStatus:'In Process' },
+  { name:'Damman, Inc.', owned:false, owner:'Jey', reconStatus:'In Process' },
+  { name:'Dave Huxtable, Inc.', owned:false, owner:'Jey', reconStatus:'In Process' },
+  { name:'David Levi Jewelers & Repair, Inc.', owned:false, owner:'Eugene', reconStatus:'In Process' },
+  { name:'DAWZ, Inc.', owned:false, owner:'Eugene', reconStatus:'In Process' },
+  { name:'Derman, LLC', owned:false, owner:'Jey', reconStatus:'Completed' },
+  { name:'Diamond Daughters, Inc.', owned:false, owner:'Eugene', reconStatus:'In Process' },
+  { name:'Diamonds by Avi, Inc.', owned:false, owner:'Mildez', reconStatus:'Completed' },
+  { name:'Elizabeth Lazarus', owned:true, owner:'Jey', reconStatus:'Completed' },
+  { name:'Empire Garage Door, Inc.', owned:false, owner:'Mildez', reconStatus:'In Process' },
+  { name:'Encinitas Karate, Inc.', owned:false, owner:'Mildez', reconStatus:'In Process' },
+  { name:'Entila Corp', owned:false, owner:'Eugene', reconStatus:'In Process' },
+  { name:'F & M Auto Repair & Diesel Specialist', owned:false, owner:'Eugene', reconStatus:'Completed' },
+  { name:'Fentiman Enterprises, Inc. DBA Seaside Papery', owned:false, owner:'Mildez', reconStatus:'In Process' },
+  { name:'Fernand S Lacayanga DMD, Inc.', owned:false, owner:'Mildez', reconStatus:'In Process' },
+  { name:'Forttuna Foods International, Inc.', owned:false, owner:'Eugene', reconStatus:'In Process' },
+  { name:'FORUM Wealth Management, Inc.', owned:false, owner:'Eugene', reconStatus:'In Process' },
+  { name:'Frank Enterprises, LLC', owned:false, owner:'Eugene', reconStatus:'In Process' },
+  { name:'Gibson Wealth Management, Inc.', owned:false, owner:'Jey', reconStatus:'Completed' },
+  { name:'Guardtower Financial Services, LLC', owned:false, owner:'Mildez', reconStatus:'Completed' },
+  { name:'Guidroz Rice Construction', owned:false, owner:'Mildez', reconStatus:'Completed' },
+  { name:'Haddad Group Inc', owned:false, owner:'Jey', reconStatus:'Completed' },
+  { name:'HD Restaurant Group', owned:false, owner:'Eugene', reconStatus:'In Process' },
+  { name:'Henrick Construction, Inc.', owned:false, owner:'Jey', reconStatus:'Completed' },
+  { name:"John Sadler's Auto Repair", owned:false, owner:'Jey', reconStatus:'In Process' },
+  { name:'Joubin Nasseri Law Group, APC', owned:false, owner:'Mildez', reconStatus:'In Process' },
+  { name:'Kirks Radiator & Auto Air Conditioning, Inc.', owned:false, owner:'Eugene', reconStatus:'In Process' },
+  { name:'La Jolla Florist, LLC', owned:false, owner:'Mildez', reconStatus:'In Process' },
+  { name:'Lamys, Inc (Crack Taco Encinitas)', owned:false, owner:'Jey', reconStatus:'Completed' },
+  { name:'Law Office of Karl Kuenhold, LLC', owned:false, owner:'Jey', reconStatus:'Completed' },
+  { name:'Layvan, Inc.', owned:false, owner:'Mildez', reconStatus:'In Process' },
+  { name:'Ledge Ivy Properties, LLC', owned:false, owner:'Eugene', reconStatus:'Completed' },
+  { name:'Legallink, LLC', owned:false, owner:'Jey', reconStatus:'Completed' },
+  { name:'Lourdes Mexican Food by the Sea, Inc.', owned:true, owner:'Jey', reconStatus:'Completed' },
+  { name:'Lourdes Mexican Food Cantina, Inc.', owned:true, owner:'Jey', reconStatus:'Completed' },
+  { name:'Lourdes Mexican Food Express Togo, Inc.', owned:true, owner:'Jey', reconStatus:'Completed' },
+  { name:'Lourdes Mexican Food San Elijo, Inc.', owned:true, owner:'Jey', reconStatus:'Completed' },
+  { name:'Lourdes Mexican Food, Inc.', owned:true, owner:'Jey', reconStatus:'Completed' },
+  { name:'Lucky Panda Kids, LLC', owned:false, owner:'Jey', reconStatus:'In Process' },
+  { name:'Maisy Place', owned:false, owner:'Mildez', reconStatus:'In Process' },
+  { name:'Malek Law Group, APC', owned:false, owner:'Mildez', reconStatus:'In Process' },
+  { name:'Mexa Distributors, Inc.', owned:false, owner:'Eugene', reconStatus:'Completed' },
+  { name:'Michael Thomas Sommer', owned:false, owner:'Jey', reconStatus:'Completed' },
+  { name:'Mike and George, Inc.', owned:false, owner:'Jey' },
+  { name:'Miller BDS, A Dental Corporation', owned:false, owner:'Eugene' },
+  { name:'Miss Match Group, Inc.', owned:false, owner:'Eugene', reconStatus:'Completed' },
+  { name:'Momentra', owned:false, owner:'Eugene', reconStatus:'In Process' },
+  { name:'NetOps Africa, LLC', owned:false, owner:'Mildez', reconStatus:'In Process' },
+  { name:'PDDA Alliance', owned:false, owner:'Jey', reconStatus:'In Process' },
+  { name:'Pesto Italian Craft Kitchen', owned:true, owner:'Jey', reconStatus:'Completed' },
+  { name:'Quality Diamonds of San Diego, Inc.', owned:false, owner:'Jey' },
+  { name:'Rancho Viejo Mex, Inc.', owned:false, owner:'Jey', reconStatus:'In Process' },
+  { name:'Rua Michelle Realty LLC', owned:false, owner:'Mildez', reconStatus:'Completed' },
+  { name:'Schindler Brokerage, LLC', owned:false, owner:'Jey', reconStatus:'Completed' },
+  { name:'SD Bay Rentals', owned:false, owner:'Mildez', reconStatus:'In Process' },
+  { name:'SDCA ACU, Inc.', owned:false, owner:'Eugene', reconStatus:'In Process' },
+  { name:'Shawn Luke, Inc.', owned:true, owner:'Jey', reconStatus:'Completed' },
+  { name:'Simplicity Enterprises', owned:false, owner:'Mildez', reconStatus:'In Process' },
+  { name:'Siselectron USA, Inc.', owned:false, owner:'Eugene', reconStatus:'Completed' },
+  { name:'Skim Steezy, LLC', owned:false, owner:'Mildez', reconStatus:'In Process' },
+  { name:'Skyn Alchemy, Inc.', owned:false, owner:'Jey', reconStatus:'In Process' },
+  { name:'South Bay Pioneers', owned:false, owner:'Jey', reconStatus:'Completed' },
+  { name:'Sphere Surveying & Mapping', owned:false, owner:'Mildez', reconStatus:'In Process' },
+  { name:'Taco Shop Restaurant group', owned:false, owner:'Eugene', reconStatus:'Completed' },
+  { name:'TGRH2, Inc.', owned:false, owner:'Mildez', reconStatus:'In Process' },
+  { name:'TLC Medical Transport, LLC', owned:false, owner:'Jey', reconStatus:'In Process' },
+  { name:'Torreblanca Wealth Management Corp', owned:false, owner:'Jey', reconStatus:'Completed' },
+  { name:'Touma Group 2, LLC', owned:false, owner:'Eugene', reconStatus:'In Process' },
+  { name:'Truck & SUV Center', owned:false, owner:'Jey', reconStatus:'In Process' },
+  { name:'Unicorn Jewelry & Fine Gifts, Inc.', owned:false, owner:'Eugene', reconStatus:'In Process' },
+  { name:'Upas Realty LLC', owned:false, owner:'Eugene', reconStatus:'Completed' },
+  { name:'US Jewelrybuyers, Inc.', owned:true, owner:'Jey', reconStatus:'Completed' },
+  { name:'Vamos CRCS, Inc.', owned:false, owner:'Mildez' },
+  { name:'Versatile Surfaces, Inc.', owned:true, owner:'Jey', reconStatus:'Completed' },
+  { name:'Victory Auto Supply, Inc.', owned:false, owner:'Eugene', reconStatus:'In Process' },
+  { name:'Vince Kattoula & Associates, LLC', owned:false, owner:'Jey', reconStatus:'Completed' },
+  { name:'VMFS Group, Inc.', owned:false, owner:'Jey', reconStatus:'In Process' },
+  { name:'Waheed & Sons, Inc.', owned:false, owner:'Jey', reconStatus:'In Process' },
+  { name:'Way of Wellness Helathcare Inc', owned:false, owner:'Jey', reconStatus:'Completed' },
+  { name:'World Carpet & Tile, Inc.', owned:false, owner:'Eugene', reconStatus:'In Process' },
+  { name:'Yalcin Investment, LLC', owned:false, owner:'Jey', reconStatus:'Completed' },
+  { name:'Yudaman Inc', owned:true, owner:'Jey', reconStatus:'In Process' },
+  { name:'Z1 Parts, Inc.', owned:false, owner:'Jey', reconStatus:'Completed' },
+  { name:'Zanker Construction, Inc.', owned:false, owner:'Jey', reconStatus:'In Process' },
 ];
+const CLIENT_OWNERS = ['Jey','Eugene','Mildez'];
 
 const WORK_START = new Date('2026-07-27T00:00:00');
 const REPORT_ENFORCE_DATE = new Date('2026-09-06T00:00:00');
@@ -1188,7 +1198,7 @@ const db = firebase.firestore();
 // =============================================
 // APP VERSION — auto-refresh stale browsers
 // =============================================
-const APP_VERSION = 3;
+const APP_VERSION = 4;
 (function() {
   db.collection('app').doc('version').onSnapshot(function(snap) {
     var remote = snap.exists ? snap.data().v : 0;
@@ -2589,35 +2599,54 @@ function refreshUpdatesBadge() {
 // =============================================
 function switchAccountTab(tab) {
   accountTab = tab;
-  document.getElementById('tab-mine').classList.toggle('active',tab==='mine');
-  document.getElementById('tab-all').classList.toggle('active',tab==='all');
+  ['tab-mine','tab-all','tab-jey','tab-eugene','tab-mildez'].forEach(function(id){
+    var el = document.getElementById(id);
+    if (el) el.classList.remove('active');
+  });
+  var activeId = tab==='mine'?'tab-mine':tab==='all'?'tab-all':'tab-'+tab.toLowerCase();
+  var ae = document.getElementById(activeId);
+  if (ae) ae.classList.add('active');
   renderAccounts();
 }
 
 function calcOverall(cd) { return progressPct(cd.overallStatus || 'Not Yet Started'); }
 
+function _ownerTagClass(o) { return o==='Jey'?'owner-jey':o==='Eugene'?'owner-eugene':o==='Mildez'?'owner-mildez':''; }
 function renderAccounts() {
   initArchiveDropdown();
+  var isBoss = currentUser === BOSS_USERNAME;
+  ['tab-jey','tab-eugene','tab-mildez'].forEach(function(id){ var el=document.getElementById(id); if(el) el.style.display=isBoss?'':'none'; });
+  var ownerCounts = {};
+  CLIENT_OWNERS.forEach(function(o){ ownerCounts[o] = MASTER_CLIENTS.filter(function(c){return c.owner===o;}).length; });
+  var ownedCount = MASTER_CLIENTS.filter(function(c){return c.owned;}).length;
+  var tabMine = document.getElementById('tab-mine');
+  var tabAll = document.getElementById('tab-all');
+  if (tabMine) tabMine.innerHTML = 'Athan <span style="color:var(--copper)">('+ownedCount+')</span>';
+  if (tabAll) tabAll.innerHTML = 'All <span style="color:var(--text-muted)">('+MASTER_CLIENTS.length+')</span>';
+  CLIENT_OWNERS.forEach(function(o){
+    var el = document.getElementById('tab-'+o.toLowerCase());
+    if (el) el.innerHTML = esc(o)+' <span style="color:var(--text-muted)">('+ownerCounts[o]+')</span>';
+  });
   const search = (document.getElementById('account-search').value||'').toLowerCase().trim();
   const filterSel = document.getElementById('filter-progress');
   const filterProg = filterSel.value;
   const list = document.getElementById('accounts-list');
-  const clientUser = currentUser === BOSS_USERNAME ? 'athanviloria' : currentUser;
+  const clientUser = isBoss ? 'athanviloria' : currentUser;
   const isArchive = !!_viewingArchive;
   const _gcd = isArchive ? function(name){ return _getArchiveClientData(_viewingArchive, name); } : function(name){ return getClientData(clientUser, name); };
-  const baseClients = accountTab==='mine' ? MASTER_CLIENTS.filter(c=>c.owned) : MASTER_CLIENTS;
+  var baseClients;
+  if (accountTab==='mine') baseClients = MASTER_CLIENTS.filter(function(c){return c.owned;});
+  else if (accountTab==='all') baseClients = MASTER_CLIENTS;
+  else baseClients = MASTER_CLIENTS.filter(function(c){return c.owner===accountTab;});
   const counts = { 'Not Yet Started':0, 'In Process':0, 'Completed':0, 'Closed':0 };
-  const ownedCount = baseClients.filter(c=>c.owned).length;
   baseClients.forEach(c => { const s = _gcd(c.name).overallStatus || 'Not Yet Started'; if (counts[s] !== undefined) counts[s]++; else counts[s] = 1; });
   const total = baseClients.length;
   filterSel.innerHTML = '<option value="">All Status ('+total+')</option>' +
-    OVERALL_STATUS_OPTS.map(o => '<option value="'+o+'">'+o+' ('+( counts[o]||0)+')</option>').join('') +
-    '<option value="__owned__">Athan\'s Accounts ('+ownedCount+')</option>';
+    OVERALL_STATUS_OPTS.map(o => '<option value="'+o+'">'+o+' ('+( counts[o]||0)+')</option>').join('');
   filterSel.value = filterProg;
   let clients = baseClients;
   if (search) clients = clients.filter(c=>c.name.toLowerCase().includes(search));
-  if (filterProg === '__owned__') clients = clients.filter(c=>c.owned);
-  else if (filterProg) clients = clients.filter(c=>{ const cd=_gcd(c.name); return (cd.overallStatus||'Not Yet Started')===filterProg; });
+  if (filterProg) clients = clients.filter(c=>{ const cd=_gcd(c.name); return (cd.overallStatus||'Not Yet Started')===filterProg; });
   if (isArchive) { list.innerHTML = '<div style="padding:0.6rem 1.1rem;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);border-radius:var(--radius-sm);margin-bottom:0.75rem;font-size:0.78rem;color:#3B82F6;font-weight:600">Viewing archived data for '+esc(_viewingArchive)+' (read-only)</div>'; } else { list.innerHTML = ''; }
   if (clients.length===0) { list.innerHTML+='<div class="empty-state"><div class="empty-state-text">No clients match your filter.</div></div>'; return; }
   list.innerHTML += clients.map((c,i)=>{
@@ -2627,7 +2656,8 @@ function renderAccounts() {
     let pctClass='cp-0';
     if (overall===100) pctClass='cp-100'; else if (overall>0) pctClass='cp-50';
     const fillClass = overall===100?'full':overall>0?'half':'zero';
-    return '<div class="client-row" id="row-'+i+'"><div class="client-header" onclick="toggleClient('+i+')"><span class="client-toggle" id="toggle-'+i+'">▶</span><span class="client-name">'+esc(c.name)+'</span>'+(c.owned?'<span class="client-owned-tag">Athan</span>':'')+'<span class="client-month">'+esc(cd.month||_getActiveMonthName())+'</span><div class="client-overall"><div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:3px"><span style="font-size:0.72rem;font-weight:700;'+(pctClass==='cp-100'?'color:var(--success)':pctClass==='cp-50'?'color:var(--warning)':'color:var(--text-muted)')+'">'+overall+'%</span>'+(cd.overallStatus==='Closed'?'<span style="font-size:0.6rem;font-weight:700;color:#3B82F6;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);padding:0.05rem 0.4rem;border-radius:99px">✓ Closed</span>':overall===100?'<span style="font-size:0.6rem;font-weight:700;color:var(--success);background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);padding:0.05rem 0.4rem;border-radius:99px">✓ Review</span>':'')+'</div><div class="prog-bar"><div class="prog-fill '+fillClass+'" style="width:'+overall+'%"></div></div></div><div style="width:60px;text-align:center">'+(flagged?'<span style="font-size:1rem" title="Has issues/flags">🚩</span>':'<span style="color:var(--border)">—</span>')+'</div></div><div class="client-detail" id="detail-'+i+'">'+(isArchive ? renderArchiveDetail(c, cd) : renderClientDetail(c, cd, i, clientUser))+'</div></div>';
+    var ownerTag = c.owner ? '<span class="client-owner-tag '+_ownerTagClass(c.owner)+'">'+esc(c.owner)+'</span>' : '';
+    return '<div class="client-row" id="row-'+i+'"><div class="client-header" onclick="toggleClient('+i+')"><span class="client-toggle" id="toggle-'+i+'">▶</span><span class="client-name">'+esc(c.name)+'</span>'+(c.owned?'<span class="client-owned-tag">Athan</span>':'')+ownerTag+'<span class="client-month">'+esc(cd.month||_getActiveMonthName())+'</span><div class="client-overall"><div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:3px"><span style="font-size:0.72rem;font-weight:700;'+(pctClass==='cp-100'?'color:var(--success)':pctClass==='cp-50'?'color:var(--warning)':'color:var(--text-muted)')+'">'+overall+'%</span>'+(cd.overallStatus==='Closed'?'<span style="font-size:0.6rem;font-weight:700;color:#3B82F6;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);padding:0.05rem 0.4rem;border-radius:99px">✓ Closed</span>':overall===100?'<span style="font-size:0.6rem;font-weight:700;color:var(--success);background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);padding:0.05rem 0.4rem;border-radius:99px">✓ Review</span>':'')+'</div><div class="prog-bar"><div class="prog-fill '+fillClass+'" style="width:'+overall+'%"></div></div></div><div style="width:60px;text-align:center">'+(flagged?'<span style="font-size:1rem" title="Has issues/flags">🚩</span>':'<span style="color:var(--border)">—</span>')+'</div></div><div class="client-detail" id="detail-'+i+'">'+(isArchive ? renderArchiveDetail(c, cd) : renderClientDetail(c, cd, i, clientUser))+'</div></div>';
   }).join('');
 }
 
