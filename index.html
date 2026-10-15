@@ -1198,7 +1198,7 @@ const db = firebase.firestore();
 // =============================================
 // APP VERSION — auto-refresh stale browsers
 // =============================================
-const APP_VERSION = 7;
+const APP_VERSION = 8;
 (function() {
   db.collection('app').doc('version').onSnapshot(function(snap) {
     var remote = snap.exists ? snap.data().v : 0;
@@ -3728,9 +3728,12 @@ function _getAllPayPeriods() {
 
 function _getShiftsForPeriod(pStart, pEnd) {
   const cd = _udCache['athanviloria'] || getUserData('athanviloria');
+  var pStartDay = new Date(pStart); pStartDay.setHours(0,0,0,0);
+  var pEndDay = new Date(pEnd); pEndDay.setHours(23,59,59,999);
   const shifts = (cd.shifts||[]).filter(s => {
-    const d = new Date(s.inISO || s.date);
-    return d >= pStart && d <= pEnd;
+    var d = s.date ? new Date(s.date) : new Date(s.inISO);
+    d.setHours(12,0,0,0);
+    return d >= pStartDay && d <= pEndDay;
   });
   return shifts.sort((a,b) => new Date(a.inISO||a.date) - new Date(b.inISO||b.date));
 }
