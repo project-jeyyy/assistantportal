@@ -1378,6 +1378,9 @@ function setUserData(u, d) {
   delete w.assignedTasks;
   delete w.paySlips;
   delete w.dailyReports;
+  if (Array.isArray(w.shifts) && w.shifts.length === 0) delete w.shifts;
+  if (Array.isArray(w.accessLog) && w.accessLog.length === 0) delete w.accessLog;
+  if (Array.isArray(w.activity) && w.activity.length === 0) delete w.activity;
   db.collection('users').doc(u).set(w, { merge: true }).catch(function(){});
 }
 function getUsers() { return _usersCache || {}; }
@@ -1464,10 +1467,10 @@ function getClientData(username, clientName) {
   return ud.accounts[clientName];
 }
 function saveClientData(username, clientName, data) {
-  const ud = getUserData(username);
-  if (!ud.accounts) ud.accounts = {};
-  ud.accounts[clientName] = data;
-  setUserData(username, ud);
+  if (!_udCache[username]) _udCache[username] = {};
+  if (!_udCache[username].accounts) _udCache[username].accounts = {};
+  _udCache[username].accounts[clientName] = data;
+  db.collection('users').doc(username).update({ accounts: _udCache[username].accounts }).catch(function(){});
 }
 
 // =============================================
