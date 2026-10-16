@@ -2435,6 +2435,7 @@ function renderStaff() {
       '<div class="stat-tile" style="border:1px solid '+(authorized?'rgba(59,130,246,0.3)':'var(--border)')+';background:'+(authorized?'rgba(59,130,246,0.04)':'')+'"><div class="stat-label">Overtime Today</div><div style="margin-top:0.4rem;font-size:0.82rem;font-weight:700;color:'+(authorized?'#3B82F6':'var(--text-muted)')+'">'+(authorized?'✓ Authorized':'Not Authorized')+'</div><button onclick="toggleOvertimeAuth()" style="margin-top:0.5rem;font-size:0.7rem;padding:0.2rem 0.7rem;border-radius:99px;border:1px solid '+(authorized?'#3B82F6':'var(--border)')+';background:'+(authorized?'rgba(59,130,246,0.08)':'transparent')+';color:'+(authorized?'#3B82F6':'var(--text-muted)')+';cursor:pointer;font-weight:600">'+(authorized?'Revoke':'Authorize')+'</button></div>'+
       '<div class="stat-tile" style="border:1px solid '+(noWorkActive?'rgba(239,68,68,0.3)':'var(--border)')+';background:'+(noWorkActive?'rgba(239,68,68,0.04)':'')+'"><div class="stat-label">No Work Mode</div><div style="margin-top:0.4rem;font-size:0.82rem;font-weight:700;color:'+(noWorkActive?'var(--danger)':'var(--text-muted)')+'">'+(noWorkActive?'🚫 Active':'Not Active')+'</div>'+(noWorkActive && cd.noWorkAuto?'<div style="font-size:0.65rem;color:var(--text-muted);margin-top:0.15rem">Auto — outside work window</div>':noWorkActive?'<div style="font-size:0.65rem;color:var(--text-muted);margin-top:0.15rem">Manual — set by manager</div>':'')+'<button onclick="toggleNoWork()" style="margin-top:0.5rem;font-size:0.7rem;padding:0.2rem 0.7rem;border-radius:99px;border:1px solid '+(noWorkActive?'rgba(239,68,68,0.4)':'var(--border)')+';background:'+(noWorkActive?'rgba(239,68,68,0.08)':'transparent')+';color:'+(noWorkActive?'var(--danger)':'var(--text-muted)')+';cursor:pointer;font-weight:600">'+(noWorkActive?'Deactivate':'Activate')+'</button></div>'+
     '</div>'+
+    (function(){ var realShifts=shifts.filter(function(s){return !s.bonus;}); var drCount=(cd.dailyReports||[]).filter(function(r){return r.shiftRef&&r.shiftRef.hours;}).length; if(realShifts.length===0&&drCount>0) return '<div style="background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);border-radius:var(--radius-md);padding:0.75rem 1.1rem;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between"><div><div style="font-size:0.82rem;font-weight:600;color:#3B82F6">Shift data missing</div><div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.15rem">'+drCount+' daily report(s) with shift data found — recovery available</div></div><button onclick="recoverShiftsFromReports()" style="font-size:0.72rem;padding:0.35rem 0.9rem;border-radius:99px;border:1px solid #3B82F6;background:rgba(59,130,246,0.08);color:#3B82F6;cursor:pointer;font-weight:700;white-space:nowrap">Recover Shifts</button></div>'; return ''; })()+
     '<div class="card" style="margin-bottom:1rem"><div class="card-header"><span class="card-title">Sign In / Out Log</span><span style="font-size:0.72rem;color:var(--text-muted)">'+shifts.length+' session'+(shifts.length!==1?'s':'')+'</span></div><div class="card-body" style="padding:0">'+
       (shifts.length === 0 ? '<div class="empty-state"><div class="empty-state-text">No shifts logged yet.</div></div>' :
         '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:0.82rem"><thead><tr style="border-bottom:1px solid var(--border)">'+
@@ -3347,6 +3348,53 @@ function releaseShiftEarnings(dateKey) {
   renderStaff();
   if (typeof renderEarnings === 'function') renderEarnings();
   if (typeof renderShifts === 'function') renderShifts();
+}
+
+function recoverShiftsFromReports() {
+  if (currentUser !== BOSS_USERNAME) { toast('Only the manager can run recovery.'); return; }
+  var cd = _udCache['athanviloria'];
+  if (!cd) { toast('Staff data not loaded yet.'); return; }
+  var reports = cd.dailyReports || [];
+  var existing = cd.shifts || [];
+  var existingDates = {};
+  existing.forEach(function(s) { if (!s.bonus) existingDates[s.date] = true; });
+  var recovered = [];
+  var oldCutoff = new Date('2026-09-18T00:00:00');
+  reports.forEach(function(r) {
+    if (!r.shiftRef || !r.date) return;
+    if (existingDates[r.date]) return;
+    var h = Number(r.shiftRef.hours) || 0;
+    var d = new Date(r.date);
+    var rate = d < oldCutoff ? 105 : 120;
+    var dailyMin = d < oldCutoff ? 525 : 600;
+    var earned = h < MAX_SHIFT_HRS ? Math.round(h * rate * 100) / 100 : dailyMin;
+    var inTime = r.shiftRef.inTime || '—';
+    var outTime = r.shiftRef.outTime || '—';
+    var inISO = r.submittedAt ? new Date(new Date(r.submittedAt).getTime() - h * 3600000).toISOString() : '';
+    var outISO = r.submittedAt || '';
+    recovered.push({
+      date: r.date,
+      inTime: inTime,
+      outTime: outTime,
+      hours: Math.round(h * 100) / 100,
+      earned: earned,
+      overtime: false,
+      breakMins: 0,
+      inISO: inISO,
+      outISO: outISO,
+      device: r.shiftRef.device || null,
+      recovered: true
+    });
+  });
+  if (recovered.length === 0) { toast('No shifts to recover — daily reports have no new shift data.'); return; }
+  var merged = existing.concat(recovered);
+  merged.sort(function(a, b) { return new Date(b.inISO || b.date) - new Date(a.inISO || a.date); });
+  cd.shifts = merged;
+  _udCache['athanviloria'] = cd;
+  db.collection('users').doc('athanviloria').update({ shifts: merged }).catch(function(){});
+  toast('Recovered ' + recovered.length + ' shift(s) from daily reports.');
+  renderStaff();
+  refreshOverview();
 }
 
 function _getTodayPHT() {
