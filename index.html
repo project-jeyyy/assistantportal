@@ -1198,7 +1198,7 @@ const db = firebase.firestore();
 // =============================================
 // APP VERSION — auto-refresh stale browsers
 // =============================================
-const APP_VERSION = 11;
+const APP_VERSION = 12;
 (function() {
   db.collection('app').doc('version').onSnapshot(function(snap) {
     var remote = snap.exists ? snap.data().v : 0;
@@ -1995,7 +1995,7 @@ function toggleClock() {
   userData = getUserData(currentUser);
   if (!userData.clockedIn && _udCache['athanviloria'] && _udCache['athanviloria'].noWorkEnabled && currentUser !== BOSS_USERNAME && !managerAccessMode) {
     var _nwAutoMsg = !!(_udCache['athanviloria'] && _udCache['athanviloria'].noWorkAuto);
-    toast(_nwAutoMsg ? 'Outside working hours. Your shift window is weekdays 8 AM — 11 PM.' : 'No work today. Work has been suspended by your manager.');
+    toast(_nwAutoMsg ? 'Outside working hours. Your shift window is weekdays 9 AM — 1 AM.' : 'No work today. Work has been suspended by your manager.');
     return;
   }
   if (!userData.clockedIn) {
@@ -2061,7 +2061,7 @@ function refreshClockUI() {
     var nwText = document.getElementById('no-work-notice-text');
     var nwSub = document.getElementById('no-work-notice-sub');
     if (nwText) nwText.innerHTML = _nwAutoNotice ? '&#128338; Outside working hours' : '&#128683; No work today';
-    if (nwSub) nwSub.textContent = _nwAutoNotice ? 'Your shift window is weekdays 8 AM — 11 PM.' : 'Check Updates for details.';
+    if (nwSub) nwSub.textContent = _nwAutoNotice ? 'Your shift window is weekdays 9 AM — 1 AM.' : 'Check Updates for details.';
   }
   if (btn) {
     if (noWork) { var _nwAuto = !!(_udCache['athanviloria'] && _udCache['athanviloria'].noWorkAuto); btn.textContent = _nwAuto ? 'Outside Working Hours' : 'No Work Today'; btn.className = 'btn-clock'; btn.disabled = true; btn.style.opacity = '0.45'; }
@@ -2141,7 +2141,7 @@ function _isInsideWorkWindow() {
   var day = ph.getDay();
   if (day === 0 || day === 6) return false;
   var hour = ph.getHours();
-  return hour >= 8 && hour < 23;
+  return hour >= 9 || hour < 1;
 }
 
 function _checkAutoNoWork() {
