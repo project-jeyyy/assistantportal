@@ -1198,7 +1198,7 @@ const db = firebase.firestore();
 // =============================================
 // APP VERSION — auto-refresh stale browsers
 // =============================================
-const APP_VERSION = 13;
+const APP_VERSION = 14;
 (function() {
   db.collection('app').doc('version').onSnapshot(function(snap) {
     var remote = snap.exists ? snap.data().v : 0;
@@ -1480,6 +1480,8 @@ let currentUser       = null;
 let userData          = null;
 let clockStart        = null;
 let _shiftNotif       = { warn: false, done: false, over: false };
+let _breakAutoEnded   = false;
+let _breakWarnShown   = false;
 let managerAccessMode = false;
 let _accessLogPage    = 0;
 const ACCESS_LOG_PER_PAGE = 10;
@@ -1535,6 +1537,12 @@ window.addEventListener('DOMContentLoaded', async () => {
     await loadUserData(_expiredSession.username);
     const _expUd = getUserData(_expiredSession.username);
     if (_expUd && _expiredSession.username !== BOSS_USERNAME) {
+      // Auto-end break if session expired while on break
+      if (_expUd.onBreak && _expUd.breakStart) {
+        var _expBreakSecs = Math.min((Date.now() - new Date(_expUd.breakStart).getTime()) / 1000, 3600);
+        _expUd.totalBreakSecs = (_expUd.totalBreakSecs || 0) + _expBreakSecs;
+        _expUd.onBreak = false; _expUd.breakStart = null;
+      }
       const _expDev = getDeviceInfo();
       if (!_expUd.accessLog) _expUd.accessLog = [];
       _expUd.accessLog.unshift({ type:'SessionExpired', time:new Date().toISOString(), device:_expDev });
@@ -1550,7 +1558,21 @@ window.addEventListener('DOMContentLoaded', async () => {
     if (s.username === BOSS_USERNAME) await loadUserData('athanviloria');
     currentUser = s.username;
     userData = getUserData(currentUser);
-    if (userData.clockedIn && userData.clockIn) clockStart = new Date(userData.clockIn);
+    if (userData.clockedIn && userData.clockIn) {
+      clockStart = new Date(userData.clockIn);
+      // Restore break state — if user was on break when browser closed, auto-end if > 60 min
+      if (userData.onBreak && userData.breakStart) {
+        var _breakElapsed = (Date.now() - new Date(userData.breakStart).getTime()) / 1000;
+        if (_breakElapsed > 3600) {
+          // Break exceeded 60 min cap — auto-end it at 60 min
+          userData.totalBreakSecs = (userData.totalBreakSecs || 0) + 3600;
+          userData.onBreak = false; userData.breakStart = null;
+          setUserData(currentUser, userData);
+          addActivity('Break auto-ended (exceeded 60 min while away)');
+        }
+        // else: break is still valid, state persists and timer will resume
+      }
+    }
     if (currentUser !== BOSS_USERNAME) {
       const _restoreDev = getDeviceInfo();
       if (!userData.accessLog) userData.accessLog = [];
@@ -1611,7 +1633,23 @@ function updateElapsed() {
     const bd = Math.floor((Date.now() - new Date(ud.breakStart).getTime()) / 1000);
     const bm = Math.floor(bd/60), bs = bd%60;
     el.textContent = '☕ ' + pad(bm)+':'+pad(bs);
-    el.style.color = 'var(--warning)';
+    el.style.color = bd >= 3600 ? 'var(--danger)' : bd >= 1800 ? 'var(--warning)' : '';
+    // Auto-end break at 60 minutes
+    if (bd >= 3600 && !_breakAutoEnded) {
+      _breakAutoEnded = true;
+      ud.totalBreakSecs = (ud.totalBreakSecs || 0) + 3600;
+      ud.onBreak = false; ud.breakStart = null;
+      userData = ud; setUserData(currentUser, ud);
+      addActivity('Break auto-ended (60 min limit reached)');
+      toast('Break auto-ended after 60 minutes. You are back on shift.');
+      refreshClockUI();
+    }
+    // Warning at 30 minutes
+    if (bd >= 1800 && !_breakWarnShown) {
+      _breakWarnShown = true;
+      toast('Break reminder: 30 minutes reached. Max break is 60 minutes.');
+      if ('Notification' in window && Notification.permission === 'granted') new Notification('Break Reminder', { body: '30 minutes reached. Your break will auto-end at 60 minutes.' });
+    }
     return;
   }
   const workMs = getWorkMs();
@@ -2003,6 +2041,7 @@ function toggleClock() {
     const day = now.getDay();
     if (day===0||day===6) { toast('No clock-in on weekends — Monday to Friday only.'); return; }
     _shiftNotif = { warn:false, done:false, over:false };
+    _breakAutoEnded = false; _breakWarnShown = false;
     userData.clockedIn=true; userData.clockIn=now.toISOString();
     userData.clockDevice=getDeviceInfo();
     userData.onBreak=false; userData.breakStart=null; userData.totalBreakSecs=0;
@@ -2082,6 +2121,7 @@ function toggleBreak() {
   if (!userData.clockedIn) return;
   const now = new Date();
   if (!userData.onBreak) {
+    _breakAutoEnded = false; _breakWarnShown = false;
     userData.onBreak=true; userData.breakStart=now.toISOString();
     setUserData(currentUser,userData);
     addActivity('Started meal break');
