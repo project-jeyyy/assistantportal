@@ -12,7 +12,7 @@ This workspace is for verifying daily reports submitted by **Cyrel Athan A. Vilo
 
 ## YOUR JOB: DAILY REPORT VERIFICATION
 
-Every working day, Cyrel sends a daily report to **project.jeyyy@gmail.com** before **11:00 PM PH Time.**
+Every working day, Cyrel sends a daily report to **project.jeyyy@gmail.com** before **1:00 AM PH Time.**
 
 Your task is to:
 1. Check Gmail for Cyrel's latest daily report email
@@ -65,7 +65,7 @@ If the report is INCOMPLETE, clearly state what is missing so Jey can follow up 
 
 - Never reply to Cyrel's email without Jey's explicit approval.
 - Never mark a report as complete if any required item is missing.
-- Always check the timestamp — reports received after 11:00 PM PH Time are late.
+- Always check the timestamp — reports received after 1:00 AM PH Time are late.
 - If no report is found for the day, flag it immediately: NO REPORT SUBMITTED.
 - All findings go to Jey for review. Do not take action on Cyrel's behalf.
 

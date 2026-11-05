@@ -8,7 +8,7 @@
 
 - [ ] Email received — An email from athanviloria@gmail.com exists for today
 - [ ] Correct subject line — Format: Daily Report — Cyrel Athan Viloria — [Date]
-- [ ] Submitted on time — Email timestamp is on or before 11:00 PM PH Time
+- [ ] Submitted on time — Email timestamp is on or before 1:00 AM PH Time
 - [ ] Sent to correct address — Sent to project.jeyyy@gmail.com
 
 ---
@@ -68,7 +68,7 @@ NOTE: Reports missing either screenshot are INCOMPLETE regardless of other secti
 ## AUTOMATIC FAIL CONDITIONS
 
 - No email received from Cyrel for the day
-- Email received after 11:00 PM PH Time
+- Email received after 1:00 AM PH Time
 - Login or logout screenshot is missing
 - Work summary has no client entries or contains placeholder text
 - Any section is entirely blank or missing
