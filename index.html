@@ -2038,8 +2038,8 @@ function toggleClock() {
   }
   if (!userData.clockedIn) {
     const now = new Date();
-    const day = now.getDay();
-    if (day===0||day===6) { toast('No clock-in on weekends — Monday to Friday only.'); return; }
+    const phDay = _getPHTime().getDay();
+    if (phDay===0||(phDay===6&&_getPHTime().getHours()>=1)) { toast('No clock-in on weekends — Monday to Friday only.'); return; }
     _shiftNotif = { warn:false, done:false, over:false };
     _breakAutoEnded = false; _breakWarnShown = false;
     userData.clockedIn=true; userData.clockIn=now.toISOString();
@@ -2179,8 +2179,9 @@ function _getPHTime() {
 function _isInsideWorkWindow() {
   var ph = _getPHTime();
   var day = ph.getDay();
-  if (day === 0 || day === 6) return false;
   var hour = ph.getHours();
+  if (day === 0) return false;
+  if (day === 6) return hour < 1;
   return hour >= 9 || hour < 1;
 }
 
