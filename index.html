@@ -2059,7 +2059,7 @@ function toggleClock() {
     const totalMs=now-inT;
     const workedMs=Math.max(0,totalMs-(userData.totalBreakSecs||0)*1000);
     const hrs=workedMs/3600000;
-    const rate=userData.hourlyRate||0;
+    const rate=userData.hourlyRate||120;
     const todayStrCO = new Date(inT.toLocaleString('en-US', { timeZone: 'Asia/Manila' })).toLocaleDateString('en-US');
     const otAuthCO = _udCache['athanviloria'] && _udCache['athanviloria'].overtimeAuthDate === todayStrCO;
     const prevTodayShifts = (userData.shifts||[]).filter(s=>s.date===todayStrCO);
@@ -2377,7 +2377,7 @@ function _renderStaffOverview() {
   const now = new Date();
   const todayKey = _getTodayPHT();
   const monthKey = now.getMonth()+'-'+now.getFullYear();
-  const rate = userData.hourlyRate || 0;
+  const rate = userData.hourlyRate || 120;
 
   const owned = MASTER_CLIENTS.filter(c => c.owned);
   let completed = 0;
@@ -4229,7 +4229,7 @@ function saveRate() {
 
 function renderEarnings() {
   userData = getUserData(currentUser);
-  const rate = userData.hourlyRate||0;
+  const rate = userData.hourlyRate||120;
   document.getElementById('hourly-rate').value = rate!=null&&rate!==''?rate:120;
   const allShifts = userData.shifts||[];
   const shifts = allShifts.filter(s=>_shiftDay(s)>=WORK_START);
@@ -4265,7 +4265,7 @@ function renderEarnings() {
 function renderShifts() {
   userData = getUserData(currentUser);
   const shifts = userData.shifts||[];
-  const rate = userData.hourlyRate||0;
+  const rate = userData.hourlyRate||120;
   const el = document.getElementById('shift-log-body');
   if (shifts.length===0) { el.innerHTML='<div class="empty-state"><div class="empty-state-text">No shifts logged yet.</div></div>'; return; }
   const totalPages = Math.max(1, Math.ceil(shifts.length / SHIFTS_PER_PAGE));
