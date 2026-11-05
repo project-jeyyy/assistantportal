@@ -1279,7 +1279,7 @@ function _normalizeUserData(d) {
     if (s.breakMins !== undefined) s.breakMins = Math.round(Number(s.breakMins) || 0);
     return s;
   });
-  if (d.hourlyRate !== undefined) d.hourlyRate = Number(d.hourlyRate) || 0;
+  if (d.hourlyRate !== undefined) d.hourlyRate = Number(d.hourlyRate) || 120;
   return d;
 }
 
@@ -1358,9 +1358,10 @@ async function loadUserData(username) {
     MASTER_CLIENTS.forEach(function(mc) {
       if (!mc.reconStatus) return;
       var existing = _accts[mc.name];
-      if (existing && (!existing.overallStatus || existing.overallStatus === 'Not Yet Started') && mc.reconStatus !== existing.overallStatus) {
-        existing.overallStatus = mc.reconStatus;
-        _statusSynced = true;
+      if (existing && mc.reconStatus !== existing.overallStatus) {
+        var _shouldSync = !existing.overallStatus || existing.overallStatus === 'Not Yet Started';
+        if (mc.reconStatus === 'Closed' && (existing.overallStatus === 'Completed' || existing.overallStatus === 'In Process' || existing.overallStatus === 'Not Yet Started' || !existing.overallStatus)) _shouldSync = true;
+        if (_shouldSync) { existing.overallStatus = mc.reconStatus; _statusSynced = true; }
       }
     });
     if (_statusSynced) {
@@ -2056,7 +2057,7 @@ function toggleClock() {
     const now = new Date();
     const inT = new Date(userData.clockIn);
     if (userData.onBreak && userData.breakStart) {
-      userData.totalBreakSecs=(userData.totalBreakSecs||0)+(now-new Date(userData.breakStart))/1000;
+      userData.totalBreakSecs=(userData.totalBreakSecs||0)+Math.min((now-new Date(userData.breakStart))/1000,3600);
       userData.onBreak=false; userData.breakStart=null;
     }
     const totalMs=now-inT;
