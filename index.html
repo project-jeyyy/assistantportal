@@ -3455,7 +3455,7 @@ function creditRemainingHours() {
     dayTotals[key] += Number(s.hours) || 0;
   });
   var credits = [];
-  var rate = 120;
+  var rate = cd.hourlyRate || 120;
   Object.keys(dayTotals).forEach(function(dateKey) {
     var worked = dayTotals[dateKey];
     if (worked >= MAX_SHIFT_HRS) return;
