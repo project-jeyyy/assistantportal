@@ -35,7 +35,7 @@ export default {
   async fetch(request, env) {
     const origin = request.headers.get('Origin') || '';
     const allowedOrigin = env.ALLOWED_ORIGIN || 'https://project-jeyyy.github.io';
-    const corsOrigin = origin === allowedOrigin || origin === 'http://localhost:3000' ? origin : allowedOrigin;
+    const corsOrigin = origin === allowedOrigin ? origin : allowedOrigin;
 
     const corsHeaders = {
       'Access-Control-Allow-Origin': corsOrigin,
@@ -55,6 +55,28 @@ export default {
       });
     }
 
+    const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+    const now = Date.now();
+    if (!globalThis._rl) globalThis._rl = {};
+    const entry = globalThis._rl[ip] || { count: 0, start: now };
+    if (now - entry.start > 60000) { entry.count = 0; entry.start = now; }
+    entry.count++;
+    globalThis._rl[ip] = entry;
+    if (entry.count > 10) {
+      return new Response(JSON.stringify({ error: 'Too many requests. Please wait a moment.' }), {
+        status: 429,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const contentLength = parseInt(request.headers.get('Content-Length') || '0', 10);
+    if (contentLength > 50000) {
+      return new Response(JSON.stringify({ error: 'Request too large' }), {
+        status: 413,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     try {
       const body = await request.json();
       const messages = body.messages;
@@ -66,10 +88,26 @@ export default {
         });
       }
 
-      const cleaned = messages.slice(-20).map(m => ({
+      const raw = messages.slice(-20).map(m => ({
         role: m.role === 'user' ? 'user' : 'assistant',
         content: String(m.content || '').slice(0, 2000),
       }));
+
+      const cleaned = [];
+      for (const m of raw) {
+        if (cleaned.length > 0 && cleaned[cleaned.length - 1].role === m.role) {
+          cleaned[cleaned.length - 1].content += '\n' + m.content;
+        } else {
+          cleaned.push(m);
+        }
+      }
+      while (cleaned.length > 0 && cleaned[0].role !== 'user') cleaned.shift();
+      if (cleaned.length === 0) {
+        return new Response(JSON.stringify({ error: 'At least one user message is required' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
 
       const apiRes = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
