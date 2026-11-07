@@ -1198,12 +1198,12 @@ const db = firebase.firestore();
 // =============================================
 // APP VERSION — auto-refresh stale browsers
 // =============================================
-const APP_VERSION = 21;
+const APP_VERSION = 22;
 (function() {
   db.collection('app').doc('version').onSnapshot(function(snap) {
     var remote = snap.exists ? snap.data().v : 0;
     if (remote > APP_VERSION) location.reload();
-    if (APP_VERSION > remote) db.collection('app').doc('version').set({ v: APP_VERSION }).catch(function(){});
+    if (remote < APP_VERSION) db.collection('app').doc('version').set({ v: APP_VERSION }).catch(function(){});
   }, function(){});
 })();
 
@@ -1250,7 +1250,8 @@ const SEED_UPDATES = [
   { id:'seed-ace-12', date:'October 3, 2026', type:'Feature', priority:'Medium', msg:'New Feature: Close Month Button (Manager Only)\n\nJey now has a "Close Month" button in the Clients toolbar. At the end of each bookkeeping month, clicking it will:\n\n• Archive all current client progress (tasks, statuses, notes)\n• Reset all 108 clients to "Not Yet Started" for the next month\n• Automatically advance the active month\n• Post an announcement to keep you informed\n\nArchived months remain accessible via the month dropdown in the Clients toolbar. No code changes are needed for future month-end resets. — Ace, AI Work Assistant', notified:true },
   { id:'seed-ace-13', date:'November 4, 2026', type:'Announcement', priority:'High', msg:'Schedule Update — US Standard Time Adjustment\n\nYour working hours have been adjusted for US Standard Time (effective November 3, 2026).\n\n• New shift window: Weekdays 9:00 AM — 1:00 AM PH Time (next day)\n• Previous window was 8:00 AM — 11:00 PM PH Time\n• This aligns with Jey\'s 9 AM — 5 PM Pacific Standard Time schedule\n• Auto No Work Mode now activates outside the new 9 AM — 1 AM window\n• Daily report deadline is now 1:00 AM PH Time (was 11:00 PM)\n• If you\'re mid-shift when 1 AM arrives, your active shift is not interrupted\n\nPlease adjust your schedule accordingly. — Ace, AI Work Assistant', notified:true, requireAck:true },
   { id:'seed-ace-14', date:'November 4, 2026', type:'Feature', priority:'High', msg:'Improvement: Meal Break System\n\nThe meal break feature has been improved to prevent issues with lost break time.\n\n• Break timer now persists if you close or refresh your browser — it picks up where you left off\n• Breaks are capped at 60 minutes maximum\n• You will receive a reminder at 30 minutes into your break\n• If your break reaches 60 minutes, it will automatically end and return you to your shift\n• If your session expires while on break, your break time is still recorded (up to 60 min)\n\nThese changes prevent the issue where closing the portal during a break caused break time to be lost. — Ace, AI Work Assistant', notified:true },
-  { id:'seed-ace-15', date:'November 4, 2026', type:'Announcement', priority:'Normal', msg:'Client Tab Reset — October Closing\n\nSeptember books are now archived. All client accounts have been reset for October closing.\n\n• All 110 clients have been reset to "Not Yet Started"\n• Your Clients tab now shows October as the active month\n• Begin working on your assigned client accounts for October closing\n\nPlease acknowledge this update. — Ace, AI Work Assistant', notified:true, requireAck:true }
+  { id:'seed-ace-15', date:'November 4, 2026', type:'Announcement', priority:'Normal', msg:'Client Tab Reset — October Closing\n\nSeptember books are now archived. All client accounts have been reset for October closing.\n\n• All 110 clients have been reset to "Not Yet Started"\n• Your Clients tab now shows October as the active month\n• Begin working on your assigned client accounts for October closing\n\nPlease acknowledge this update. — Ace, AI Work Assistant', notified:true, requireAck:true },
+  { id:'seed-ace-16', date:'November 7, 2026', type:'Feature', priority:'Normal', msg:'Bug Fixes — Portal v22\n\nSeveral behind-the-scenes fixes have been applied to improve accuracy:\n\n• Meal break duration is now consistently capped at 60 minutes across all end-break paths\n• Overtime authorization now uses Philippine Time consistently, so cross-timezone approval works correctly\n• Minor stability improvements\n\nNo action needed on your end. — Ace, AI Work Assistant', notified:true }
 ];
 const SEED_PAYSLIPS = [
   { id:'ps-0001', number:'#0001', periodStart:'2026-08-12', periodEnd:'2026-08-20', totalHours:21.25, grossPay:1806.70, heldAmount:0, netPay:1806.70, status:'paid', paymentMethod:'gcash', paymentRef:'GCash Transfer — Aug 20, 2026', generatedAt:'2026-08-20T02:55:18Z', approvedAt:'2026-08-20T03:36:41Z', finalizedAt:'2026-08-20T14:35:14Z', paidAt:'2026-08-20T14:35:14Z', payReceived:true, payReceivedAt:'2026-08-20T14:42:12Z' },
@@ -1669,7 +1670,7 @@ function updateElapsed() {
   if (workMs >= WARN_MS  && !_shiftNotif.warn) { _shiftNotif.warn = true; _shiftNotify('15 minutes left', 'You have 15 minutes remaining on your 5-hour shift.'); }
   if (workMs >= SHIFT_MS && !_shiftNotif.done) { _shiftNotif.done = true; _shiftNotify('Shift Complete!', "You've reached 5 hours. Don't forget to clock out."); }
   if (workMs >= SHIFT_MS + 300000 && !_shiftNotif.over) {
-    const todayStr = new Date().toLocaleDateString('en-US');
+    const todayStr = _getTodayPHT();
     const overtimeAuth = _udCache['athanviloria'] && _udCache['athanviloria'].overtimeAuthDate === todayStr;
     if (!overtimeAuth) { _shiftNotif.over = true; _shiftNotify('Shift Exceeded', "You've gone past 5 hours. No additional pay for overtime."); }
   }
@@ -2135,7 +2136,7 @@ function toggleBreak() {
   } else {
     const bs = new Date(userData.breakStart);
     const breakSecs = (now-bs)/1000;
-    userData.totalBreakSecs = (userData.totalBreakSecs||0)+breakSecs;
+    userData.totalBreakSecs = (userData.totalBreakSecs||0)+Math.min(breakSecs,3600);
     userData.onBreak=false; userData.breakStart=null;
     setUserData(currentUser,userData);
     const mins = Math.round(breakSecs/60);
@@ -2157,7 +2158,7 @@ function addActivity(msg) {
 // OVERTIME / NO WORK
 // =============================================
 function toggleOvertimeAuth() {
-  const todayStr = new Date().toLocaleDateString('en-US');
+  const todayStr = _getTodayPHT();
   const cd = _udCache['athanviloria'] || {};
   const authorized = cd.overtimeAuthDate === todayStr;
   const newVal = authorized ? '' : todayStr;
@@ -2466,7 +2467,7 @@ function renderStaff() {
   const heldCountBoss = shifts.filter(s => _isShiftHeld(s)).length;
   const totalEarnedNet = shifts.filter(s => !_isShiftHeld(s)).reduce((a,s) => a+ppCalcE(s), 0);
 
-  const todayStr = new Date().toLocaleDateString('en-US');
+  const todayStr = _getTodayPHT();
   const authDate = cd.overtimeAuthDate;
   const authorized = authDate === todayStr;
   const noWorkActive = !!cd.noWorkEnabled;
