@@ -1198,7 +1198,7 @@ const db = firebase.firestore();
 // =============================================
 // APP VERSION — auto-refresh stale browsers
 // =============================================
-const APP_VERSION = 20;
+const APP_VERSION = 21;
 (function() {
   db.collection('app').doc('version').onSnapshot(function(snap) {
     var remote = snap.exists ? snap.data().v : 0;
@@ -1923,6 +1923,8 @@ function enterApp() {
   if (isBoss) accountTab = 'all';
   const postCard = document.getElementById('post-update-card');
   if (postCard) postCard.classList.toggle('hidden', !isBoss);
+  var aceFab = document.getElementById('ace-fab');
+  if (aceFab) aceFab.style.display = (isBoss && !managerAccessMode) ? 'none' : '';
   const managerBanner = document.getElementById('manager-access-banner');
   if (managerBanner) managerBanner.style.display = managerAccessMode ? 'flex' : 'none';
   if (currentUser !== BOSS_USERNAME && !managerAccessMode) {
@@ -4490,7 +4492,14 @@ function _aceCreateUI() {
 
   _aceAddMsg('system', 'Hi! I\'m Ace, your AI work assistant. Ask me anything about the portal, clients, bookkeeping, or workflow.');
 
-  _aceLastSyncIdx = 0;
+  _aceMessages = [];
+  for (var i = 0; i < _chatLogs.length; i++) {
+    var m = _chatLogs[i];
+    if (m.role === 'user' || m.role === 'assistant') {
+      _aceMessages.push({ role: m.role, content: m.text });
+    }
+  }
+  _aceLastSyncIdx = _chatLogs.length;
 }
 
 function _aceSyncBossReplies() {
@@ -4573,17 +4582,23 @@ async function _aceSend() {
 
   var replyText;
   try {
+    var _ctrl = new AbortController();
+    var _to = setTimeout(function() { _ctrl.abort(); }, 15000);
     var res = await fetch(ACE_WORKER_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ messages: _aceMessages.slice(-20) }),
+      signal: _ctrl.signal,
     });
+    clearTimeout(_to);
     if (!res.ok) throw new Error('status ' + res.status);
     var data = await res.json();
     replyText = data.reply || 'Sorry, I could not generate a response.';
   } catch (err) {
     console.error('Ace error:', err);
-    replyText = 'I\'m having trouble connecting right now. Please try again in a moment.';
+    replyText = err.name === 'AbortError'
+      ? 'Response took too long. Please try again.'
+      : 'I\'m having trouble connecting right now. Please try again in a moment.';
   }
 
   _aceRemoveTyping();
