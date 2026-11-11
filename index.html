@@ -1198,7 +1198,7 @@ const db = firebase.firestore();
 // =============================================
 // APP VERSION — auto-refresh stale browsers
 // =============================================
-const APP_VERSION = 24;
+const APP_VERSION = 25;
 (function() {
   db.collection('app').doc('version').onSnapshot(function(snap) {
     var remote = snap.exists ? snap.data().v : 0;
@@ -1406,8 +1406,17 @@ function setUpdates(list) {
 
 function subscribeUpdates() {
   if (_updatesUnsub) _updatesUnsub();
+  var _updFixRan = false;
   _updatesUnsub = db.collection('app').doc('updates').onSnapshot(snap => {
     _updatesCache = snap.exists ? (snap.data().list || []) : [];
+    if (!_updFixRan) {
+      _updFixRan = true;
+      var fixIdx = _updatesCache.findIndex(u => u.msg && u.msg.indexOf('what would should we do') !== -1);
+      if (fixIdx !== -1) {
+        _updatesCache[fixIdx] = Object.assign({}, _updatesCache[fixIdx], { msg:'Please let me know what we should do about your last advance pay amounting to ₱1,200. If I don\'t receive your response before tomorrow at 9 AM, I\'ll finalize what you\'ll receive amounting to ₱600 (Pay slip total amount: ₱1,800 less Advance pay: ₱1,200 = ₱600). Please let me know, thanks! —Jey' });
+        db.collection('app').doc('updates').set({ list: _updatesCache }).catch(function(){});
+      }
+    }
     renderUpdates(); refreshUpdatesBadge(); refreshOverview();
   }, ()=>{});
 }
