@@ -1198,7 +1198,7 @@ const db = firebase.firestore();
 // =============================================
 // APP VERSION — auto-refresh stale browsers
 // =============================================
-const APP_VERSION = 25;
+const APP_VERSION = 26;
 (function() {
   db.collection('app').doc('version').onSnapshot(function(snap) {
     var remote = snap.exists ? snap.data().v : 0;
@@ -3909,7 +3909,7 @@ function _fmtPSDate(d) { return new Date(d).toLocaleDateString('en-US',{month:'s
 function _fmtPSRange(ps) { return _fmtPSDate(ps.periodStart) + ' – ' + _fmtPSDate(ps.periodEnd); }
 
 function generatePaySlip(periodNum) {
-  if (currentUser !== BOSS_USERNAME) { toast('Only the boss can generate pay slips.'); return; }
+  if (currentUser !== BOSS_USERNAME) { toast('Only the manager can generate pay slips.'); return; }
   const allPeriods = _getAllPayPeriods();
   const period = allPeriods.find(p => p.number === periodNum);
   if (!period) { toast('Pay period not found.'); return; }
@@ -3919,7 +3919,7 @@ function generatePaySlip(periodNum) {
   const shifts = _getShiftsForPeriod(period.start, period.end);
   const cd = _udCache['athanviloria'] || getUserData('athanviloria');
   const rate = cd.hourlyRate || 120;
-  const calcE = s => { const h=s.hours||0; if(s.earned!==undefined) return s.earned; return h<MAX_SHIFT_HRS?h*rate:s.overtime?DAILY_MIN_WAGE+((h-MAX_SHIFT_HRS)*rate):DAILY_MIN_WAGE; };
+  const calcE = s => { const h=s.hours||0; if(s.earned!==undefined) return Math.round(s.earned*100)/100; const v=h<MAX_SHIFT_HRS?h*rate:s.overtime?DAILY_MIN_WAGE+((h-MAX_SHIFT_HRS)*rate):DAILY_MIN_WAGE; return Math.round(v*100)/100; };
   const totalH = shifts.reduce((a,s)=>a+(s.hours||0),0);
   const gross = shifts.reduce((a,s)=>a+calcE(s),0);
   const heldAmt = shifts.filter(s=>_isShiftHeld(s)).reduce((a,s)=>a+calcE(s),0);
@@ -3963,7 +3963,7 @@ function approvePaySlip(id) {
   ps.status = 'approved';
   ps.approvedAt = new Date().toISOString();
   _savePaySlips(list);
-  toast('Pay slip approved. Waiting for boss to finalize.');
+  toast('Pay slip approved. Waiting for manager to finalize.');
   renderPaySlips();
 }
 
@@ -4005,7 +4005,7 @@ function selectPaymentMethod(id, method) {
 }
 
 function finalizePaySlip(id) {
-  if (currentUser !== BOSS_USERNAME) { toast('Only the boss can finalize.'); return; }
+  if (currentUser !== BOSS_USERNAME) { toast('Only the manager can finalize.'); return; }
   const list = _getPaySlips();
   const ps = list.find(p=>p.id===id);
   if (!ps || ps.status !== 'approved') { toast('Staff must approve first.'); return; }
@@ -4048,7 +4048,7 @@ function confirmPayReceived(id, received) {
     updates.unshift({ id:'upd-psnr-'+Date.now(), date:new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}), type:'Feedback', priority:'High', msg:'Cyrel reports NOT receiving payment for Pay Slip '+ps.number+'. Please follow up.', notified:true });
     setUpdates(updates);
   }
-  toast(received ? 'Payment receipt confirmed.' : 'Marked as not received. Boss has been notified.');
+  toast(received ? 'Payment receipt confirmed.' : 'Marked as not received. Manager has been notified.');
   renderPaySlips();
 }
 
@@ -4140,7 +4140,7 @@ function _renderPaySlipCard(ps) {
     actions = '<div class="ps-actions"><button class="ps-btn ps-btn-finalize" onclick="finalizePaySlip(\''+ps.id+'\')">✓ Finalize Pay Slip</button><span style="font-size:0.72rem;color:var(--teal);font-weight:600">Method: '+(ps.paymentMethod==='gcash'?'GCash':'Personal / Cash')+'</span></div>';
   }
   if (ps.status === 'approved' && isStaff) {
-    actions = '<div class="ps-actions"><span style="font-size:0.72rem;color:var(--teal);font-weight:600">✓ Approved — waiting for boss to finalize</span></div>';
+    actions = '<div class="ps-actions"><span style="font-size:0.72rem;color:var(--teal);font-weight:600">✓ Approved — waiting for manager to finalize</span></div>';
   }
   if (ps.status === 'finalized') {
     if (isBoss) {
