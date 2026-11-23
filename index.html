@@ -1162,7 +1162,7 @@ function getPayPeriod() {
 }
 const OVERALL_STATUS_OPTS = ['Not Yet Started','In Process','Completed','Closed'];
 const BOSS_REVIEWED = new Set([]);
-const CURRENT_CLIENT_MONTH = 'October';
+const CURRENT_CLIENT_MONTH = 'November';
 const TASK_TYPES = [
   'Bookkeeping - Regular Transactions Categorization',
   'Bookkeeping - Check Categorization',
@@ -1197,7 +1197,7 @@ const db = firebase.firestore();
 // =============================================
 // APP VERSION — auto-refresh stale browsers
 // =============================================
-const APP_VERSION = 27;
+const APP_VERSION = 28;
 (function() {
   db.collection('app').doc('version').onSnapshot(function(snap) {
     var remote = snap.exists ? snap.data().v : 0;
@@ -1358,10 +1358,9 @@ async function loadUserData(username) {
     MASTER_CLIENTS.forEach(function(mc) {
       if (!mc.reconStatus) return;
       var existing = _accts[mc.name];
-      if (existing && mc.reconStatus !== existing.overallStatus) {
-        var _shouldSync = !existing.overallStatus || existing.overallStatus === 'Not Yet Started';
-        if (mc.reconStatus === 'Closed' && (existing.overallStatus === 'Completed' || existing.overallStatus === 'In Process' || existing.overallStatus === 'Not Yet Started' || !existing.overallStatus)) _shouldSync = true;
-        if (_shouldSync) { existing.overallStatus = mc.reconStatus; _statusSynced = true; }
+      if (existing && !existing.overallStatus && mc.reconStatus !== 'Closed') {
+        existing.overallStatus = mc.reconStatus;
+        _statusSynced = true;
       }
     });
     if (_statusSynced) {
