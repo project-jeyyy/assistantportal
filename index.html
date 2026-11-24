@@ -1197,7 +1197,7 @@ const db = firebase.firestore();
 // =============================================
 // APP VERSION — auto-refresh stale browsers
 // =============================================
-const APP_VERSION = 29;
+const APP_VERSION = 30;
 (function() {
   db.collection('app').doc('version').onSnapshot(function(snap) {
     var remote = snap.exists ? snap.data().v : 0;
@@ -1353,18 +1353,20 @@ async function loadUserData(username) {
       _udCache[username].activeClientMonth = CURRENT_CLIENT_MONTH + '-2026';
       db.collection('users').doc(username).update({ activeClientMonth: CURRENT_CLIENT_MONTH + '-2026' }).catch(function(){});
     }
-    var _accts = _udCache[username].accounts || {};
-    var _novFixDone = false;
-    MASTER_CLIENTS.forEach(function(mc) {
-      var existing = _accts[mc.name];
-      if (existing && existing.overallStatus === 'Closed' && mc.reconStatus === 'Closed') {
-        var hasTasks = existing.tasks && existing.tasks.length > 0 && existing.tasks.some(function(t){ return t.progress && t.progress !== 'Not Yet Started'; });
-        if (!hasTasks) { existing.overallStatus = ''; _novFixDone = true; }
+    if (username === 'athanviloria') {
+      var _accts = _udCache[username].accounts || {};
+      var _cleanDone = false;
+      MASTER_CLIENTS.forEach(function(mc) {
+        var ex = _accts[mc.name];
+        if (ex && ex.overallStatus === 'Closed' && mc.reconStatus === 'Closed') {
+          var hasTasks = ex.tasks && ex.tasks.length > 0 && ex.tasks.some(function(t){ return t.progress && t.progress !== 'Not Yet Started'; });
+          if (!hasTasks) { ex.overallStatus = ''; _cleanDone = true; }
+        }
+      });
+      if (_cleanDone) {
+        _udCache[username].accounts = _accts;
+        db.collection('users').doc(username).update({ accounts: _accts }).catch(function(){});
       }
-    });
-    if (_novFixDone) {
-      _udCache[username].accounts = _accts;
-      db.collection('users').doc(username).update({ accounts: _accts }).catch(function(){});
     }
   } catch { _udCache[username] = def; }
   return _udCache[username];
@@ -1471,8 +1473,8 @@ function getClientData(username, clientName) {
   if (!ud.accounts) ud.accounts = {};
   if (!ud.accounts[clientName]) {
     const mc = MASTER_CLIENTS.find(c => c.name === clientName);
-    let seedStatus = (mc && mc.reconStatus) || '';
-    if (BOSS_REVIEWED.has(clientName) && seedStatus !== 'Closed') seedStatus = 'Completed';
+    let seedStatus = '';
+    if (BOSS_REVIEWED.has(clientName)) seedStatus = 'Completed';
     ud.accounts[clientName] = { month:_getActiveMonthName(), tasks:[], issues:'', comments:'', flagged:false, overallStatus:seedStatus };
   }
   return ud.accounts[clientName];
@@ -2332,7 +2334,7 @@ function _renderBossOverview() {
       var allCompleted=0, allInProcess=0, allNotStarted=0;
       MASTER_CLIENTS.forEach(function(mc){
         var cd = accts[mc.name];
-        var st = cd ? (cd.overallStatus||'') : (mc.reconStatus||'');
+        var st = cd ? (cd.overallStatus||'') : '';
         if (st==='Completed'||st==='Closed') allCompleted++;
         else if (st==='In Process') allInProcess++;
         else allNotStarted++;
@@ -2345,7 +2347,7 @@ function _renderBossOverview() {
         var done=0, inProc=0, notStart=0;
         cls.forEach(function(mc){
           var cd = accts[mc.name];
-          var st = cd ? (cd.overallStatus||'') : (mc.reconStatus||'');
+          var st = cd ? (cd.overallStatus||'') : '';
           if (st==='Completed'||st==='Closed') done++;
           else if (st==='In Process') inProc++;
           else notStart++;
